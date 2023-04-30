@@ -31,51 +31,50 @@ def parse_metadata(lines: List[str]) -> Metadata:
     except Exception as e:
         raise ValueError(f"Failed to parse metadata: {str(e)}\nMetadata text:\n{metadata_text}")
 
+def find_metadata_lines(lines: List[str], content_start: int) -> Tuple[List[str], List[str]]:
+    end_of_content = len(lines) - 1
+    for i in range(len(lines) - 1, content_start, -1):
+        if lines[i].startswith("```"):
+            end_of_content = i
+            break
+    content_lines = lines[content_start:end_of_content]
+    metadata_lines = lines[end_of_content + 1:]
+    return content_lines, metadata_lines
 
-class ActionParser:
 
-    def __init__(self, prefix: str, parser: Callable[[str, List[str]], actions.Action]):
-        self.prefix = prefix
-        self.parser = parser
-
-    def parse(self, first_line: str, lines: List[str]) -> Optional[actions.Action]:
-        if first_line.startswith(self.prefix):
-            return self.parser(first_line, lines)
-        return None
-
-def write_file_action_parser(first_line: str, lines: List[str]) -> actions.WriteFileAction:
+def write_file_action_parser(first_line: str, lines: List[str]) -> Tuple[actions.WriteFileAction, List[str]]:
     path = first_line[len(WRITE_FILE_PREFIX):].strip()
-    content = "\n".join(lines[2:-1]).strip()
-    return actions.WriteFileAction(path=path, content=content)
-
-def extract_info_action_parser(first_line: str, _: List[str]) -> actions.ExtractInfoAction:
-    parts = first_line[len(EXTRACT_INFO_PREFIX):].strip().split(",", 1)
-    url = parts[0].strip().strip('"')
-    instructions = parts[1].strip()
-    return actions.ExtractInfoAction(url, instructions)
+    content_lines, metadata_lines = find_metadata_lines(lines, 2)
+    content_str = "\n".join(content_lines)
+    action = actions.WriteFileAction(path=path, content=content_str)
+    return action, metadata_lines
 
 action_parsers = [
-    ActionParser(TELL_USER_PREFIX, lambda line, _: actions.TellUserAction(line[len(TELL_USER_PREFIX):].strip())),
-    ActionParser(READ_FILE_PREFIX, lambda line, _: actions.ReadFileAction(line[len(READ_FILE_PREFIX):].strip())),
-    ActionParser(WRITE_FILE_PREFIX, write_file_action_parser),
-    ActionParser(RUN_PYTHON_PREFIX, lambda line, _: actions.RunPythonAction(line[len(RUN_PYTHON_PREFIX):].strip())),
-    ActionParser(SEARCH_ONLINE_PREFIX, lambda line, _: actions.SearchOnlineAction(line[len(SEARCH_ONLINE_PREFIX):].strip())),
-    ActionParser(EXTRACT_INFO_PREFIX, extract_info_action_parser),
-    ActionParser(SHUTDOWN_PREFIX, lambda _, __: actions.ShutdownAction()),
+    (TELL_USER_PREFIX, lambda line, _: (actions.TellUserAction(line[len(TELL_USER_PREFIX):].strip()), [])),
+    (READ_FILE_PREFIX, lambda line, _: (actions.ReadFileAction(line[len(READ_FILE_PREFIX):].strip()), [])),
+    (WRITE_FILE_PREFIX, write_file_action_parser),
+    (RUN_PYTHON_PREFIX, lambda line, _: (actions.RunPythonAction(line[len(RUN_PYTHON_PREFIX):].strip()), [])),
+    (SEARCH_ONLINE_PREFIX, lambda line, _: (actions.SearchOnlineAction(line[len(SEARCH_ONLINE_PREFIX):].strip()), [])),
+    (EXTRACT_INFO_PREFIX, lambda line, _: (actions.ExtractInfoAction(line[len(EXTRACT_INFO_PREFIX):].strip().split(",", 1)), [])),
+    (SHUTDOWN_PREFIX, lambda _, __: (actions.ShutdownAction(), [])),
 ]
 
-def parse_action(first_line: str, lines: List[str]) -> actions.Action:
-    for parser in action_parsers:
-        action = parser.parse(first_line, lines)
-        if action is not None:
-            return action
+def parse_action(first_line: str, lines: List[str]) -> Tuple[actions.Action, List[str]]:
+    for prefix, parser in action_parsers:
+        if first_line.startswith(prefix):
+            return parser(first_line, lines)
     raise ValueError(f"Unknown action type in response: {first_line}")
 
 def parse(text: str) -> Tuple[actions.Action, Metadata]:
     if not text:
         raise ValueError("Empty input received. Cannot parse.")
     lines = text.splitlines()
-    action = parse_action(lines[0], lines)
-    print(actions, lines)
-    metadata = parse_metadata(lines[1:])
+    action, metadata_lines = parse_action(lines[0], lines)
+    print("Metadata lines:", metadata_lines)  # Add this line to print metadata_lines
+
+    if not metadata_lines:
+        raise ValueError("Missing metadata in the response.")
+
+    metadata = parse_metadata(metadata_lines)
     return action, metadata
+
