@@ -70,11 +70,13 @@ def parse(text: str) -> Tuple[actions.Action, Metadata]:
         raise ValueError("Empty input received. Cannot parse.")
     lines = text.splitlines()
     action, metadata_lines = parse_action(lines[0], lines)
-    print("Metadata lines:", metadata_lines)  # Add this line to print metadata_lines
+    print("Text:", text)
 
     if not metadata_lines:
-        raise ValueError("Missing metadata in the response.")
+        metadata = Metadata(reason="", plan=[])
+    else:
+        metadata = parse_metadata(metadata_lines)
 
-    metadata = parse_metadata(metadata_lines)
     return action, metadata
+
 

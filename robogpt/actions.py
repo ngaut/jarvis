@@ -114,7 +114,7 @@ class SearchOnlineAction(Action):
         return f"Search online for `{self.query}`."
 
     def run(self) -> str:
-        response = search(term=self.query, num_results=10)
+        response = search(self.query, num=10)
         if response is None:
             return f"RESULT: The online search for `{self.query}` appears to have failed."
         result = "\n".join([str(url) for url in response])
