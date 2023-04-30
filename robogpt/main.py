@@ -7,6 +7,8 @@ import actions
 import response_parser
 import speech
 import gpt
+import signal
+
 
 
 message_history = []
@@ -74,7 +76,23 @@ After the action, write a JSON object (parseable by Python's json.loads()) which
 FLAG_VERBOSE = "--verbose"
 FLAG_SPEECH = "--speech"
 FLAG_CONTINUOUS = "--continuous"
+FLAG_TIMEOUT = "--timeout"
+DEFAULT_TIMEOUT = 30
 
+def input_with_timeout(prompt: str, timeout: int) -> Optional[str]:
+    def signal_handler(signum, frame):
+        raise Exception("Timeout expired")
+
+    signal.signal(signal.SIGALRM, signal_handler)
+    signal.alarm(timeout)
+
+    try:
+        user_input = input(prompt)
+        signal.alarm(0)
+        return user_input
+    except:
+        print("Timed out!")
+        return None
 
 def main():
     general_directions = GENERAL_DIRECTIONS_PREFIX
@@ -87,7 +105,11 @@ def main():
     os.makedirs("workspace", exist_ok=True)
     os.chdir("workspace")
     new_plan: Optional[str] = None
-    user_directions = input("What would you like me to do:\n")
+    timeout = DEFAULT_TIMEOUT
+    if FLAG_TIMEOUT in sys.argv[1:]:
+        timeout_index = sys.argv.index(FLAG_TIMEOUT)
+        timeout = int(sys.argv[timeout_index + 1])
+    user_directions =  user_input = input("What would you like me to do:\n")
     while True:
         print("========================")
         with Spinner("Thinking..."):
@@ -105,14 +127,14 @@ def main():
             print(f"REASON: {metadata.reason}")
             print(f"PLAN: {metadata.plan}")
         if FLAG_CONTINUOUS not in sys.argv[1:]:
-            run_action = input("Run the action? [Y/n]")
-            if run_action.lower() != "y" and run_action != "":
+            run_action = input_with_timeout("Run the action? [Y/n]", timeout)
+            if run_action is not None and (run_action.lower() != "y" and run_action != ""):
                 break
         action_output = action.run()
         message_content = f"Action {action.key()} returned:\n{action_output}"
         message_history.append({"role": "system", "content": message_content})
-        change_plan = input("Change the proposed plan? [N/y]")
-        if change_plan.lower() == "y":
+        change_plan = input_with_timeout("Change the proposed plan? [N/y]", timeout)
+        if change_plan is not None and change_plan.lower() == "y":
             new_plan = input("What would you like me to change the plan to? ")
         else:
             new_plan = None

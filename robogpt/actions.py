@@ -7,8 +7,11 @@ from spinner import Spinner
 import gpt
 from bs4 import BeautifulSoup
 from selenium import webdriver
+from selenium.webdriver.chrome.webdriver import WebDriver as ChromeWebDriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from webdriver_manager.chrome import ChromeDriverManager
 
 
 @dataclass(frozen=True)
@@ -111,7 +114,6 @@ class SearchOnlineAction(Action):
         return f"Search online for `{self.query}`."
 
     def run(self) -> str:
-        # TODO: This call sometimes stalls. Improve.
         response = search(term=self.query, num_results=10)
         if response is None:
             return f"RESULT: The online search for `{self.query}` appears to have failed."
@@ -152,9 +154,9 @@ class ExtractInfoAction(Action):
         return extracted_info
 
     def get_html(self, url: str) -> str:
-        options = Options()
+        options = ChromeOptions()
         options.headless = True
-        browser = webdriver.Firefox(options=options)
+        browser = ChromeWebDriver(executable_path=ChromeDriverManager().install(), options=options)
         browser.get(url)
         html = browser.find_element(By.TAG_NAME, "body").get_attribute("innerHTML")
         browser.quit()
