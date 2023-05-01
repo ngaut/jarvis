@@ -21,7 +21,7 @@ CONSTRAINTS:
 
 ACTIONS:
 
-- "TELL_USER": tell the user something. The schema for the action is:
+- "TELL_USER": tell the user something for notice, do not seek help from user. The schema for the action is:
 
 TELL_USER: <TEXT>
 
@@ -111,26 +111,26 @@ def main():
         timeout = int(sys.argv[timeout_index + 1])
     user_directions =  user_input = input("What would you like me to do:\n")
     while True:
-        print("========================")
-        with Spinner("Thinking..."):
-            assistant_response = gpt.chat(user_directions, general_directions, new_plan, message_history)
-        if FLAG_VERBOSE in sys.argv[1:]:
-            print(f"ASSISTANT RESPONSE: {assistant_response}")
-        action, metadata = response_parser.parse(assistant_response)
-        print(f"ACTION: {action.short_string()}")
-        if FLAG_SPEECH in sys.argv[1:] and metadata.speak is not None:
-            speech.say_async(metadata.speak)
-        if isinstance(action, actions.ShutdownAction):
-            print("Shutting down...")
-            break
-        else:
-            print(f"REASON: {metadata.reason}")
-            print(f"PLAN: {metadata.plan}")
-        if FLAG_CONTINUOUS not in sys.argv[1:]:
-            run_action = input_with_timeout("Run the action? [Y/n]", timeout)
-            if run_action is not None and (run_action.lower() != "y" and run_action != ""):
-                break
         try:
+            print("========================")
+            with Spinner("Thinking..."):
+                assistant_response = gpt.chat(user_directions, general_directions, new_plan, message_history)
+            if FLAG_VERBOSE in sys.argv[1:]:
+                print(f"ASSISTANT RESPONSE: {assistant_response}")
+            action, metadata = response_parser.parse(assistant_response)
+            print(f"ACTION: {action.short_string()}")
+            if FLAG_SPEECH in sys.argv[1:] and metadata.speak is not None:
+                speech.say_async(metadata.speak)
+            if isinstance(action, actions.ShutdownAction):
+                print("Shutting down...")
+                break
+            else:
+                print(f"REASON: {metadata.reason}")
+                print(f"PLAN: {metadata.plan}")
+            if FLAG_CONTINUOUS not in sys.argv[1:]:
+                run_action = input_with_timeout("Run the action? [Y/n]", timeout)
+                if run_action is not None and (run_action.lower() != "y" and run_action != ""):
+                    break
             action_output = action.run()
         except Exception as e:
             print(f"Action {action.key()} failed with exception {e}")
