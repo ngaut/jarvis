@@ -186,6 +186,8 @@ class ExtractInfoAction(Action):
 
 @dataclass(frozen=True)
 class ShutdownAction(Action):
+    reason: str
+    
     def key(self):
         return "SHUTDOWN"
 
