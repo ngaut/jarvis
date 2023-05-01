@@ -5,6 +5,7 @@ import subprocess
 from googlesearch import search
 from spinner import Spinner
 import gpt
+import requests
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.webdriver import WebDriver as ChromeWebDriver
@@ -52,13 +53,23 @@ class ReadFileAction(Action):
         return f"Read file `{self.path}`."
 
     def run(self) -> str:
-        if not os.path.exists(self.path):
-            print(f"RESULT: File `{self.path}` does not exist.")
-            return f"File `{self.path}` does not exist."
-        with io.open(self.path, mode="r", encoding="utf-8") as file:
-            contents = file.read()
-            print(f"RESULT: Read file `{self.path}`.")
-            return contents
+        # Check if the path is a local file
+        if os.path.exists(self.path):
+            with io.open(self.path, mode="r", encoding="utf-8") as file:
+                contents = file.read()
+                print(f"ReadFileAction RESULT: Read file `{self.path}`.")
+                return contents
+        else:
+            # Check if the path is a remote file
+            try:
+                response = requests.get(self.path)
+                response.raise_for_status()
+                contents = response.text
+                print(f"ReadFileAction RESULT: Read remote file `{self.path}`.")
+                return contents
+            except requests.exceptions.HTTPError as e:
+                print(f"ReadFileAction RESULT: Failed to read file `{self.path}`: {e}")
+                return f"ReadFileAction Failed to read file `{self.path}`: {e}"
 
 
 @dataclass(frozen=True)
@@ -75,8 +86,8 @@ class WriteFileAction(Action):
     def run(self) -> str:
         with io.open(self.path, mode="w", encoding="utf-8") as file:
             file.write(self.content)
-            print(f"RESULT: Wrote file `{self.path}`.")
-            return "File successfully written."
+            print(f"WriteFileAction RESULT: Wrote file `{self.path}`.")
+            return "WriteFileAction File successfully written."
 
 
 @dataclass(frozen=True)
@@ -99,7 +110,7 @@ class RunPythonAction(Action):
         ) as process:
             process.wait()
             output = process.stdout.read() if process.stdout else ""
-            print(f"RESULT: Ran Python file `{self.path}`.")
+            print(f"RunPythonAction RESULT: Ran Python file `{self.path}`.")
             return output
 
 
@@ -116,9 +127,9 @@ class SearchOnlineAction(Action):
     def run(self) -> str:
         response = search(self.query, num=10)
         if response is None:
-            return f"RESULT: The online search for `{self.query}` appears to have failed."
+            return f"SearchOnlineAction RESULT: The online search for `{self.query}` appears to have failed."
         result = "\n".join([str(url) for url in response])
-        print(f"RESULT: The online search for `{self.query}` returned the following URLs:\n{result}")
+        print(f"SearchOnlineAction RESULT: The online search for `{self.query}` returned the following URLs:\n{result}")
         return result
 
 
@@ -150,7 +161,7 @@ class ExtractInfoAction(Action):
         max_response_token_count = gpt.COMBINED_TOKEN_LIMIT - request_token_count
         with Spinner("Extracting info..."):
             extracted_info = gpt.send_message(messages, max_response_token_count)
-        print("RESULT: The info was extracted successfully.")
+        print("ExtractInfoAction RESULT: The info was extracted successfully.")
         return extracted_info
 
     def get_html(self, url: str) -> str:

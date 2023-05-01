@@ -50,7 +50,7 @@ EXTRACT_INFO: <URL>, <a brief instruction to GPT for information to extract>
 
 - "SHUTDOWN": shut down the program. The schema for the action is:
 
-SHUTDOWN
+SHUTDOWN: <REASON>
 
 
 RESOURCES:
@@ -130,7 +130,13 @@ def main():
             run_action = input_with_timeout("Run the action? [Y/n]", timeout)
             if run_action is not None and (run_action.lower() != "y" and run_action != ""):
                 break
-        action_output = action.run()
+        try:
+            action_output = action.run()
+        except Exception as e:
+            print(f"Action {action.key()} failed with exception {e}")
+            message_content = f"Action {action.short_string()} failed with exception {e}"
+            message_history.append({"role": "system", "content": message_content})
+            continue
         message_content = f"Action {action.key()} returned:\n{action_output}"
         message_history.append({"role": "system", "content": message_content})
         change_plan = input_with_timeout("Change the proposed plan? [N/y]", timeout)

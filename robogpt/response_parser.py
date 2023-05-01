@@ -55,8 +55,8 @@ action_parsers = [
     (WRITE_FILE_PREFIX, write_file_action_parser),
     (RUN_PYTHON_PREFIX, lambda line, _: (actions.RunPythonAction(line[len(RUN_PYTHON_PREFIX):].strip()), [])),
     (SEARCH_ONLINE_PREFIX, lambda line, _: (actions.SearchOnlineAction(line[len(SEARCH_ONLINE_PREFIX):].strip()), [])),
-    (EXTRACT_INFO_PREFIX, lambda line, _: (actions.ExtractInfoAction(line[len(EXTRACT_INFO_PREFIX):].strip().split(",", 1)), [])),
-    (SHUTDOWN_PREFIX, lambda _, __: (actions.ShutdownAction(), [])),
+    (EXTRACT_INFO_PREFIX, lambda line, instructions: (actions.ExtractInfoAction(line[len(EXTRACT_INFO_PREFIX):].strip().split(",", 1), instructions), [])),
+    (SHUTDOWN_PREFIX, lambda line, _: (actions.ShutdownAction(line[len(TELL_USER_PREFIX):].strip()), [])),
 ]
 
 def parse_action(first_line: str, lines: List[str]) -> Tuple[actions.Action, List[str]]:
@@ -68,9 +68,10 @@ def parse_action(first_line: str, lines: List[str]) -> Tuple[actions.Action, Lis
 def parse(text: str) -> Tuple[actions.Action, Metadata]:
     if not text:
         raise ValueError("Empty input received. Cannot parse.")
+    print("Text:", text)
+
     lines = text.splitlines()
     action, metadata_lines = parse_action(lines[0], lines)
-    print("Text:", text)
 
     if not metadata_lines:
         metadata = Metadata(reason="", plan=[])
