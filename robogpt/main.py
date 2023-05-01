@@ -48,7 +48,7 @@ SEARCH_ONLINE: <QUERY>
 
 EXTRACT_INFO: <URL>, <a brief instruction to GPT for information to extract>
 
-- "SHUTDOWN": shut down the program. The schema for the action is:
+- "SHUTDOWN": shut down the program when you finish your job. The schema for the action is:
 
 SHUTDOWN: <REASON>
 
