@@ -13,6 +13,7 @@ EXTRACT_INFO_PREFIX = "EXTRACT_INFO:"
 SHUTDOWN_PREFIX = "SHUTDOWN"
 FIND_AND_REPLACE_PREFIX = "FIND_AND_REPLACE:"
 LIST_DIRECTORY_PREFIX = "LIST_DIRECTORY:"
+CREATE_DIRECTORY_PREFIX = "CREATE_DIRECTORY:"
 
 @dataclass(frozen=True)
 class Metadata:
@@ -63,9 +64,13 @@ def parse_extract_info_action(line: str) -> Tuple[actions.ExtractInfoAction, Lis
     url, instruction = line[len(EXTRACT_INFO_PREFIX):].strip().split(",", 1)
     return actions.ExtractInfoAction(url, instruction), []
 
-def parse_shutdown_action(first_line: str) -> Tuple[actions.Action, List[str]]:
+def parse_shutdown_action(first_line: str) -> Tuple[actions.ShutdownAction, List[str]]:
     reason = first_line[len(SHUTDOWN_PREFIX):].strip()
     return actions.ShutdownAction(reason), []
+
+def parse_create_directory_action(first_line: str) -> Tuple[actions.CreateDirectoryAction, List[str]]:
+    path = first_line[len(CREATE_DIRECTORY_PREFIX):].strip()
+    return actions.CreateDirectoryAction(path), []
 
 def parse_find_and_replace_action(first_line: str, lines: List[str]) -> Tuple[actions.FindAndReplaceAction, List[str]]:
     path = first_line[len(FIND_AND_REPLACE_PREFIX):].strip()
@@ -81,7 +86,6 @@ def parse_find_and_replace_action(first_line: str, lines: List[str]) -> Tuple[ac
 def parse_list_directory_action(first_line: str) -> Tuple[actions.ListDirectoryAction, List[str]]:
     path = first_line[len(LIST_DIRECTORY_PREFIX):].strip()
     return actions.ListDirectoryAction(path), []
-
 
 
 action_parsers = [

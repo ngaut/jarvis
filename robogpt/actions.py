@@ -89,7 +89,8 @@ class WriteFileAction(Action):
             file.write(self.content)
             print(f"WriteFileAction RESULT: Wrote file `{self.path}`.")
             return "WriteFileAction File successfully written."
-        
+
+
 @dataclass(frozen=True)
 class AppendFileAction(Action):
     path: str
@@ -107,6 +108,20 @@ class AppendFileAction(Action):
             print(f"AppendFileAction RESULT: Appended file `{self.path}`.")
             return "AppendFileAction File successfully appended."
 
+@dataclass(frozen=True)
+class CreateDirectoryAction(Action):
+    path: str
+
+    def key(self) -> str:
+        return "CREATE_DIRECTORY"
+
+    def short_string(self) -> str:
+        return f"Create directory `{self.path}`."
+
+    def run(self) -> str:
+        os.makedirs(self.path)
+        print(f"CreateDirectoryAction RESULT: Created directory `{self.path}`.")
+        return "CreateDirectoryAction Directory successfully created."
 
 
 @dataclass(frozen=True)

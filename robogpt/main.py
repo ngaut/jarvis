@@ -68,11 +68,13 @@ FIND_AND_REPLACE: <PATH>,
 <TEXT will be replaced>
 ```
 
-
 - "LIST_DIRECTORY": list the contents of a directory. The schema for the action is:
 
 LIST_DIRECTORY: <PATH>
 
+- "CREATE_DIRECTORY": create a new directory. The schema for the action is:
+
+CREATE_DIRECTORY: <PATH>
 
 
 RESOURCES:
