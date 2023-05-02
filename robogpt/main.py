@@ -36,6 +36,12 @@ WRITE_FILE: <PATH>
 <TEXT>
 ```
 
+- "APPEND_FILE": append a block of text to a file. The schema for the action is:
+APPEND_FILE: <PATH>
+```
+<TEXT>
+```
+
 - "RUN_PYTHON": run a Python file. The schema for the action is:
 
 RUN_PYTHON: <PATH>
@@ -130,7 +136,7 @@ def main():
             if FLAG_CONTINUOUS not in sys.argv[1:]:
                 run_action = input_with_timeout("Run the action? [Y/n]", timeout)
                 if run_action is not None and (run_action.lower() != "y" and run_action != ""):
-                    break
+                    break   
             action_output = action.run()
         except Exception as e:
             print(f"Action {action.key()} failed with exception {e}")

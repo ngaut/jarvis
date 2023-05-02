@@ -1,8 +1,8 @@
+
 from dataclasses import dataclass
 import os
 import io
 import subprocess
-from googlesearch import search
 from spinner import Spinner
 import gpt
 import requests
@@ -88,6 +88,23 @@ class WriteFileAction(Action):
             file.write(self.content)
             print(f"WriteFileAction RESULT: Wrote file `{self.path}`.")
             return "WriteFileAction File successfully written."
+        
+@dataclass(frozen=True)
+class AppendFileAction(Action):
+    path: str
+    content: str
+
+    def key(self) -> str:
+        return "APPEND_FILE"
+
+    def short_string(self) -> str:
+        return f"Append file `{self.path}`."
+
+    def run(self) -> str:
+        with io.open(self.path, mode="w", encoding="utf-8") as file:
+            file.write(self.content)
+            print(f"AppendFileAction RESULT: Appended to file `{self.path}`.")
+            return "AppendFileAction File successfully appended."        
 
 
 @dataclass(frozen=True)
@@ -187,7 +204,7 @@ class ExtractInfoAction(Action):
 @dataclass(frozen=True)
 class ShutdownAction(Action):
     reason: str
-    
+
     def key(self):
         return "SHUTDOWN"
 

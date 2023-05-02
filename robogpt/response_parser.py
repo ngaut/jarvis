@@ -6,6 +6,7 @@ import actions
 TELL_USER_PREFIX = "TELL_USER:"
 READ_FILE_PREFIX = "READ_FILE:"
 WRITE_FILE_PREFIX = "WRITE_FILE:"
+APPEND_FILE_PREFIX = "APPEND_FILE:"
 RUN_PYTHON_PREFIX = "RUN_PYTHON:"
 SEARCH_ONLINE_PREFIX = "SEARCH_ONLINE:"
 EXTRACT_INFO_PREFIX = "EXTRACT_INFO:"
@@ -49,6 +50,13 @@ def parse_write_file_action(first_line: str, lines: List[str]) -> Tuple[actions.
     action = actions.WriteFileAction(path=path, content=content_str)
     return action, metadata_lines
 
+def parse_append_file_action(first_line: str, lines: List[str]) -> Tuple[actions.WriteFileAction, List[str]]:
+    path = first_line[len(APPEND_FILE_PREFIX):].strip()
+    content_lines, metadata_lines = find_metadata_lines(lines, 2)
+    content_str = "\n".join(content_lines)
+    action = actions.AppendFileAction(path=path, content=content_str)
+    return action, metadata_lines
+
 def parse_extract_info_action(line: str, instructions: str) -> Tuple[actions.ExtractInfoAction, List[str]]:
     url, instruction = line[len(EXTRACT_INFO_PREFIX):].strip().split(",", 1)
     return actions.ExtractInfoAction(url, instruction), []
@@ -61,6 +69,7 @@ action_parsers = [
     (TELL_USER_PREFIX, lambda line, _: (actions.TellUserAction(line[len(TELL_USER_PREFIX):].strip()), [])),
     (READ_FILE_PREFIX, lambda line, _: (actions.ReadFileAction(line[len(READ_FILE_PREFIX):].strip()), [])),
     (WRITE_FILE_PREFIX, parse_write_file_action),
+    (APPEND_FILE_PREFIX, parse_append_file_action),
     (RUN_PYTHON_PREFIX, lambda line, _: (actions.RunPythonAction(line[len(RUN_PYTHON_PREFIX):].strip()), [])),
     (SEARCH_ONLINE_PREFIX, lambda line, _: (actions.SearchOnlineAction(line[len(SEARCH_ONLINE_PREFIX):].strip()), [])),
     (EXTRACT_INFO_PREFIX, parse_extract_info_action),
