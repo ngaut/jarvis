@@ -7,6 +7,7 @@ from spinner import Spinner
 import gpt
 import requests
 from bs4 import BeautifulSoup
+from googlesearch import search
 from selenium import webdriver
 from selenium.webdriver.chrome.webdriver import WebDriver as ChromeWebDriver
 from selenium.webdriver.common.by import By
