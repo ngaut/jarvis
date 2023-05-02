@@ -58,6 +58,22 @@ EXTRACT_INFO: <URL>, <a brief instruction to GPT for information to extract>
 
 SHUTDOWN: <REASON>
 
+- "FIND_AND_REPLACE": find and replace a string in a file. The schema for the action is:
+
+FIND_AND_REPLACE: <PATH>, 
+```
+<TEXT will be found>
+```
+```
+<TEXT will be replaced>
+```
+
+
+- "LIST_DIRECTORY": list the contents of a directory. The schema for the action is:
+
+LIST_DIRECTORY: <PATH>
+
+
 
 RESOURCES:
 1. File contents after reading file.
@@ -85,20 +101,23 @@ FLAG_CONTINUOUS = "--continuous"
 FLAG_TIMEOUT = "--timeout"
 DEFAULT_TIMEOUT = 30
 
+class InputTimeoutError(Exception):
+    pass
+
 def input_with_timeout(prompt: str, timeout: int) -> Optional[str]:
     def signal_handler(signum, frame):
-        raise Exception("Timeout expired")
+        raise InputTimeoutError("Timeout expired")
 
     signal.signal(signal.SIGALRM, signal_handler)
     signal.alarm(timeout)
 
     try:
         user_input = input(prompt)
-        signal.alarm(0)
         return user_input
-    except:
-        print("Timed out!")
+    except InputTimeoutError:
         return None
+    finally:
+        signal.alarm(0)
 
 def main():
     general_directions = GENERAL_DIRECTIONS_PREFIX
@@ -115,7 +134,7 @@ def main():
     if FLAG_TIMEOUT in sys.argv[1:]:
         timeout_index = sys.argv.index(FLAG_TIMEOUT)
         timeout = int(sys.argv[timeout_index + 1])
-    user_directions =  user_input = input("What would you like me to do:\n")
+    user_directions = input("What would you like me to do:\n")
     while True:
         try:
             print("========================")

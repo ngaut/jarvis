@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Tuple, Callable, List
+from typing import Optional, Tuple, List
 import json
 import actions
 
@@ -11,6 +11,8 @@ RUN_PYTHON_PREFIX = "RUN_PYTHON:"
 SEARCH_ONLINE_PREFIX = "SEARCH_ONLINE:"
 EXTRACT_INFO_PREFIX = "EXTRACT_INFO:"
 SHUTDOWN_PREFIX = "SHUTDOWN"
+FIND_AND_REPLACE_PREFIX = "FIND_AND_REPLACE:"
+LIST_DIRECTORY_PREFIX = "LIST_DIRECTORY:"
 
 @dataclass(frozen=True)
 class Metadata:
@@ -50,20 +52,37 @@ def parse_write_file_action(first_line: str, lines: List[str]) -> Tuple[actions.
     action = actions.WriteFileAction(path=path, content=content_str)
     return action, metadata_lines
 
-def parse_append_file_action(first_line: str, lines: List[str]) -> Tuple[actions.WriteFileAction, List[str]]:
+def parse_append_file_action(first_line: str, lines: List[str]) -> Tuple[actions.AppendFileAction, List[str]]:
     path = first_line[len(APPEND_FILE_PREFIX):].strip()
     content_lines, metadata_lines = find_metadata_lines(lines, 2)
     content_str = "\n".join(content_lines)
     action = actions.AppendFileAction(path=path, content=content_str)
     return action, metadata_lines
 
-def parse_extract_info_action(line: str, instructions: str) -> Tuple[actions.ExtractInfoAction, List[str]]:
+def parse_extract_info_action(line: str) -> Tuple[actions.ExtractInfoAction, List[str]]:
     url, instruction = line[len(EXTRACT_INFO_PREFIX):].strip().split(",", 1)
     return actions.ExtractInfoAction(url, instruction), []
 
-def parse_shutdown_action(first_line: str, lines: List[str]) -> Tuple[actions.Action, List[str]]:
+def parse_shutdown_action(first_line: str) -> Tuple[actions.Action, List[str]]:
     reason = first_line[len(SHUTDOWN_PREFIX):].strip()
     return actions.ShutdownAction(reason), []
+
+def parse_find_and_replace_action(first_line: str, lines: List[str]) -> Tuple[actions.FindAndReplaceAction, List[str]]:
+    path = first_line[len(FIND_AND_REPLACE_PREFIX):].strip()
+    
+    find_lines, remaining_lines = find_metadata_lines(lines, 1)
+    replace_lines, metadata_lines = find_metadata_lines(remaining_lines, 2)
+    
+    find_str = "\n".join(find_lines)
+    replace_str = "\n".join(replace_lines)
+
+    return actions.FindAndReplaceAction(path, find_str, replace_str), metadata_lines
+
+def parse_list_directory_action(first_line: str) -> Tuple[actions.ListDirectoryAction, List[str]]:
+    path = first_line[len(LIST_DIRECTORY_PREFIX):].strip()
+    return actions.ListDirectoryAction(path), []
+
+
 
 action_parsers = [
     (TELL_USER_PREFIX, lambda line, _: (actions.TellUserAction(line[len(TELL_USER_PREFIX):].strip()), [])),
@@ -73,6 +92,8 @@ action_parsers = [
     (RUN_PYTHON_PREFIX, lambda line, _: (actions.RunPythonAction(line[len(RUN_PYTHON_PREFIX):].strip()), [])),
     (SEARCH_ONLINE_PREFIX, lambda line, _: (actions.SearchOnlineAction(line[len(SEARCH_ONLINE_PREFIX):].strip()), [])),
     (EXTRACT_INFO_PREFIX, parse_extract_info_action),
+    (FIND_AND_REPLACE_PREFIX, parse_find_and_replace_action),
+    (LIST_DIRECTORY_PREFIX, parse_list_directory_action),
     (SHUTDOWN_PREFIX, parse_shutdown_action),
 ]
 

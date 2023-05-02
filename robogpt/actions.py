@@ -102,10 +102,11 @@ class AppendFileAction(Action):
         return f"Append file `{self.path}`."
 
     def run(self) -> str:
-        with io.open(self.path, mode="w", encoding="utf-8") as file:
+        with io.open(self.path, mode="a", encoding="utf-8") as file:
             file.write(self.content)
-            print(f"AppendFileAction RESULT: Appended to file `{self.path}`.")
-            return "AppendFileAction File successfully appended."        
+            print(f"AppendFileAction RESULT: Appended file `{self.path}`.")
+            return "AppendFileAction File successfully appended."
+
 
 
 @dataclass(frozen=True)
@@ -215,3 +216,44 @@ class ShutdownAction(Action):
     def run(self) -> str:
         # This action is treated specially, so this can remain unimplemented.
         raise NotImplementedError
+    
+@dataclass(frozen=True)
+class FindAndReplaceAction(Action):
+    path: str
+    find: str
+    replace:str
+
+    def key(self):
+        return "FIND_AND_PLACE"
+    
+    def short_string(self) -> str:
+        return f"Find and replace `{self.find}` with `{self.replace}` in `{self.path}`."
+    
+    def run(self) -> str:
+        with io.open(self.path, mode="r", encoding="utf-8") as file:
+            content = file.read()
+        content = content.replace(self.find, self.replace)
+        with io.open(self.path, mode="w", encoding="utf-8") as file:
+            file.write(content)
+        print(f"FindAndReplaceAction RESULT: Replaced `{self.find}` with `{self.replace}` in `{self.path}`.")
+        return "FindAndReplaceAction Successfully replaced text."
+    
+
+@dataclass(frozen=True)
+class ListDirectoryAction(Action):
+    path: str
+
+    def key(self):
+        return "LIST_DIRECTORY"
+
+    def short_string(self) -> str:
+        return f"List directory `{self.path}`."
+
+    def run(self) -> str:
+        if os.path.exists(self.path):
+            contents = os.listdir(self.path)
+            print(f"ListDirectoryAction RESULT: Listed directory `{self.path}`.")
+            return "\n".join(contents)
+        else:
+            print(f"ListDirectoryAction RESULT: Failed to list directory `{self.path}`.")
+            return f"ListDirectoryAction Failed to list directory `{self.path}`."
