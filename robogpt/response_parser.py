@@ -75,7 +75,7 @@ def parse_create_directory_action(first_line: str, _: List[str]) -> Tuple[action
 
 
 
-def parse_find_and_replace_action(first_line: str, lines: List[str]) -> Tuple[FindAndReplaceAction, List[str]]:
+def parse_find_and_replace_action(first_line: str, lines: List[str]) -> Tuple[actions.FindAndReplaceAction, List[str]]:
     path = first_line.split(": ")[1].strip()
 
     find_start = lines.index("```")
