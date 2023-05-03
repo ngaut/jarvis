@@ -76,12 +76,13 @@ def parse_find_and_replace_action(first_line: str, lines: List[str]) -> Tuple[ac
     path = first_line[len(FIND_AND_REPLACE_PREFIX):].strip()
     
     find_lines, remaining_lines = find_metadata_lines(lines, 1)
-    replace_lines, metadata_lines = find_metadata_lines(remaining_lines, 2)
+    replace_lines, metadata_lines = find_metadata_lines(remaining_lines, 1)  # Change this line to use '1' instead of '2'
     
     find_str = "\n".join(find_lines)
     replace_str = "\n".join(replace_lines)
 
     return actions.FindAndReplaceAction(path, find_str, replace_str), metadata_lines
+
 
 def parse_list_directory_action(first_line: str, _: List[str]) -> Tuple[actions.ListDirectoryAction, List[str]]:
     path = first_line[len(LIST_DIRECTORY_PREFIX):].strip()

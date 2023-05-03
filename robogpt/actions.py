@@ -239,7 +239,7 @@ class FindAndReplaceAction(Action):
     replace:str
 
     def key(self):
-        return "FIND_AND_PLACE"
+        return "FIND_AND_REPLACE"
     
     def short_string(self) -> str:
         return f"Find and replace `{self.find}` with `{self.replace}` in `{self.path}`."
