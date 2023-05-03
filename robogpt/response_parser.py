@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional, Tuple, List
 import json
+import re
 import actions
 
 TELL_USER_PREFIX = "TELL_USER:"
@@ -72,16 +73,22 @@ def parse_create_directory_action(first_line: str, _: List[str]) -> Tuple[action
     path = first_line[len(CREATE_DIRECTORY_PREFIX):].strip()
     return actions.CreateDirectoryAction(path), []
 
-def parse_find_and_replace_action(first_line: str, lines: List[str]) -> Tuple[actions.FindAndReplaceAction, List[str]]:
-    path = first_line[len(FIND_AND_REPLACE_PREFIX):].strip()
-    
-    find_lines, remaining_lines = find_metadata_lines(lines, 1)
-    replace_lines, metadata_lines = find_metadata_lines(remaining_lines, 1)  # Change this line to use '1' instead of '2'
-    
-    find_str = "\n".join(find_lines)
-    replace_str = "\n".join(replace_lines)
 
-    return actions.FindAndReplaceAction(path, find_str, replace_str), metadata_lines
+
+def parse_find_and_replace_action(first_line: str, lines: List[str]) -> Tuple[FindAndReplaceAction, List[str]]:
+    path = first_line.split(": ")[1].strip()
+
+    find_start = lines.index("```")
+    find_end = lines.index("```", find_start + 1)
+    find_text = "\n".join(lines[find_start + 1:find_end])
+
+    replace_start = lines.index("```", find_end + 1)
+    replace_end = lines.index("```", replace_start + 1)
+    replace_text = "\n".join(lines[replace_start + 1:replace_end])
+
+    remaining_lines = lines[replace_end + 1:]
+
+    return actions.FindAndReplaceAction(path, find_text, replace_text), remaining_lines
 
 
 def parse_list_directory_action(first_line: str, _: List[str]) -> Tuple[actions.ListDirectoryAction, List[str]]:
