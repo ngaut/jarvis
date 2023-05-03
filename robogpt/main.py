@@ -16,7 +16,7 @@ message_history = []
 
 GENERAL_DIRECTIONS_PREFIX = """
 CONSTRAINTS:
-- Cannot run Python code that requires user input.
+- Cannot run Python code that requires user input unless you are testing if the syntax is correct.
 
 
 ACTIONS:
@@ -42,9 +42,9 @@ APPEND_FILE: <PATH>
 <TEXT>
 ```
 
-- "RUN_PYTHON": run a Python file. The schema for the action is:
+- "RUN_PYTHON": run a Python file. TIMEOUT is time limit in seconds, The schema for the action is:
 
-RUN_PYTHON: <PATH>
+RUN_PYTHON: <PATH>, <TIMEOUT>
 
 - "SEARCH_ONLINE": search online and get back a list of URLs relevant to the query. The schema for the action is:
 

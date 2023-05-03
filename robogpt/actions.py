@@ -127,6 +127,7 @@ class CreateDirectoryAction(Action):
 @dataclass(frozen=True)
 class RunPythonAction(Action):
     path: str
+    timeout: int  # Add the timeout parameter (in seconds)
 
     def key(self) -> str:
         return "RUN_PYTHON"
@@ -142,10 +143,14 @@ class RunPythonAction(Action):
             stderr=subprocess.STDOUT,
             universal_newlines=True,
         ) as process:
-            process.wait()
-            output = process.stdout.read() if process.stdout else ""
-            print(f"RunPythonAction RESULT: Ran Python file `{self.path}`.")
-            return output
+            try:
+                process.wait(timeout=self.timeout)  # Add the timeout argument
+                output = process.stdout.read() if process.stdout else ""
+                print(f"RunPythonAction RESULT: Ran Python file `{self.path}`.")
+                return output
+            except subprocess.TimeoutExpired:
+                process.kill()
+                return f"RunPythonAction failed: The Python script at `{self.path}` timed out after {self.timeout} seconds."
 
 
 @dataclass(frozen=True)
@@ -247,11 +252,14 @@ class FindAndReplaceAction(Action):
     def run(self) -> str:
         with io.open(self.path, mode="r", encoding="utf-8") as file:
             content = file.read()
-        content = content.replace(self.find, self.replace)
+        new_content = content.replace(self.find, self.replace)
+        if new_content == content:
+            return f"FindAndReplaceAction failed: The string '{self.find}' to be replaced was not found in the file."
         with io.open(self.path, mode="w", encoding="utf-8") as file:
-            file.write(content)
+            file.write(new_content)
         print(f"FindAndReplaceAction RESULT: Replaced `{self.find}` with `{self.replace}` in `{self.path}`.")
         return "FindAndReplaceAction Successfully replaced text."
+
     
 
 @dataclass(frozen=True)

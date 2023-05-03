@@ -73,8 +73,6 @@ def parse_create_directory_action(first_line: str, _: List[str]) -> Tuple[action
     path = first_line[len(CREATE_DIRECTORY_PREFIX):].strip()
     return actions.CreateDirectoryAction(path), []
 
-
-
 def parse_find_and_replace_action(first_line: str, lines: List[str]) -> Tuple[actions.FindAndReplaceAction, List[str]]:
     path = first_line.split(": ")[1].strip()
 
@@ -96,12 +94,24 @@ def parse_list_directory_action(first_line: str, _: List[str]) -> Tuple[actions.
     return actions.ListDirectoryAction(path), []
 
 
+RUN_PYTHON_PREFIX = "RUN_PYTHON: "
+RUN_PYTHON_PATTERN = re.compile(r"RUN_PYTHON: (.*), (\d+)")
+
+def parse_run_python_action(line: str, lines: List[str]) -> Tuple[actions.RunPythonAction, List[str]]:
+    match = RUN_PYTHON_PATTERN.match(line)
+    if not match:
+        raise ValueError(f"Invalid RUN_PYTHON action: {line}")
+    path = match.group(1).strip()
+    timeout = int(match.group(2))
+    remaining_lines = lines[1:]  # Ignore the first line, as it has already been processed
+    return actions.RunPythonAction(path=path, timeout=timeout), remaining_lines
+
 action_parsers = [
     (TELL_USER_PREFIX, lambda line, _: (actions.TellUserAction(line[len(TELL_USER_PREFIX):].strip()), [])),
     (READ_FILE_PREFIX, lambda line, _: (actions.ReadFileAction(line[len(READ_FILE_PREFIX):].strip()), [])),
     (WRITE_FILE_PREFIX, parse_write_file_action),
     (APPEND_FILE_PREFIX, parse_append_file_action),
-    (RUN_PYTHON_PREFIX, lambda line, _: (actions.RunPythonAction(line[len(RUN_PYTHON_PREFIX):].strip()), [])),
+    (RUN_PYTHON_PREFIX, parse_run_python_action),
     (SEARCH_ONLINE_PREFIX, lambda line, _: (actions.SearchOnlineAction(line[len(SEARCH_ONLINE_PREFIX):].strip()), [])),
     (EXTRACT_INFO_PREFIX, parse_extract_info_action),
     (FIND_AND_REPLACE_PREFIX, parse_find_and_replace_action),
