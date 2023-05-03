@@ -60,15 +60,15 @@ def parse_append_file_action(first_line: str, lines: List[str]) -> Tuple[actions
     action = actions.AppendFileAction(path=path, content=content_str)
     return action, metadata_lines
 
-def parse_extract_info_action(line: str) -> Tuple[actions.ExtractInfoAction, List[str]]:
-    url, instruction = line[len(EXTRACT_INFO_PREFIX):].strip().split(",", 1)
+def parse_extract_info_action(first_line: str, _: List[str]) -> Tuple[actions.ExtractInfoAction, List[str]]:
+    url, instruction = first_line[len(EXTRACT_INFO_PREFIX):].strip().split(",", 1)
     return actions.ExtractInfoAction(url, instruction), []
 
-def parse_shutdown_action(first_line: str) -> Tuple[actions.ShutdownAction, List[str]]:
+def parse_shutdown_action(first_line: str, _: List[str]) -> Tuple[actions.ShutdownAction, List[str]]:
     reason = first_line[len(SHUTDOWN_PREFIX):].strip()
     return actions.ShutdownAction(reason), []
 
-def parse_create_directory_action(first_line: str) -> Tuple[actions.CreateDirectoryAction, List[str]]:
+def parse_create_directory_action(first_line: str, _: List[str]) -> Tuple[actions.CreateDirectoryAction, List[str]]:
     path = first_line[len(CREATE_DIRECTORY_PREFIX):].strip()
     return actions.CreateDirectoryAction(path), []
 
@@ -83,7 +83,7 @@ def parse_find_and_replace_action(first_line: str, lines: List[str]) -> Tuple[ac
 
     return actions.FindAndReplaceAction(path, find_str, replace_str), metadata_lines
 
-def parse_list_directory_action(first_line: str) -> Tuple[actions.ListDirectoryAction, List[str]]:
+def parse_list_directory_action(first_line: str, _: List[str]) -> Tuple[actions.ListDirectoryAction, List[str]]:
     path = first_line[len(LIST_DIRECTORY_PREFIX):].strip()
     return actions.ListDirectoryAction(path), []
 
@@ -99,6 +99,7 @@ action_parsers = [
     (FIND_AND_REPLACE_PREFIX, parse_find_and_replace_action),
     (LIST_DIRECTORY_PREFIX, parse_list_directory_action),
     (SHUTDOWN_PREFIX, parse_shutdown_action),
+    (CREATE_DIRECTORY_PREFIX, parse_create_directory_action),
 ]
 
 def parse_action(first_line: str, lines: List[str]) -> Tuple[actions.Action, List[str]]:
