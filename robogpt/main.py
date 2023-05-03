@@ -1,13 +1,13 @@
 import os
 import sys
 from typing import Optional
+import signal
 from dotenv import load_dotenv
 from spinner import Spinner
 import actions
 import response_parser
 import speech
 import gpt
-import signal
 
 
 
