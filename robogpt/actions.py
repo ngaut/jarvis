@@ -199,7 +199,7 @@ class ExtractInfoAction(Action):
         request_token_count = gpt.count_tokens(messages)
         max_response_token_count = gpt.COMBINED_TOKEN_LIMIT - request_token_count
         with Spinner("Extracting info..."):
-            extracted_info = gpt.send_message(messages, max_response_token_count)
+            extracted_info = gpt.send_message(messages, max_response_token_count, model=gpt.GPT_3_5_TURBO)
         print("ExtractInfoAction RESULT: The info was extracted successfully.")
         return extracted_info
 
@@ -252,7 +252,7 @@ class FindAndReplaceAction(Action):
     def run(self) -> str:
         with io.open(self.path, mode="r", encoding="utf-8") as file:
             content = file.read()
-        new_content = content.replace(self.find, self.replace)
+        new_content = content.replace(self.find, self.replace, 1)
         if new_content == content:
             return f"FindAndReplaceAction failed: The string '{self.find}' to be replaced was not found in the file."
         with io.open(self.path, mode="w", encoding="utf-8") as file:
@@ -280,3 +280,49 @@ class ListDirectoryAction(Action):
         else:
             print(f"ListDirectoryAction RESULT: Failed to list directory `{self.path}`.")
             return f"ListDirectoryAction Failed to list directory `{self.path}`."
+        
+
+class Memory:
+    def __init__(self):
+        self.storage = dict()
+
+    def set(self, key: str, value: str):
+        self.storage[key] = value
+
+    def get(self, key: str):
+        return self.storage.get(key)
+
+mem = Memory()
+
+@dataclass(frozen=True)
+class MemorySetAction(Action):
+    k: str
+    v: str
+
+    def key(self) -> str:
+        return "MEMORY_SET"
+
+    def short_string(self) -> str:
+        return f"Set memory key `{self.k}` to value `{self.v}`."
+
+    def run(self) -> str:
+        mem.set(self.k, self.v)
+        return f"MemorySetAction: Set key `{self.k}` to value `{self.v}`."
+
+
+@dataclass(frozen=True)
+class MemoryGetAction(Action):
+    k: str
+
+    def key(self) -> str:
+        return "MEMORY_GET"
+
+    def short_string(self) -> str:
+        return f"Get memory value for key `{self.k}`."
+
+    def run(self) -> str:
+        value = mem.get(self.k)
+        if value is not None:
+            return f"MemoryGetAction: Retrieved value `{value}` for key `{self.k}`."
+        else:
+            return f"MemoryGetAction: Key `{self.k}` not found in memory."

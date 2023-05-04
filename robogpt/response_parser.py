@@ -15,6 +15,9 @@ SHUTDOWN_PREFIX = "SHUTDOWN"
 FIND_AND_REPLACE_PREFIX = "FIND_AND_REPLACE:"
 LIST_DIRECTORY_PREFIX = "LIST_DIRECTORY:"
 CREATE_DIRECTORY_PREFIX = "CREATE_DIRECTORY:"
+MEMORY_GET_PREFIX = "MEMORY_GET:"
+MEMORY_SET_PREFIX = "MEMORY_SET:"
+
 
 @dataclass(frozen=True)
 class Metadata:
@@ -45,6 +48,16 @@ def find_metadata_lines(lines: List[str], content_start: int) -> Tuple[List[str]
     content_lines = lines[content_start:end_of_content]
     metadata_lines = lines[end_of_content + 1:]
     return content_lines, metadata_lines
+
+def parse_memory_get_action(first_line: str, _: List[str]) -> Tuple[actions.MemoryGetAction, List[str]]:
+    key = first_line[len(MEMORY_GET_PREFIX):].strip()
+    return actions.MemoryGetAction(k=key), []
+
+def parse_memory_set_action(first_line: str, _: List[str]) -> Tuple[actions.MemorySetAction, List[str]]:
+    key, value = first_line[len(MEMORY_SET_PREFIX):].strip().split(",", 1)
+    key = key.strip()
+    value = value.strip()
+    return actions.MemorySetAction(k=key, v=value), []
 
 
 def parse_write_file_action(first_line: str, lines: List[str]) -> Tuple[actions.WriteFileAction, List[str]]:
@@ -118,6 +131,8 @@ action_parsers = [
     (LIST_DIRECTORY_PREFIX, parse_list_directory_action),
     (SHUTDOWN_PREFIX, parse_shutdown_action),
     (CREATE_DIRECTORY_PREFIX, parse_create_directory_action),
+    (MEMORY_GET_PREFIX, parse_memory_get_action),
+    (MEMORY_SET_PREFIX, parse_memory_set_action),
 ]
 
 def parse_action(first_line: str, lines: List[str]) -> Tuple[actions.Action, List[str]]:

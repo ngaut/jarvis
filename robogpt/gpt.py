@@ -5,18 +5,24 @@ import openai
 import tiktoken
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
-MODEL = "gpt-4"
+
+# Constants
 TOKEN_BUFFER = 50
 COMBINED_TOKEN_LIMIT = 8192 - TOKEN_BUFFER
 MAX_RESPONSE_TOKENS = 1000
 MAX_REQUEST_TOKENS = COMBINED_TOKEN_LIMIT - MAX_RESPONSE_TOKENS
-ENCODING = tiktoken.encoding_for_model(MODEL)
 TOKENS_PER_MESSAGE = 3
 TOKENS_PER_NAME = 1
 USER_INPUT_SUFFIX = "Determine which next action to use, and write one valid action, a newline, and one valid metadata JSON object, both according to the specified schema:"
 
+# Default model
+GPT_4 = "gpt-4"
 
-def chat(user_directions: str, general_directions: str, new_plan: Optional[str], message_history):
+# Alternative model
+GPT_3_5_TURBO = "gpt-3.5-turbo"
+
+
+def chat(user_directions: str, general_directions: str, new_plan: Optional[str], message_history, model: str = GPT_4):
     system_message_content = f"{user_directions}\n{general_directions}"
     system_message = {"role": "system", "content": system_message_content}
     user_message_content = USER_INPUT_SUFFIX
@@ -33,12 +39,7 @@ def chat(user_directions: str, general_directions: str, new_plan: Optional[str],
         request_token_count += message_token_count
         messages.insert(insert_history_at, message)
     available_response_tokens = COMBINED_TOKEN_LIMIT - request_token_count
-    # print("=== MESSAGES START ===")
-    # for message in messages:
-    #     print(message["role"], message["content"][:100], count_tokens([message]))
-    # print("=== MESSAGES END ===")
-    # print(f"available_response_tokens: {available_response_tokens}")
-    assistant_response = send_message(messages, available_response_tokens)
+    assistant_response = send_message(messages, available_response_tokens, model)
     message_history.append(user_message)
     message_history.append({"role": "assistant", "content": assistant_response})
     return assistant_response
@@ -49,18 +50,18 @@ def count_tokens(messages) -> int:
     for message in messages:
         token_count += TOKENS_PER_MESSAGE
         for key, value in message.items():
-            token_count += len(ENCODING.encode(value))
+            token_count += len(value)
             if key == "name":
                 token_count += TOKENS_PER_NAME
     token_count += 3
     return token_count
 
 
-def send_message(messages, max_response_tokens: int) -> str:
+def send_message(messages, max_response_tokens: int, model: str) -> str:
     while True:
         try:
-            response = openai.ChatCompletion.create(model=MODEL, messages=messages, max_tokens=max_response_tokens)
+            response = openai.ChatCompletion.create(model=model, messages=messages, max_tokens=max_response_tokens)
             return response.choices[0].message["content"]  # type: ignore
         except openai.error.RateLimitError:  # type: ignore
-            print(f"Model {MODEL} currently overloaded. Waiting 10 seconds...")
+            print(f"Model {model} currently overloaded. Waiting 10 seconds...")
             time.sleep(10)

@@ -17,6 +17,7 @@ message_history = []
 GENERAL_DIRECTIONS_PREFIX = """
 CONSTRAINTS:
 - Cannot run Python code that requires user input unless you are testing if the syntax is correct.
+- Do not seek user's help, you can make all decisions yourself.
 
 
 ACTIONS:
@@ -42,7 +43,7 @@ APPEND_FILE: <PATH>
 <TEXT>
 ```
 
-- "RUN_PYTHON": run a Python file. TIMEOUT is time limit in seconds, The schema for the action is:
+- "RUN_PYTHON": run a Python file. TIMEOUT is time limit in seconds, you can always use it to extend your ability that do not have now.The schema for the action is:
 
 RUN_PYTHON: <PATH>, <TIMEOUT>
 
@@ -58,7 +59,7 @@ EXTRACT_INFO: <URL>, <a brief instruction to GPT for information to extract>
 
 SHUTDOWN: <REASON>
 
-- "FIND_AND_REPLACE": find and replace a string in a file. The schema for the action is:
+- "FIND_AND_REPLACE": replace the first occurrence of string in a file. The schema for the action is:
 
 FIND_AND_REPLACE: <PATH>, 
 ```
@@ -76,17 +77,26 @@ LIST_DIRECTORY: <PATH>
 
 CREATE_DIRECTORY: <PATH>
 
+- "MEMORY_GET": Get the value of key. The schema for the action is:
+
+MEMORY_GET: <KEY>
+
+- "MEMORY_SET": Set key to hold the string value. The schema for the action is:
+
+MEMORY_SET: <KEY>, <VALUE>
+
 
 RESOURCES:
 1. File contents after reading file.
 2. Online search results returning URLs.
 3. Output of running a Python file.
+4. Memory of key-value pairs.
 
 
 PERFORMANCE EVALUATION:
 1. Continuously review and analyze your actions to ensure you are performing to the best of your abilities. 
 2. Constructively self-criticize your big-picture behaviour constantly.
-3. Reflect on past decisions and strategies to refine your approach.
+3. Reflect on past decisions, memories and strategies to refine your approach.
 4. Every action has a cost, so be smart and efficent. Aim to complete tasks in the least number of steps.
 
 
@@ -101,7 +111,7 @@ FLAG_VERBOSE = "--verbose"
 FLAG_SPEECH = "--speech"
 FLAG_CONTINUOUS = "--continuous"
 FLAG_TIMEOUT = "--timeout"
-DEFAULT_TIMEOUT = 30
+DEFAULT_TIMEOUT = 3
 
 class InputTimeoutError(Exception):
     pass
