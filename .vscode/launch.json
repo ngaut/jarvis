@@ -5,7 +5,7 @@
             "name": "main",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/robogpt/main.py",
+            "program": "${workspaceFolder}/jarvis/main.py",
             "args": ["--verbose"],
             "console": "integratedTerminal",
             "justMyCode": true

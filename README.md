@@ -1,9 +1,9 @@
-# RoboGPT: A simple autonomous GPT-4 runner
+# jarvis: A simple autonomous GPT-4 runner
 
 [![](https://dcbadge.vercel.app/api/server/98KeRysd?style=flat)](https://discord.gg/98KeRysd)
 [![Twitter Follow](https://img.shields.io/twitter/follow/rokstrnisa?style=social)](https://twitter.com/intent/follow?screen_name=rokstrnisa)
 
-RoboGPT is a simple and extensible program that helps you run GPT-4 model autonomously. It is designed to be easy to understand, so that anyone can use it and extend it.
+jarvis is a simple and extensible program that helps you run GPT-4 model autonomously. It is designed to be easy to understand, so that anyone can use it and extend it.
 
 The program was inspired by [some of my earlier work](https://blog.rok.strnisa.com/2023/04/how-i-got-chatgpt-to-write-complete.html) and Auto-GPT.
 
@@ -11,7 +11,7 @@ The program was inspired by [some of my earlier work](https://blog.rok.strnisa.c
 
 ## Simple Demo
 
-[![A simple demo of RoboGPT.](https://img.youtube.com/vi/mi0D4l7JRtQ/0.jpg)](https://www.youtube.com/watch?v=mi0D4l7JRtQ)
+[![A simple demo of jarvis.](https://img.youtube.com/vi/mi0D4l7JRtQ/0.jpg)](https://www.youtube.com/watch?v=mi0D4l7JRtQ)
 
 ## Features
 
@@ -42,7 +42,7 @@ Planned:
 
 ## Usage
 
-Run `python robogpt/main.py` to start the program.
+Run `python jarvis/main.py` to start the program.
 
 ## Continuous Mode
 
@@ -64,7 +64,7 @@ Current Sponsors:
 
 ## Contributing
 
-Contributions to RoboGPT are very welcome! If you'd like to contribute, please follow these guidelines:
+Contributions to jarvis are very welcome! If you'd like to contribute, please follow these guidelines:
 
 -   Submit issues for bugs or feature requests.
 -   Create pull requests for proposed changes or new features. Make sure your changes are well-documented and follow the project's code style.
@@ -72,6 +72,6 @@ Contributions to RoboGPT are very welcome! If you'd like to contribute, please f
 
 ## Community
 
-Join [RoboGPT Discord server](https://discord.gg/98KeRysd) to get help, discuss ideas and collaborate.
+Join [jarvis Discord server](https://discord.gg/98KeRysd) to get help, discuss ideas and collaborate.
 
 To stay up-to-date, follow [@RokStrnisa](https://twitter.com/intent/follow?screen_name=rokstrnisa).

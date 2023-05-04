@@ -9,5 +9,5 @@
         "editor.defaultFormatter": "ms-python.black-formatter"
     },
     "python.formatting.provider": "none",
-    "python.analysis.extraPaths": ["./robogpt"]
+    "python.analysis.extraPaths": ["./jarvis"]
 }

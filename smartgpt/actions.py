@@ -25,7 +25,7 @@ class Action:
         raise NotImplementedError
 
     def run(self) -> str:
-        """Returns what RoboGPT should learn from running the action."""
+        """Returns what jarvis should learn from running the action."""
         raise NotImplementedError
 
 
