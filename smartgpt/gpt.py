@@ -4,6 +4,10 @@ from typing import Optional
 import openai
 import tiktoken
 
+# OpenAI API
+openai.api_type = "azure"
+openai.api_base = "https://pingcat-bot.openai.azure.com/"
+openai.api_version = "2023-03-15-preview"
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Constants
@@ -13,13 +17,15 @@ MAX_RESPONSE_TOKENS = 1000
 MAX_REQUEST_TOKENS = COMBINED_TOKEN_LIMIT - MAX_RESPONSE_TOKENS
 TOKENS_PER_MESSAGE = 3
 TOKENS_PER_NAME = 1
-USER_INPUT_SUFFIX = "Determine which next action to use, and write one valid action, a newline, and one valid metadata JSON object, both according to the specified schema:"
+USER_INPUT_SUFFIX = "Determine which next task to use, and write one valid action,both according to the specified schema:"
 
 # Default model
-GPT_4 = "gpt-4"
+#GPT_4 = "gpt-4"
+GPT_4 = "gpt-4_playground"
 
 # Alternative model
-GPT_3_5_TURBO = "gpt-3.5-turbo"
+#GPT_3_5_TURBO = "gpt-3.5-turbo"
+GPT_3_5_TURBO = "gpt-35-turbo_playground"
 
 
 def chat(user_directions: str, general_directions: str, new_plan: Optional[str], message_history, model: str = GPT_4):
@@ -60,7 +66,8 @@ def count_tokens(messages) -> int:
 def send_message(messages, max_response_tokens: int, model: str) -> str:
     while True:
         try:
-            response = openai.ChatCompletion.create(model=model, messages=messages, max_tokens=max_response_tokens)
+            #response = openai.ChatCompletion.create(model=model, messages=messages, max_tokens=max_response_tokens)
+            response = openai.ChatCompletion.create(engine=model, messages=messages, max_tokens=max_response_tokens)
             return response.choices[0].message["content"]  # type: ignore
         except openai.error.RateLimitError:  # type: ignore
             print(f"Model {model} currently overloaded. Waiting 10 seconds...")

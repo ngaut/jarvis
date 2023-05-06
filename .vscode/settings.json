@@ -6,7 +6,7 @@
     "prettier.tabWidth": 4,
     "prettier.printWidth": 200,
     "[python]": {
-        "editor.defaultFormatter": "ms-python.black-formatter"
+        "editor.defaultFormatter": "ms-python.python"
     },
     "python.formatting.provider": "none",
     "python.analysis.extraPaths": ["./jarvis"]

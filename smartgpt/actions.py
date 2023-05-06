@@ -6,6 +6,7 @@ import subprocess
 from spinner import Spinner
 import gpt
 import requests
+from abc import ABC, abstractmethod
 from bs4 import BeautifulSoup
 from googlesearch import search
 from selenium import webdriver
@@ -17,7 +18,13 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 
 @dataclass(frozen=True)
-class Action:
+class Action(ABC):
+    @classmethod
+    def from_dict(cls, data: dict):
+        action_type = data["type"]
+        action_class = ACTION_CLASSES[action_type]
+        return action_class(**data["data"])
+
     def key(self) -> str:
         raise NotImplementedError
 
@@ -27,6 +34,30 @@ class Action:
     def run(self) -> str:
         """Returns what jarvis should learn from running the action."""
         raise NotImplementedError
+
+import inspect
+
+# Helper function to populate the ACTION_CLASSES dictionary
+def _populate_action_classes(action_classes):
+    result = {}
+    for action_class in action_classes:
+        # Get the parameters of the __init__() method for this action class
+        init_params = inspect.signature(action_class.__init__).parameters
+
+        # Construct a dictionary of default argument values for the __init__() method
+        default_args = {}
+        for param in init_params.values():
+            if param.name != "self":
+                default_args[param.name] = param.default
+
+        # Create an instance of the action class with the default arguments
+        action_instance = action_class(**default_args)
+
+        # Add the action class to the result dictionary, using the key returned by the key() method
+        result[action_instance.key()] = action_class
+
+    return result
+
 
 
 @dataclass(frozen=True)
@@ -58,7 +89,6 @@ class ReadFileAction(Action):
         if os.path.exists(self.path):
             with io.open(self.path, mode="r", encoding="utf-8") as file:
                 contents = file.read()
-                print(f"ReadFileAction RESULT: Read file `{self.path}`.")
                 return contents
         else:
             # Check if the path is a remote file
@@ -66,7 +96,6 @@ class ReadFileAction(Action):
                 response = requests.get(self.path)
                 response.raise_for_status()
                 contents = response.text
-                print(f"ReadFileAction RESULT: Read remote file `{self.path}`.")
                 return contents
             except requests.exceptions.HTTPError as e:
                 print(f"ReadFileAction RESULT: Failed to read file `{self.path}`: {e}")
@@ -326,3 +355,19 @@ class MemoryGetAction(Action):
             return f"MemoryGetAction: Retrieved value `{value}` for key `{self.k}`."
         else:
             return f"MemoryGetAction: Key `{self.k}` not found in memory."
+
+ACTION_CLASSES = _populate_action_classes([
+    TellUserAction,
+    ReadFileAction,
+    WriteFileAction,
+    AppendFileAction,
+    RunPythonAction,
+    SearchOnlineAction,
+    ExtractInfoAction,
+    FindAndReplaceAction,
+    ListDirectoryAction,
+    ShutdownAction,
+    CreateDirectoryAction,
+    MemoryGetAction,
+    MemorySetAction,
+])
