@@ -16,7 +16,7 @@ task_list = []
 GENERAL_DIRECTIONS_PREFIX = """
 -CONSTRAINTS:
 Cannot run Python code that requires user input unless you are testing if the syntax is correct.
-Do not seek user's help.
+Do not seek user's help. You make decisions and take actions on your own.
 
 -ACTIONS:
 TELL_USER: {"type": "TELL_USER", "text": "<TEXT>"}
@@ -30,8 +30,8 @@ SHUTDOWN: {"type": "SHUTDOWN", "reason": "<REASON>"}
 FIND_AND_REPLACE: {"type": "FIND_AND_REPLACE", "path": "<PATH>", "find_text": "<FIND_TEXT>", "replace_text": "<REPLACE_TEXT>"}
 LIST_DIRECTORY: {"type": "LIST_DIRECTORY", "path": "<PATH>"}
 CREATE_DIRECTORY: {"type": "CREATE_DIRECTORY", "path": "<PATH>"}
-MEMORY_GET: {"type": "MEMORY_GET", "key": "<KEY>"}
-MEMORY_SET: {"type": "MEMORY_SET", "key": "<KEY>", "value": "<VALUE>"}
+MEMORY_GET: {"type": "MEMORY_GET", "memkey": "<KEY>"}
+MEMORY_SET: {"type": "MEMORY_SET", "memkey": "<KEY>", "memval": "<VALUE>"}
 
 -PRIORITY AND TIME MANAGEMENT:
 Prioritize tasks based on their importance and time-sensitivity.
@@ -57,13 +57,15 @@ Reflect on past decisions, memories and strategies to refine your approach.
 Every action has a cost, so be smart and efficient. Aim to complete tasks in the least number of steps.
 Focus on effective memory management and decision-making to optimize your performance.
 
--Your Response: 
-The only thing you can reply is a pure JSON object (parseable by Python's json.loads()) which starts from '{', do not add extra text, it must contain the following keys:
-"action": one of the action schemas specified above
-"reason": {"type": "REASON", "text": "<TEXT>"}, a short sentence explaining the action
-"plan": {"type": "PLAN", "tasks": {<TASK_ID>: "<TASK_DESCRIPTION>", ...}}, a map of clear and actionable numbered tasks; consult your memory before updating a plan
-"current_task_id": {"type": "CURRENT_TASK_ID", "id": <TASK_ID>}, the id of the current task that you are working on
-"memory": a dictionary of key-value pairs that can be used to store and retrieve information
+-Your Response is a json, start from here: 
+json:
+{
+    {"action": one of the action schemas specified above},
+    {"reason": {"type": "REASON", "text": "<TEXT>"}, a short sentence explaining the action},
+    {"plan": "tasks": ["{task id}-{TASK_DESCRIPTION}"]},
+    {"current_task_id": {"type": "CURRENT_TASK_ID", "id": "<TASK_ID>"}},
+    {"memory": a dictionary of key-value pairs that can be used to store and retrieve information},
+}
 """
 
 
@@ -150,11 +152,15 @@ def main():
         message_content = f"task {metadata.current_task_id} returned:\n{action_output}"
         # construct message_content from metadata's plan and current task
         task_list.clear()
+        message_content += f"\n\nCurrent task: {metadata.current_task_id}"
+        # add plan to message_content
+        message_content += "\n\nPlan:\n"
         for task in metadata.plan:
-            message_content += f"\n{task}"
+            message_content += f"{task}\n"
         # add memory to message_content
+        message_content += "\n\nMemory:\n"
         for key, value in metadata.memory:
-            message_content += f"\n{key}: {value}"
+            message_content += f"{key}: {value}\n"
 
         print(f"MESSAGE CONTENT: {message_content}")
         task_list.append({"role": "system", "content": message_content})

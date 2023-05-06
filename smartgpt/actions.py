@@ -6,6 +6,7 @@ import subprocess
 from spinner import Spinner
 import gpt
 import requests
+import inspect
 from abc import ABC, abstractmethod
 from bs4 import BeautifulSoup
 from googlesearch import search
@@ -23,7 +24,18 @@ class Action(ABC):
     def from_dict(cls, data: dict):
         action_type = data["type"]
         action_class = ACTION_CLASSES[action_type]
-        return action_class(**data["data"])
+
+        # Get the constructor parameters for the action class
+        constructor_params = inspect.signature(action_class).parameters
+
+        # Create a dictionary of constructor arguments from the JSON data
+        constructor_args = {}
+        for param_name, param in constructor_params.items():
+            if param_name != "self" and param_name in data:
+                print(f"constructor_args[{param_name}] = {data[param_name]}")
+                constructor_args[param_name] = data[param_name]
+
+        return action_class(**constructor_args)
 
     def key(self) -> str:
         raise NotImplementedError
@@ -35,43 +47,20 @@ class Action(ABC):
         """Returns what jarvis should learn from running the action."""
         raise NotImplementedError
 
-import inspect
-
-# Helper function to populate the ACTION_CLASSES dictionary
-def _populate_action_classes(action_classes):
-    result = {}
-    for action_class in action_classes:
-        # Get the parameters of the __init__() method for this action class
-        init_params = inspect.signature(action_class.__init__).parameters
-
-        # Construct a dictionary of default argument values for the __init__() method
-        default_args = {}
-        for param in init_params.values():
-            if param.name != "self":
-                default_args[param.name] = param.default
-
-        # Create an instance of the action class with the default arguments
-        action_instance = action_class(**default_args)
-
-        # Add the action class to the result dictionary, using the key returned by the key() method
-        result[action_instance.key()] = action_class
-
-    return result
-
 
 
 @dataclass(frozen=True)
 class TellUserAction(Action):
-    message: str
+    text: str
 
     def key(self) -> str:
         return "TELL_USER"
 
     def short_string(self) -> str:
-        return f'Tell user "{self.message}".'
+        return f'Tell user "{self.text}".'
 
     def run(self) -> str:
-        return f"Told user the following: {self.message}"
+        return f"Told user the following: {self.text}"
 
 
 @dataclass(frozen=True)
@@ -105,7 +94,7 @@ class ReadFileAction(Action):
 @dataclass(frozen=True)
 class WriteFileAction(Action):
     path: str
-    content: str
+    text: str
 
     def key(self) -> str:
         return "WRITE_FILE"
@@ -115,7 +104,7 @@ class WriteFileAction(Action):
 
     def run(self) -> str:
         with io.open(self.path, mode="w", encoding="utf-8") as file:
-            file.write(self.content)
+            file.write(self.text)
             print(f"WriteFileAction RESULT: Wrote file `{self.path}`.")
             return "WriteFileAction File successfully written."
 
@@ -123,7 +112,7 @@ class WriteFileAction(Action):
 @dataclass(frozen=True)
 class AppendFileAction(Action):
     path: str
-    content: str
+    text: str
 
     def key(self) -> str:
         return "APPEND_FILE"
@@ -133,7 +122,7 @@ class AppendFileAction(Action):
 
     def run(self) -> str:
         with io.open(self.path, mode="a", encoding="utf-8") as file:
-            file.write(self.content)
+            file.write(self.text)
             print(f"AppendFileAction RESULT: Appended file `{self.path}`.")
             return "AppendFileAction File successfully appended."
 
@@ -325,36 +314,58 @@ mem = Memory()
 
 @dataclass(frozen=True)
 class MemorySetAction(Action):
-    k: str
-    v: str
+    memkey: str
+    memval: str
 
     def key(self) -> str:
         return "MEMORY_SET"
 
     def short_string(self) -> str:
-        return f"Set memory key `{self.k}` to value `{self.v}`."
+        return f"Set memory key `{self.memkey}` to value `{self.memval}`."
 
     def run(self) -> str:
-        mem.set(self.k, self.v)
-        return f"MemorySetAction: Set key `{self.k}` to value `{self.v}`."
+        mem.set(self.memkey, self.memval)
+        return f"MemorySetAction: Set key `{self.memkey}` to value `{self.memval}`."
 
 
 @dataclass(frozen=True)
 class MemoryGetAction(Action):
-    k: str
+    memkey: str
 
     def key(self) -> str:
         return "MEMORY_GET"
 
     def short_string(self) -> str:
-        return f"Get memory value for key `{self.k}`."
+        return f"Get memory value for key `{self.memkey}`."
 
     def run(self) -> str:
-        value = mem.get(self.k)
+        value = mem.get(self.memkey)
         if value is not None:
-            return f"MemoryGetAction: Retrieved value `{value}` for key `{self.k}`."
+            return f"MemoryGetAction: Retrieved value `{value}` for key `{self.memkey}`."
         else:
-            return f"MemoryGetAction: Key `{self.k}` not found in memory."
+            return f"MemoryGetAction: Key `{self.memkey}` not found in memory."
+        
+
+# Helper function to populate the ACTION_CLASSES dictionary
+def _populate_action_classes(action_classes):
+    result = {}
+    for action_class in action_classes:
+        # Get the parameters of the __init__() method for this action class
+        init_params = inspect.signature(action_class.__init__).parameters
+
+        # Construct a dictionary of default argument values for the __init__() method
+        default_args = {}
+        for param in init_params.values():
+            if param.name != "self":
+                default_args[param.name] = param.default
+
+        # Create an instance of the action class with the default arguments
+        action_instance = action_class(**default_args)
+
+        # Add the action class to the result dictionary, using the key returned by the key() method
+        result[action_instance.key()] = action_class
+
+    return result       
 
 ACTION_CLASSES = _populate_action_classes([
     TellUserAction,
