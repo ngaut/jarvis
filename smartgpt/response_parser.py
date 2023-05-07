@@ -73,7 +73,7 @@ def parse_metadata(metadata_json: dict) -> Metadata:
     except Exception as e:
         raise ValueError(f"parse_metadata: Failed to parse metadata: {str(e)}\nMetadata JSON:\n{metadata_json}")
 
-def parse(text: str) -> Tuple[Optional[actions.Action], Metadata]:
+def parse(text: str) -> Tuple[Optional[actions.Action], Optional[Metadata]]:
     # Check for empty input
     if not text:
         raise ValueError("parse: Empty input received. Cannot parse.")
@@ -81,17 +81,11 @@ def parse(text: str) -> Tuple[Optional[actions.Action], Metadata]:
     print(f"\nparse Text:{text}\n")
 
     try:
-        json_objects = extract_json_objects(text)
-
-        # Handle different capitalization forms of the "action" key
-        data = {}
-        for obj in json_objects:
-            decoded_obj = attempt_json_decode(obj)
-            if decoded_obj:
-                data.update(decoded_obj)
-        action_data = data.get("action", data.get("Action", data.get("ACTION")))
+        # Try to parse the input as a valid JSON object
+        data = json.loads(text)
 
         # Create an Action object from the action data (if it exists)
+        action_data = data.get("action", data.get("Action", data.get("ACTION")))
         action = None
         if action_data:
             action = actions.Action.from_dict(action_data)
@@ -103,11 +97,30 @@ def parse(text: str) -> Tuple[Optional[actions.Action], Metadata]:
         metadata = parse_metadata(data)
         return action, metadata
 
-    except ValueError as e:
-        traceback.print_exc()
-        raise ValueError(f"Failed to parse input\n: {e.with_traceback()}\n")
-    except Exception as e:
-        traceback.print_exc()
-        raise Exception(f"Unexpected error occurred: {str(e)}, text:{text}\n")
+    except ValueError:
+        # If parsing as a JSON object fails, try to extract JSON object(s) from the input string
+        json_objects = extract_json_objects(text)
+        if not json_objects:
+            raise ValueError(f"Failed to parse input as JSON object: {text}")
+        
+        # Create an Action object and parse the metadata for each JSON object separately
+        action = None
+        metadata = None
+        for json_text in json_objects:
+            try:
+                data = json.loads(json_text)
 
+                # Create an Action object from the action data (if it exists)
+                action_data = data.get("action", data.get("Action", data.get("ACTION")))
+                if action_data:
+                    action = actions.Action.from_dict(action_data)
+                
+                if action is None:
+                    action = actions.Action.from_dict(data)
 
+                # Parse the metadata
+                metadata = parse_metadata(data)
+            except Exception as e:
+                raise ValueError(f"Failed to parse input as JSON object: {json_text}\nError: {str(e)}")
+        
+        return action, metadata

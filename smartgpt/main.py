@@ -12,6 +12,7 @@ import gpt
 
 
 task_list = []
+memories = ""
 
 GENERAL_DIRECTIONS_PREFIX = """
 -CONSTRAINTS:
@@ -44,29 +45,36 @@ Update memory as needed to keep track of your progress and the state of the envi
 Make the best use of memory to optimize your actions, minimize repetition, and improve overall efficiency.
 
 -RESOURCES:
-File contents after reading file.
-Online search results returning URLs.
-Output of running a Python file.
-Your memory of key-value pairs.
+Key value database that you can operate with MEMORY_GET and MEMORY_SET actions.
+Your limited memory.
 
 -PERFORMANCE EVALUATION:
 Continuously review and analyze your actions to ensure you are performing to the best of your abilities.
 Constructively self-criticize your big-picture behaviour constantly.
-Reflect on past decisions, memories and strategies to refine your approach.
+Reflect on past decisions, memories to refine your approach.
 Every action has a cost, so be smart and efficient. Aim to complete tasks in the least number of steps.
-Focus on effective memory management and decision-making to optimize your performance.
 
--Your Response is a compact json, an example with comments is shown below:
+-Your Response is a compact json, below is an example with comments for your reference:
 {
-  {"type": "APPEND_FILE", "path": "pkg/description.txt", "text": "-fun.py:implementation of some small functions"}, // one of the action schemas above
-  "reason": "To finish our goal, i need to add description for fun.py to the description.txt file", // a summary of your thoughts 
+  {"type": "APPEND_FILE", "path": "pkg/description.txt", "text": "fun.py:implementation of some small functions"}, // one of the action schemas above
+  "reason": "I need to add description for fun.py to the description.txt file", // a summary of your thoughts 
   "plan": [     // a detail and actionable task list to achieve the goal
     "1-List files in 'pkg' directory and store it to memory",
     "2-Examine and write descriptions for each file",
     "3-Create 'summary.txt' with project documentation",
   ],
   "current_task_id": "2",
-  "memory": {"files in 'pkg' directory": ["basic.py", "fun.py", "main.py"]} // avoid reading files more than once
+  // You have memory to store information, but it is limited to 8Kib. Everything you store in memory is key-value pair.
+  // your memory is persistent. And I will give it back to you in the next round of conversation. 
+  // You should fully leverage your memory to make you super smart. You may use it as a note book, small database.
+  // Change it as you wish. Keep updating it. You can add any fields to it.
+  "memory": {
+    "files in 'pkg' directory": ["basic.py", "fun.py", "main.py"], 
+    "previous task": "1", 
+    "files have been described": ["basic.py"],
+    "files need to be described": ["fun.py", "main.py"],
+    ... // other fields
+    } 
 }
 
 """
@@ -116,7 +124,7 @@ def main():
     if FLAG_SPEECH in sys.argv[1:]:
         general_directions += '- "speak": a short summary of thoughts to say to the user'
     general_directions += "\n\n"
-    general_directions += "If you want to run an action that is not in the above list of actions, send the SHUTDOWN action.\n"
+    general_directions += "Try your best to archive the goal, send the SHUTDOWN action when you finish or can't finish after retry your job.\n"
     load_dotenv()
     os.makedirs("workspace", exist_ok=True)
     os.chdir("workspace")
@@ -147,9 +155,7 @@ def main():
                     break   
             action_output = action.run()
         except Exception as e:
-            print(f"\nfailed with exception {e.with_traceback()}")
-            message_content = f"Failed with exception {e}"
-            task_list.append({"role": "system", "content": message_content})
+            task_list.append({"role": "system", "content": f"{str(e)}"})
             continue
 
         make_hints(action, metadata, action_output)
@@ -169,16 +175,23 @@ def make_hints(action, metadata, action_output):
             f"\n# Result:\n{action_output}\n"
         )        
 
-    hints_for_ai += "\n\n# The plan you are using:\n"
-    for task in metadata.plan:
-        hints_for_ai += f"  - {task}\n"
+    if len(metadata.plan) > 0:
+        hints_for_ai += "\n\n# The previous plan you were using:\n"
+        for task in metadata.plan:
+            hints_for_ai += f"  - {task}\n"
 
     if metadata.memory:
         hints_for_ai += "\n# Your Memory:\n"
-        for key, value in metadata.memory.items():
-            hints_for_ai += f"  {key}: {value}\n"
+        if len(metadata.memory.items()) > 0:
+            old_memories = "{\n"
+            for key, value in metadata.memory.items():
+                old_memories += f"  \"{key}\": {value},\n"
+            old_memories += "}\n"
+        hints_for_ai += old_memories
+    # tell ai what to do next
+    hints_for_ai += "\nChange your plan if needed.\n"
 
-    print(f"MESSAGE CONTENT: {hints_for_ai}")
+    print(f"Content sent to AI:\n{hints_for_ai}\n")
     task_list.append({"role": "system", "content": hints_for_ai})
 
 if __name__ == "__main__":
