@@ -56,17 +56,17 @@ Reflect on past decisions, memories and strategies to refine your approach.
 Every action has a cost, so be smart and efficient. Aim to complete tasks in the least number of steps.
 Focus on effective memory management and decision-making to optimize your performance.
 
--Your Response is a compact json, an example is shown below:
+-Your Response is a compact json, an example with comments is shown below:
 {
-  "action": {"type": "LIST_DIRECTORY", "path": "pkg"}, // one of the action schemas above
-  "reason": "The first step is to list the files in the 'pkg' directory in order to analyze project files.",
-  "plan": [
-    "1-List files in 'pkg' directory",
+  {"type": "APPEND_FILE", "path": "pkg/description.txt", "text": "-fun.py:implementation of some small functions"}, // one of the action schemas above
+  "reason": "To finish our goal, i need to add description for fun.py to the description.txt file", // a summary of your thoughts 
+  "plan": [     // a detail and actionable task list to achieve the goal
+    "1-List files in 'pkg' directory and store it to memory",
     "2-Examine and write descriptions for each file",
     "3-Create 'summary.txt' with project documentation",
   ],
   "current_task_id": "2",
-  "memory": {files_in_pkg_directory: ["file1.py", "file2.py", "file3.py"]}
+  "memory": {"files in 'pkg' directory": ["basic.py", "fun.py", "main.py"]} // avoid reading files more than once
 }
 
 """
@@ -163,23 +163,23 @@ def main():
 def make_hints(action, metadata, action_output):
     task_list.clear()
 
-    message_content = (
+    hints_for_ai = (
             f"\n# Your current task ID: {metadata.current_task_id}"
             f"\n# Task: {action.short_string()}"
             f"\n# Result:\n{action_output}\n"
         )        
 
-    message_content += "\n\n# The plan you are using:\n"
+    hints_for_ai += "\n\n# The plan you are using:\n"
     for task in metadata.plan:
-        message_content += f"  - {task}\n"
+        hints_for_ai += f"  - {task}\n"
 
     if metadata.memory:
-        message_content += "\n# Your Memory:\n"
+        hints_for_ai += "\n# Your Memory:\n"
         for key, value in metadata.memory.items():
-            message_content += f"  {key}: {value}\n"
+            hints_for_ai += f"  {key}: {value}\n"
 
-    print(f"MESSAGE CONTENT: {message_content}")
-    task_list.append({"role": "system", "content": message_content})
+    print(f"MESSAGE CONTENT: {hints_for_ai}")
+    task_list.append({"role": "system", "content": hints_for_ai})
 
 if __name__ == "__main__":
     main()
