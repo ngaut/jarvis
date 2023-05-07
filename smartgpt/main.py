@@ -12,12 +12,15 @@ import gpt
 
 
 task_list = []
-memories = ""
+old_memories = ""
 
 GENERAL_DIRECTIONS_PREFIX = """
 -CONSTRAINTS:
 Cannot run Python code that requires user input unless you are testing if the syntax is correct.
 Do not seek user's help. As an autonomous AI, you are highly intelligent and can make decisions and take actions independently.
+Always update the memory field after completing a sub-task and before moving on to the next one.
+Initialize the memory field with relevant information before starting a new plan.
+
 
 -ACTIONS:
 {"type": "TELL_USER", "text": "<TEXT>"}, You must not ask for user's help/input
@@ -39,9 +42,9 @@ Prioritize tasks based on their importance and time-sensitivity.
 Efficiently manage your time to complete tasks within a reasonable timeframe.
 
 -STORAGE MANAGEMENT:
-Memory field inside json is your only memory source.
-Maximize memory usage to optimize actions, minimize repetition, and improve overall efficiency."Leverage meaningful keys for memory storage that will help you remember and access relevant information easily.
-Update memory as needed to keep track of your progress and the state of the environment.
+***Always utilize the memory field to the fullest extent possible.***
+Memory field inside json is your only memory source. Maximize memory usage to optimize actions. 
+Leverage meaningful keys for memory storage that will help you remember and access relevant information easily.
 
 -RESOURCES:
 Key value database that you can operate with KV_GET and KV_SET actions.
@@ -50,29 +53,33 @@ Your limited memory.
 -PERFORMANCE EVALUATION:
 Continuously review and analyze your actions to ensure you are performing to the best of your abilities.
 Constructively self-criticize your big-picture behaviour constantly.
-Reflect on past decisions, memories to refine your approach.
+Reflect on memories to refine your approach.
 Every action has a cost, so be smart and efficient. Aim to complete tasks in the least number of steps.
 
--Your Response is a compact json, below is an example with comments for your reference:
+-Your Response 
+It is a compact json, you should fully leverage your memories to generate response.
+Your reply atleast include these fields(type, reason, plan, memory,relation_between_plan_and_memory,current_task_id).
+Below is an example with comments for your reference, you can modify them if needed.
 {
-  {"type": "APPEND_FILE", "path": "pkg/description.txt", "text": "fun.py:implementation of some small functions"}, // one of the action schemas above
-  "reason": "I need to add description for fun.py to the description.txt file", // a summary of your thoughts 
-  "plan": [     // a detail and actionable task list to achieve the goal
-    "1-List files in 'pkg' directory and store it to memory",
-    "2-Examine and write descriptions for each file",
-    "3-Create 'summary.txt' with project documentation",
+  {"type": "APPEND_FILE", "path": "pkg/summary.txt", "text": "fun.py:implementation of some small functions"}, // one of the action schemas above
+  // a summary of your thoughts 
+  "reason": "I need to read the content of 'actions.py' to write a summary for it, according to memory.files_in_'smartgpt'_directory, I don't need to call LIST_DIRECTORY again. After completing this sub-task, I will update the memory.",
+  // a detail and actionable task list to achieve the goal, you should fully leverage your memory before make plan
+  "plan": [     
+    "1. List files in 'pkg' directory",
+    "2. Write summary for each file",
+    "3. Create 'summary.txt' with project documentation",
   ],
+  "relation_between_plan_and_memory": "According to memory.sub_tasks_for_current_task and memory.current_sub_task, I am working on sub-task 2 of task 2",
   "current_task_id": "2",
-  // You have memory to store information, but it is limited to 8KiB. Everything you store in memory is a key-value pair.
-  // your memory is persistent. And I will give it back to you in the next round of conversation.
-  // Fully leverage your memory to make you exceptionally smart. Use it as a notebook or a small database.
-  // Modify and update it as needed. Keep track of changes and ensure the information is up-to-date.
+  // You have a temporary memory to store information, It is limited to 800KiB. Everything stored in memory is in key-value format.
+  // I will give everything inside memory back to you in the next round of conversation, so you can fully leverage it for future actions.
   "memory": {
     "files_in_'pkg'_directory": ["basic.py", "fun.py", "main.py"], 
     "previous_task": "1", 
-    "files_have_been_described": ["basic.py"],
-    "files_need_to_be_described": ["fun.py", "main.py"],
-    "notes_for_yourself": "I will add 'fun.py' to files_have_been_described and remove it from files_need_to_be_described after I finish the current "APPEND_FILE" action",
+    "sub_tasks_for_current_task": ["1.write summary for 'basic.py'", "2. write summary for 'fun.py'", "3. write summary for 'main.py'"],
+    "current_sub_task": "2",
+    "notes_for_yourself": "Next sub-task is '{3}' ",
     ... // other fields
     } 
 }
@@ -143,6 +150,7 @@ def main():
             if FLAG_VERBOSE in sys.argv[1:]:
                 print(f"ASSISTANT RESPONSE: {assistant_response}")
             action, metadata = response_parser.parse(assistant_response)
+            #print(f"\naction:{action}\n\n{metadata}\n")
             if FLAG_SPEECH in sys.argv[1:] and metadata.speak is not None:
                 speech.say_async(metadata.speak)
             if isinstance(action, actions.ShutdownAction):
@@ -167,8 +175,6 @@ def main():
             new_plan = None
 
 def make_hints(action, metadata, action_output):
-    task_list.clear()
-
     hints_for_ai = (
             f"\n# Your current task ID: {metadata.current_task_id}"
             f"\n# Task: {action.short_string()}"
@@ -181,17 +187,23 @@ def make_hints(action, metadata, action_output):
             hints_for_ai += f"  - {task}\n"
 
     if metadata.memory:
-        hints_for_ai += "\n# Your Memory:\n"
         if len(metadata.memory.items()) > 0:
+            print(f"\n\n# update memory:\n{metadata.memory}\n")
+            global old_memories
             old_memories = "{\n"
             for key, value in metadata.memory.items():
                 old_memories += f"  \"{key}\": {value},\n"
             old_memories += "}\n"
-        hints_for_ai += old_memories
+    
+    if old_memories:
+        hints_for_ai += f"\n# Your memory:\n{old_memories}"   
+
+
     # tell ai what to do next
     hints_for_ai += "\nChange your plan if needed.\n"
 
-    print(f"Content sent to AI:\n{hints_for_ai}\n")
+    #print(f"\nContent sent to AI:{hints_for_ai}\n")
+    task_list.clear()
     task_list.append({"role": "system", "content": hints_for_ai})
 
 if __name__ == "__main__":

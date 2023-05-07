@@ -55,6 +55,15 @@ class Metadata:
     speak: Optional[str] = None
     current_task_id: Optional[str] = None
 
+    def __str__(self):
+        return f"Metadata(\n  reason='{self.reason}',\n  plan={self._pretty_list(self.plan)},\n  memory={self._pretty_dict(self.memory)},\n  speak='{self.speak}',\n  current_task_id='{self.current_task_id}'\n)"
+
+    def _pretty_list(self, lst):
+        return "[\n" + ",\n".join(f"    '{item}'" for item in lst) + "\n  ]"
+
+    def _pretty_dict(self, dct):
+        return "{\n" + ",\n".join(f"    '{key}': '{value}'" for key, value in dct.items()) + "\n  }"
+    
 def parse_metadata(metadata_json: dict) -> Metadata:
     try:
         reason = metadata_json.get("reason", "")
