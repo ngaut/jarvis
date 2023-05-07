@@ -318,27 +318,27 @@ class Memory:
 mem = Memory()
 
 @dataclass(frozen=True)
-class MemorySetAction(Action):
+class KVSetAction(Action):
     memkey: str
     memval: str
 
     def key(self) -> str:
-        return "MEMORY_SET"
+        return "KV_SET"
 
     def short_string(self) -> str:
         return f"Set memory key `{self.memkey}` to value `{self.memval}`."
 
     def run(self) -> str:
         mem.set(self.memkey, self.memval)
-        return f"MemorySetAction: Set key `{self.memkey}` to value `{self.memval}`."
+        return f"KVSetAction: Set key `{self.memkey}` to value `{self.memval}`."
 
 
 @dataclass(frozen=True)
-class MemoryGetAction(Action):
+class KVGetAction(Action):
     memkey: str
 
     def key(self) -> str:
-        return "MEMORY_GET"
+        return "KV_GET"
 
     def short_string(self) -> str:
         return f"Get memory value for key `{self.memkey}`."
@@ -346,9 +346,9 @@ class MemoryGetAction(Action):
     def run(self) -> str:
         value = mem.get(self.memkey)
         if value is not None:
-            return f"MemoryGetAction: Retrieved value `{value}` for key `{self.memkey}`."
+            return f"KVGetAction: Retrieved value `{value}` for key `{self.memkey}`."
         else:
-            return f"MemoryGetAction: Key `{self.memkey}` not found in memory."
+            return f"KVGetAction: Key `{self.memkey}` not found in memory."
         
 
 # Helper function to populate the ACTION_CLASSES dictionary
@@ -384,6 +384,6 @@ ACTION_CLASSES = _populate_action_classes([
     ListDirectoryAction,
     ShutdownAction,
     CreateDirectoryAction,
-    MemoryGetAction,
-    MemorySetAction,
+    KVGetAction,
+    KVSetAction,
 ])
