@@ -7,6 +7,8 @@ from spinner import Spinner
 import gpt
 import requests
 import inspect
+import json
+from typing import Union
 from abc import ABC, abstractmethod
 from bs4 import BeautifulSoup
 from googlesearch import search
@@ -21,8 +23,15 @@ from webdriver_manager.chrome import ChromeDriverManager
 @dataclass(frozen=True)
 class Action(ABC):
     @classmethod
-    def from_dict(cls, data: dict):
-        action_type = data["type"]
+    def from_dict(cls, data: Union[str, dict]):
+        if isinstance(data, str):
+            data = json.loads(data)  # Parse the input string into a dictionary
+
+        action_type = data.get("type")
+
+        if action_type is None or action_type not in ACTION_CLASSES:
+            return None
+
         action_class = ACTION_CLASSES[action_type]
 
         # Get the constructor parameters for the action class
@@ -36,6 +45,8 @@ class Action(ABC):
                 constructor_args[param_name] = data[param_name]
 
         return action_class(**constructor_args)
+
+
 
     def key(self) -> str:
         raise NotImplementedError
@@ -80,15 +91,7 @@ class ReadFileAction(Action):
                 contents = file.read()
                 return contents
         else:
-            # Check if the path is a remote file
-            try:
-                response = requests.get(self.path)
-                response.raise_for_status()
-                contents = response.text
-                return contents
-            except requests.exceptions.HTTPError as e:
-                print(f"ReadFileAction RESULT: Failed to read file `{self.path}`: {e}")
-                return f"ReadFileAction Failed to read file `{self.path}`: {e}"
+                return f"Failed to read file, File `{self.path} not exist`"
 
 
 @dataclass(frozen=True)

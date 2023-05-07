@@ -16,10 +16,10 @@ task_list = []
 GENERAL_DIRECTIONS_PREFIX = """
 -CONSTRAINTS:
 Cannot run Python code that requires user input unless you are testing if the syntax is correct.
-Do not seek user's help. You make decisions and take actions on your own.
+Do not seek user's help. You are super smart get things doen. You make decisions and take actions on your own.
 
 -ACTIONS:
-TELL_USER: {"type": "TELL_USER", "text": "<TEXT>"}
+TELL_USER: {"type": "TELL_USER", "text": "<TEXT>"}, You must not ask for user's help/input
 READ_FILE: {"type": "READ_FILE", "path": "<PATH>"}
 WRITE_FILE: {"type": "WRITE_FILE", "path": "<PATH>", "text": "<TEXT>"}
 APPEND_FILE: {"type": "APPEND_FILE", "path": "<PATH>", "text": "<TEXT>"}
@@ -57,13 +57,12 @@ Reflect on past decisions, memories and strategies to refine your approach.
 Every action has a cost, so be smart and efficient. Aim to complete tasks in the least number of steps.
 Focus on effective memory management and decision-making to optimize your performance.
 
--Your Response is a json, start from here: 
-json:
+-Your Response is a compact json, start from here: 
 {
-    {"action": one of the action schemas specified above},
-    {"reason": {"type": "REASON", "text": "<TEXT>"}, a short sentence explaining the action},
-    {"plan": "tasks": ["{task id}-{TASK_DESCRIPTION}"]},
-    {"current_task_id": {"type": "CURRENT_TASK_ID", "id": "<TASK_ID>"}},
+    {"action": <one of the action schemas specified above>},
+    {"reason": "<TEXT>"},
+    {"plan": ["{TASK_ID}-{TASK_DESCRIPTION}"]},
+    {"current_task_id": "<TASK_ID>"}},
     {"memory": a dictionary of key-value pairs that can be used to store and retrieve information},
 }
 """
@@ -145,7 +144,7 @@ def main():
                     break   
             action_output = action.run()
         except Exception as e:
-            print(f"failed with exception {e}")
+            print(f"\nfailed with exception {e}")
             message_content = f"Failed with exception {e}"
             task_list.append({"role": "system", "content": message_content})
             continue
