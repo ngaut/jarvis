@@ -61,6 +61,7 @@ GENERAL_DIRECTIONS_PREFIX = """
 
 - Your Response:
   - Your reply must be in JSON format and include at least these fields: type, thoughts, plan, memory, current_task_id.
+  - pan should be detail and actionable. It should include all the steps you need to take to complete the task.
   - Fully leverage your memories to generate the response. Elways explain your thoughts by merging plan and progress_of_subtasks.
   - Example JSON response with comments (you can modify them if needed):
     {
@@ -81,6 +82,7 @@ GENERAL_DIRECTIONS_PREFIX = """
         "[done] Write doc for 'basic.py' to 'summary.txt' with APPEND_FILE command",
         "[working] Write doc for 'fun.py' to 'summary.txt' with APPEND_FILE command",
         "[pending] Write doc for 'main.py' to 'summary.txt' with APPEND_FILE command"
+        "[pending] Go to plan item 3"
         ],
         ...
     }
@@ -163,7 +165,12 @@ def main():
                 run_action = input_with_timeout("Run the action? [Y/n]", timeout)
                 if run_action is not None and (run_action.lower() != "y" and run_action != ""):
                     break   
-            action_output = action.run()
+            if action is not None:
+                action_output = action.run()
+            else:
+                task_list.append({"role": "system", 
+                                  "content": f"failed to parse assistant response, is it valid json: {assistant_response}"})
+                continue
         except Exception as e:
             print(f"Error in main: {str(e)}")
             task_list.append({"role": "system", "content": f"{str(e)}"})
@@ -182,12 +189,7 @@ def make_hints(action, metadata, action_output):
     hints_for_ai = "" 
 
     if metadata.thoughts:
-        hints_for_ai += f"  \"## thoughts\": \"{metadata.thoughts}\",\n"
-
-    if len(metadata.plan) > 0:
-        hints_for_ai += "\n\n## The plan you are using:\n"
-        for task in metadata.plan:
-            hints_for_ai += f"  - {task}\n"
+        hints_for_ai += f"\nThoughts on next move\": \"{metadata.thoughts}\"\n"
 
     if metadata.memory:
         if len(metadata.memory.items()) > 0:
@@ -202,12 +204,17 @@ def make_hints(action, metadata, action_output):
     if old_memories:
         hints_for_ai += f"\n## Your memories, you must use them!!!\nmemory\n{old_memories}"   
 
+    if len(metadata.plan) > 0:
+        hints_for_ai += "\n\n## The plan you are using:\n"
+        for task in metadata.plan:
+            hints_for_ai += f"  - {task}\n"
+
     hints_for_ai += "".join([
             "\n## Your current task:",
             f"\n  - Task ID: {metadata.current_task_id}",
             f"\n  - Task: {action.short_string()}",
             f"\n  - Execute Results:\n{action_output}\n",
-            "\n   ### End of Execute Results\n"
+            "\n## End of Execute Results\n"
         ])       
     print(f"\nContent sent to AI:{hints_for_ai}\n")
 

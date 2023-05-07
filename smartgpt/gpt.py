@@ -66,7 +66,7 @@ def count_tokens(messages) -> int:
 def send_message(messages, max_response_tokens: int, model: str) -> str:
     while True:
         try:
-            response = openai.ChatCompletion.create(engine=model, messages=messages, max_tokens=max_response_tokens, temperature=0)
+            response = openai.ChatCompletion.create(engine=model, messages=messages, max_tokens=max_response_tokens, temperature=0.2)
             time.sleep(30)
             return response.choices[0].message["content"]  # type: ignore
         except openai.error.RateLimitError:  # type: ignore

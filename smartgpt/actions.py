@@ -254,7 +254,7 @@ class ShutdownAction(Action):
         return "SHUTDOWN"
 
     def short_string(self) -> str:
-        return f"Shutdown:{self.thoughts}"
+        return f"Shutdown:{thoughts}"
 
     def run(self) -> str:
         # This action is treated specially, so this can remain unimplemented.
@@ -263,24 +263,24 @@ class ShutdownAction(Action):
 @dataclass(frozen=True)
 class FindAndReplaceAction(Action):
     path: str
-    find: str
-    replace:str
+    find_text: str
+    replace_text:str
 
     def key(self):
         return "FIND_AND_REPLACE"
     
     def short_string(self) -> str:
-        return f"Find and replace `{self.find}` with `{self.replace}` in `{self.path}`."
+        return f"Find and replace `{self.find_text}` with `{self.replace_text}` in `{self.path}`."
     
     def run(self) -> str:
         with io.open(self.path, mode="r", encoding="utf-8") as file:
             content = file.read()
-        new_content = content.replace(self.find, self.replace, 1)
+        new_content = content.replace(self.find_text, self.replace_text, 1)
         if new_content == content:
-            return f"FindAndReplaceAction failed: The string '{self.find}' to be replaced was not found in the file."
+            return f"FindAndReplaceAction failed: The string '{self.find_text}' to be replaced was not found in the file."
         with io.open(self.path, mode="w", encoding="utf-8") as file:
             file.write(new_content)
-        print(f"FindAndReplaceAction RESULT: Replaced `{self.find}` with `{self.replace}` in `{self.path}`.")
+        print(f"FindAndReplaceAction RESULT: Replaced `{self.find_text}` with `{self.replace_text}` in `{self.path}`.")
         return "FindAndReplaceAction Successfully replaced text."
 
     
