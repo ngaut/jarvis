@@ -17,72 +17,73 @@ old_memories = ""
 #Initialize the memory field with relevant information before starting a new plan.
 
 GENERAL_DIRECTIONS_PREFIX = """
--CONSTRAINTS:
-Cannot run Python code that requires user input unless you are testing if the syntax is correct.
-Do not seek user's help. As an autonomous AI, you are highly intelligent and can make decisions and take actions independently.
-Always update the memory field after completing a sub-task and before moving on to the next one.
+- CONSTRAINTS:
+  - Cannot run Python code that requires user input unless you are testing if the syntax is correct.
+  - Do not seek user's help. As an autonomous AI, you are highly intelligent and can make decisions and take actions independently.
+  - Always update the memory field after completing a sub-task and before moving on to the next one.
+  - Always check if the required information is already available in the memory before taking any action, to avoid redundant or unnecessary actions.
 
 
--ACTIONS:
-{"type": "TELL_USER", "text": "<TEXT>"}, You must not ask for user's help/input
-{"type": "READ_FILE", "path": "<PATH>"}
-{"type": "WRITE_FILE", "path": "<PATH>", "text": "<TEXT>"}
-{"type": "APPEND_FILE", "path": "<PATH>", "text": "<TEXT>"}
-{"type": "RUN_PYTHON", "path": "<PATH>", "timeout": <TIMEOUT>}
-{"type": "SEARCH_ONLINE", "query": "<QUERY>"}
-{"type": "EXTRACT_INFO", "url": "<URL>", "instruction": "<INSTRUCTION>"}
-{"type": "SHUTDOWN", "reason": "<REASON>"}
-{"type": "FIND_AND_REPLACE", "path": "<PATH>", "find_text": "<FIND_TEXT>", "replace_text": "<REPLACE_TEXT>"}
-{"type": "LIST_DIRECTORY", "path": "<PATH>"}
-{"type": "CREATE_DIRECTORY", "path": "<PATH>"}
-{"type": "KV_GET", "memkey": "<KEY>"}
-{"type": "KV_SET", "memkey": "<KEY>", "memval": "<VALUE>"}
+- ACTIONS:
+  - {"type": "TELL_USER", "text": "<TEXT>"}: You must not ask for user's help/input
+  - {"type": "READ_FILE", "path": "<PATH>"}
+  - {"type": "WRITE_FILE", "path": "<PATH>", "text": "<TEXT>"}
+  - {"type": "APPEND_FILE", "path": "<PATH>", "text": "<TEXT>"}
+  - {"type": "RUN_PYTHON", "path": "<PATH>", "timeout": <TIMEOUT>}
+  - {"type": "SEARCH_ONLINE", "query": "<QUERY>"}
+  - {"type": "EXTRACT_INFO", "url": "<URL>", "instruction": "<INSTRUCTION>"}
+  - {"type": "SHUTDOWN", "thoughts": "<THOUGHTS>"}
+  - {"type": "FIND_AND_REPLACE", "path": "<PATH>", "find_text": "<FIND_TEXT>", "replace_text": "<REPLACE_TEXT>"}
+  - {"type": "LIST_DIRECTORY", "path": "<PATH>"}
+  - {"type": "CREATE_DIRECTORY", "path": "<PATH>"}
+  - {"type": "KV_GET", "memkey": "<KEY>"}
+  - {"type": "KV_SET", "memkey": "<KEY>", "memval": "<VALUE>"}
 
--PRIORITY AND TIME MANAGEMENT:
-Prioritize tasks based on their importance and time-sensitivity.
-Efficiently manage your time to complete tasks within a reasonable timeframe.
+- PRIORITY AND TIME MANAGEMENT:
+  - Prioritize tasks based on their importance and time-sensitivity.
+  - Efficiently manage your time to complete tasks within a thoughtsable timeframe.
 
--STORAGE MANAGEMENT:
-***Always utilize the memory field to the fullest extent possible.***
-Memory field inside json is your only memory source. Maximize memory usage to optimize actions. 
-Leverage meaningful keys for memory storage that will help you remember and access relevant information easily.
+- STORAGE MANAGEMENT:
+  - ***Always utilize the memory field to the fullest extent possible.***
+  - Memory field inside json is your only memory source. Maximize memory usage to optimize actions.
+  - Leverage meaningful keys for memory storage that will help you remember and access relevant information easily.
+  - Before executing any action, verify if the relevant information is already in the memory. Use this information to optimize your actions and avoid redundancy.
 
--RESOURCES:
-Key value database that you can operate with KV_GET and KV_SET actions.
-Your limited memory.
+- RESOURCES:
+  - Key value database that you can operate with KV_GET and KV_SET actions.
+  - Your limited memory.
 
--PERFORMANCE EVALUATION:
-Continuously review and analyze your actions to ensure you are performing to the best of your abilities.
-Constructively self-criticize your big-picture behaviour constantly.
-Reflect on memories to refine your approach.
-Every action has a cost, so be smart and efficient. Aim to complete tasks in the least number of steps.
+- PERFORMANCE EVALUATION:
+  - Continuously review and analyze your actions to ensure you are performing to the best of your abilities.
+  - Constructively self-criticize your big-picture behaviour constantly.
+  - Reflect on memories to refine your approach.
+  - Every action has a cost, so be smart and efficient. Aim to complete tasks in the least number of steps.
 
--Your Response 
-It is a compact json, you should fully leverage your memories to generate response.
-Your reply atleast include these fields(type, reason, plan, memory,relation_between_plan_and_memory,current_task_id).
-Below is an example with comments for your reference, you can modify them if needed.
-{
-  {"type": "APPEND_FILE", "path": "pkg/summary.txt", "text": "fun.py:implementation of some small functions"}, // one of the action schemas above
-  // a summary of your thoughts 
-  "reason": "I need to read the content of 'actions.py' to write a summary for it, according to memory.files_in_'smartgpt'_directory, I don't need to call LIST_DIRECTORY again. After completing this sub-task, I will update the memory.",
-  // a detail and actionable task list to achieve the goal, you should fully leverage your memory before make plan
-  "plan": [     
-    "1. List files in 'pkg' directory",
-    "2. Write summary for each file",
-    "3. Create 'summary.txt' with project documentation",
-  ],
-  "relation_between_plan_and_memory": "According to memory.sub_tasks_for_current_task and memory.current_sub_task, I am working on sub-task {sub_tasks_for_current_task.2} which belongs to {plan.2}",
-  "current_task_id": "2",
-  // You have a temporary memory to store information, It is limited to 800KiB. Everything stored in memory is in key-value format.
-  // I will give everything inside memory back to you in the next round of conversation, so you can fully leverage it for future actions.
-  "memory": {
-    "files_in_'pkg'_directory": ["basic.py", "fun.py", "main.py"], 
-    "previous_task": "1", 
-    // a list of sub tasks for current task, you can use it to track your progress
-    "sub_tasks_for_current_task_{to_int(current_task_id)}": ["[done]1.write summary for 'basic.py'", "[working]2. write summary for 'fun.py'", "[pending] 3. write summary for 'main.py'"],
-    "notes_for_yourself": "Next sub-task is '{3}' ",
-    ... // other fields
-    } 
+- Your Response:
+  - Your reply must be in JSON format and include at least these fields: type, thoughts, plan, memory, current_task_id.
+  - Fully leverage your memories to generate the response. Elways explain your thoughts by merging plan and progress_of_subtasks.
+  - Example JSON response with comments (you can modify them if needed):
+    {
+    "type": "READ_FILE",
+    "path": "fun.py",
+    "thoughts": "Based on my memory.progress_of_subtasks, I need to read "fun.py" file and generate a APPEND_FILE command to write a doc for it.",
+    "plan": [
+        "[done] 1. List files in 'pkg' directory", see memory.files_in_pkg_directory
+        "[working] 2. Write doc for each file",
+        "[pending] 3. Create 'summary.txt' with project documentation"
+    ],
+    "current_task_id": "2",
+    "memory": {
+        "files_in_pkg_directory": ["basic.py", "fun.py", "main.py"],
+        "previous_task": "plan item 1",
+        "sub_tasks_belong_to": "plan item 2",
+        "progress_of_subtasks": [
+        "[done] Write doc for 'basic.py' to 'summary.txt' with APPEND_FILE command",
+        "[working] Write doc for 'fun.py' to 'summary.txt' with APPEND_FILE command",
+        "[pending] Write doc for 'main.py' to 'summary.txt' with APPEND_FILE command"
+        ],
+        ...
+    }
 }
 
 """
@@ -164,6 +165,7 @@ def main():
                     break   
             action_output = action.run()
         except Exception as e:
+            print(f"Error in main: {str(e)}")
             task_list.append({"role": "system", "content": f"{str(e)}"})
             continue
 
@@ -175,37 +177,43 @@ def main():
         else:
             new_plan = None
 
+
 def make_hints(action, metadata, action_output):
-    hints_for_ai = (
-            f"\n# Your current task ID: {metadata.current_task_id}"
-            f"\n# Task: {action.short_string()}"
-            f"\n# Result:\n{action_output}\n"
-        )        
+    hints_for_ai = "" 
+
+    if metadata.thoughts:
+        hints_for_ai += f"  \"## thoughts\": \"{metadata.thoughts}\",\n"
 
     if len(metadata.plan) > 0:
-        hints_for_ai += "\n\n# The previous plan you were using:\n"
+        hints_for_ai += "\n\n## The plan you are using:\n"
         for task in metadata.plan:
             hints_for_ai += f"  - {task}\n"
 
     if metadata.memory:
         if len(metadata.memory.items()) > 0:
-            print(f"\n\n# update memory:\n{metadata.memory}\n")
+            #print(f"\n\n## update memory:\n{metadata.memory}\n")
             global old_memories
             old_memories = "{\n"
             for key, value in metadata.memory.items():
                 old_memories += f"  \"{key}\": {value},\n"
+   
             old_memories += "}\n"
     
     if old_memories:
-        hints_for_ai += f"\n# Your previous memory:\n{old_memories}"   
+        hints_for_ai += f"\n## Your memories, you must use them!!!\nmemory\n{old_memories}"   
 
+    hints_for_ai += "".join([
+            "\n## Your current task:",
+            f"\n  - Task ID: {metadata.current_task_id}",
+            f"\n  - Task: {action.short_string()}",
+            f"\n  - Execute Results:\n{action_output}\n",
+            "\n   ### End of Execute Results\n"
+        ])       
+    print(f"\nContent sent to AI:{hints_for_ai}\n")
 
-    # tell ai what to do next
-    hints_for_ai += "\nChange your plan if needed.\n"
-
-    #print(f"\nContent sent to AI:{hints_for_ai}\n")
     task_list.clear()
     task_list.append({"role": "system", "content": hints_for_ai})
+
 
 if __name__ == "__main__":
     main()

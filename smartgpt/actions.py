@@ -248,13 +248,13 @@ class ExtractInfoAction(Action):
 
 @dataclass(frozen=True)
 class ShutdownAction(Action):
-    reason: str
+    thoughts: str
 
     def key(self):
         return "SHUTDOWN"
 
     def short_string(self) -> str:
-        return "Shutdown."
+        return f"Shutdown:{self.thoughts}"
 
     def run(self) -> str:
         # This action is treated specially, so this can remain unimplemented.

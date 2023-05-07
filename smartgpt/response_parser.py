@@ -49,14 +49,14 @@ def extract_json_objects(text: str) -> List:
 
 @dataclass(frozen=True)
 class Metadata:
-    reason: str
+    thoughts: str
     plan: List[str]
     memory: dict[str, str]
     speak: Optional[str] = None
     current_task_id: Optional[str] = None
 
     def __str__(self):
-        return f"Metadata(\n  reason='{self.reason}',\n  plan={self._pretty_list(self.plan)},\n  memory={self._pretty_dict(self.memory)},\n  speak='{self.speak}',\n  current_task_id='{self.current_task_id}'\n)"
+        return f"Metadata(\n  thoughts='{self.thoughts}',\n  plan={self._pretty_list(self.plan)},\n  memory={self._pretty_dict(self.memory)},\n  speak='{self.speak}',\n  current_task_id='{self.current_task_id}'\n)"
 
     def _pretty_list(self, lst):
         return "[\n" + ",\n".join(f"    '{item}'" for item in lst) + "\n  ]"
@@ -66,14 +66,14 @@ class Metadata:
     
 def parse_metadata(metadata_json: dict) -> Metadata:
     try:
-        reason = metadata_json.get("reason", "")
+        thoughts = metadata_json.get("thoughts", "")
         plan = metadata_json.get("plan", [])
         memory = metadata_json.get("memory", {})
         speak = metadata_json.get("speak", None)
         current_task_id = metadata_json.get("current_task_id", None)
 
         return Metadata(
-            reason=reason,
+            thoughts=thoughts,
             plan=plan,
             memory=memory,
             speak=speak,
