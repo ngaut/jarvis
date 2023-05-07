@@ -14,12 +14,13 @@ import gpt
 task_list = []
 old_memories = ""
 
+#Initialize the memory field with relevant information before starting a new plan.
+
 GENERAL_DIRECTIONS_PREFIX = """
 -CONSTRAINTS:
 Cannot run Python code that requires user input unless you are testing if the syntax is correct.
 Do not seek user's help. As an autonomous AI, you are highly intelligent and can make decisions and take actions independently.
 Always update the memory field after completing a sub-task and before moving on to the next one.
-Initialize the memory field with relevant information before starting a new plan.
 
 
 -ACTIONS:
@@ -70,15 +71,15 @@ Below is an example with comments for your reference, you can modify them if nee
     "2. Write summary for each file",
     "3. Create 'summary.txt' with project documentation",
   ],
-  "relation_between_plan_and_memory": "According to memory.sub_tasks_for_current_task and memory.current_sub_task, I am working on sub-task 2 of task 2",
+  "relation_between_plan_and_memory": "According to memory.sub_tasks_for_current_task and memory.current_sub_task, I am working on sub-task {sub_tasks_for_current_task.2} which belongs to {plan.2}",
   "current_task_id": "2",
   // You have a temporary memory to store information, It is limited to 800KiB. Everything stored in memory is in key-value format.
   // I will give everything inside memory back to you in the next round of conversation, so you can fully leverage it for future actions.
   "memory": {
     "files_in_'pkg'_directory": ["basic.py", "fun.py", "main.py"], 
     "previous_task": "1", 
-    "sub_tasks_for_current_task": ["1.write summary for 'basic.py'", "2. write summary for 'fun.py'", "3. write summary for 'main.py'"],
-    "current_sub_task": "2",
+    // a list of sub tasks for current task, you can use it to track your progress
+    "sub_tasks_for_current_task_{to_int(current_task_id)}": ["[done]1.write summary for 'basic.py'", "[working]2. write summary for 'fun.py'", "[pending] 3. write summary for 'main.py'"],
     "notes_for_yourself": "Next sub-task is '{3}' ",
     ... // other fields
     } 
@@ -196,7 +197,7 @@ def make_hints(action, metadata, action_output):
             old_memories += "}\n"
     
     if old_memories:
-        hints_for_ai += f"\n# Your memory:\n{old_memories}"   
+        hints_for_ai += f"\n# Your previous memory:\n{old_memories}"   
 
 
     # tell ai what to do next
