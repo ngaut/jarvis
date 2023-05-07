@@ -1,12 +1,13 @@
 from dataclasses import dataclass
 from typing import Optional, Tuple, List
-import json
 import regex
 import actions
+import json
+import traceback
 
 def preprocess_json(text: str) -> str:
     # Replace single quotes with double quotes for keys and string values
-    text = regex.sub(r"([\s{,])(\w+|\'.*?\')(\s*):", r'\1"\2"\3:', text)
+    text = regex.sub(r"([\s{,])(\w+|'(?:[^'\\]|\\.)*?')(\s*):", r'\1"\2"\3:', text)
     text = regex.sub(r"(:\s*)\'(.*?)\'", r'\1"\2"', text)
 
     # Remove trailing commas from objects and arrays
@@ -24,19 +25,24 @@ def attempt_json_decode(json_text: str):
         raise
 
 def extract_json_objects(text: str) -> List:
-    # Preprocess the input text to handle common issues
-    text = preprocess_json(text)
-
-    # Find all JSON-like objects enclosed by '{' and '}'
-    json_objects = regex.findall(r'(?<!\{)\{(?:[^{}]|(?R))*\}(?!\})', text, flags=regex.DOTALL)
     result = []
+    stack = []
+    start = -1
 
-    for obj in json_objects:
-        # Try to decode the JSON object with the attempt_json_decode function
-        decoded_obj = attempt_json_decode(obj)
-
-        if decoded_obj:
-            result.append(decoded_obj)
+    for i, c in enumerate(text):
+        if c == '{':
+            stack.append(c)
+            if len(stack) == 1:
+                start = i
+        elif c == '}':
+            if stack and stack[-1] == '{':
+                stack.pop()
+                if not stack:
+                    json_obj = preprocess_json(text[start:i+1])
+                    result.append(json_obj)
+            else:
+                stack.clear()
+                start = -1
 
     return result
 
@@ -65,34 +71,32 @@ def parse_metadata(metadata_json: dict) -> Metadata:
             current_task_id=current_task_id,
         )
     except Exception as e:
-        raise ValueError(f"Failed to parse metadata: {str(e)}\nMetadata JSON:\n{metadata_json}")
+        raise ValueError(f"parse_metadata: Failed to parse metadata: {str(e)}\nMetadata JSON:\n{metadata_json}")
 
 def parse(text: str) -> Tuple[Optional[actions.Action], Metadata]:
     # Check for empty input
     if not text:
-        raise ValueError("Empty input received. Cannot parse.")
+        raise ValueError("parse: Empty input received. Cannot parse.")
     
     print(f"\nparse Text:{text}\n")
 
     try:
-        # Extract the JSON object from the input string
-        json_start = text.find("{")
-        if json_start == -1:
-            raise ValueError("No JSON object found in input")
-        json_text = text[json_start:]
-        json_objects = extract_json_objects(json_text)
+        json_objects = extract_json_objects(text)
 
         # Handle different capitalization forms of the "action" key
         data = {}
         for obj in json_objects:
-            data.update(obj)
-        print(f"\ndata:{data}\n")
+            decoded_obj = attempt_json_decode(obj)
+            if decoded_obj:
+                data.update(decoded_obj)
         action_data = data.get("action", data.get("Action", data.get("ACTION")))
 
         # Create an Action object from the action data (if it exists)
+        action = None
         if action_data:
             action = actions.Action.from_dict(action_data)
-        else:
+        
+        if action is None:
             action = actions.Action.from_dict(data)
 
         # Parse the metadata
@@ -100,8 +104,10 @@ def parse(text: str) -> Tuple[Optional[actions.Action], Metadata]:
         return action, metadata
 
     except ValueError as e:
-        raise ValueError(f"Failed to parse input: {str(e)}, text:{text}\n")
+        traceback.print_exc()
+        raise ValueError(f"Failed to parse input\n: {e.with_traceback()}\n")
     except Exception as e:
+        traceback.print_exc()
         raise Exception(f"Unexpected error occurred: {str(e)}, text:{text}\n")
 
 

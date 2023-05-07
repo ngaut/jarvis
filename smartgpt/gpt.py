@@ -66,9 +66,9 @@ def count_tokens(messages) -> int:
 def send_message(messages, max_response_tokens: int, model: str) -> str:
     while True:
         try:
-            #response = openai.ChatCompletion.create(model=model, messages=messages, max_tokens=max_response_tokens)
             response = openai.ChatCompletion.create(engine=model, messages=messages, max_tokens=max_response_tokens)
+            time.sleep(30)
             return response.choices[0].message["content"]  # type: ignore
         except openai.error.RateLimitError:  # type: ignore
-            print(f"Model {model} currently overloaded. Waiting 10 seconds...")
-            time.sleep(10)
+            print(f"Model {model} currently overloaded. Waiting 30 seconds...")
+            time.sleep(30)

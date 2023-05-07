@@ -5,11 +5,10 @@ import io
 import subprocess
 from spinner import Spinner
 import gpt
-import requests
 import inspect
 import json
-from typing import Union
-from abc import ABC, abstractmethod
+from typing import Union, Optional
+from abc import ABC
 from bs4 import BeautifulSoup
 from googlesearch import search
 from selenium import webdriver
@@ -39,9 +38,8 @@ class Action(ABC):
 
         # Create a dictionary of constructor arguments from the JSON data
         constructor_args = {}
-        for param_name, param in constructor_params.items():
+        for param_name, _ in constructor_params.items():
             if param_name != "self" and param_name in data:
-                print(f"constructor_args[{param_name}] = {data[param_name]}")
                 constructor_args[param_name] = data[param_name]
 
         return action_class(**constructor_args)
@@ -97,7 +95,7 @@ class ReadFileAction(Action):
 @dataclass(frozen=True)
 class WriteFileAction(Action):
     path: str
-    text: str
+    text: Optional[str] = None
 
     def key(self) -> str:
         return "WRITE_FILE"
@@ -107,9 +105,9 @@ class WriteFileAction(Action):
 
     def run(self) -> str:
         with io.open(self.path, mode="w", encoding="utf-8") as file:
-            file.write(self.text)
+            bytes_written = file.write(self.text)
             print(f"WriteFileAction RESULT: Wrote file `{self.path}`.")
-            return "WriteFileAction File successfully written."
+            return f"WriteFileAction: File successfully written with {bytes_written} bytes."
 
 
 @dataclass(frozen=True)
@@ -125,9 +123,9 @@ class AppendFileAction(Action):
 
     def run(self) -> str:
         with io.open(self.path, mode="a", encoding="utf-8") as file:
-            file.write(self.text)
+            bytes_written = file.write(self.text)
             print(f"AppendFileAction RESULT: Appended file `{self.path}`.")
-            return "AppendFileAction File successfully appended."
+            return f"AppendFileAction File successfully appended with {bytes_written} bytes"
 
 @dataclass(frozen=True)
 class CreateDirectoryAction(Action):
@@ -140,9 +138,13 @@ class CreateDirectoryAction(Action):
         return f"Create directory `{self.path}`."
 
     def run(self) -> str:
-        os.makedirs(self.path)
-        print(f"CreateDirectoryAction RESULT: Created directory `{self.path}`.")
-        return "CreateDirectoryAction Directory successfully created."
+        try:
+            os.makedirs(self.path)
+            print(f"CreateDirectoryAction RESULT: Created directory `{self.path}`.")
+            return "CreateDirectoryAction: Directory successfully created."
+        except FileExistsError:
+            print(f"CreateDirectoryAction RESULT: Directory `{self.path}` already exists.")
+            return f"CreateDirectoryAction: Directory '{self.path}' already exists."
 
 
 @dataclass(frozen=True)
