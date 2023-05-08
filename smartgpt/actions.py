@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 import os
 import io
+import stat
 import subprocess
 from spinner import Spinner
 import gpt
@@ -254,7 +255,7 @@ class ShutdownAction(Action):
         return "SHUTDOWN"
 
     def short_string(self) -> str:
-        return f"Shutdown:{thoughts}"
+        return f"Shutdown:{self.thoughts}"
 
     def run(self) -> str:
         # This action is treated specially, so this can remain unimplemented.
@@ -285,6 +286,19 @@ class FindAndReplaceAction(Action):
 
     
 
+
+@dataclass(frozen=True)
+class FileEntry:
+    name: str
+    is_directory: bool
+    size: int
+    creation_time: float
+    modification_time: float
+
+    def __str__(self) -> str:
+        file_type = "Directory" if self.is_directory else "File"
+        return f"{file_type}: {self.name} | Size: {self.size} bytes | Created: {self.creation_time} | Modified: {self.modification_time}"
+
 @dataclass(frozen=True)
 class ListDirectoryAction(Action):
     path: str
@@ -295,15 +309,25 @@ class ListDirectoryAction(Action):
     def short_string(self) -> str:
         return f"List directory `{self.path}`."
 
+    def get_file_info(self, file_path: str) -> FileEntry:
+        st = os.stat(file_path)
+        return FileEntry(
+            name=os.path.basename(file_path),
+            is_directory=stat.S_ISDIR(st.st_mode),
+            size=st.st_size,
+            creation_time=st.st_ctime,
+            modification_time=st.st_mtime,
+        )
+
     def run(self) -> str:
         if os.path.exists(self.path):
             contents = os.listdir(self.path)
-            print(f"ListDirectoryAction RESULT: Listed directory `{self.path}`.")
-            return "\n".join(contents)
+            file_entries = [self.get_file_info(os.path.join(self.path, entry)) for entry in contents]
+            formatted_entries = "\n".join(str(entry) for entry in file_entries)
+            return formatted_entries
         else:
             print(f"ListDirectoryAction RESULT: Failed to list directory `{self.path}`.")
             return f"ListDirectoryAction Failed to list directory `{self.path}`."
-        
 
 class Memory:
     def __init__(self):
