@@ -3,7 +3,6 @@ from typing import Optional, Tuple, List
 import regex
 import actions
 import json
-import traceback
 
 def preprocess_json(text: str) -> str:
     # Replace single quotes with double quotes for keys and string values

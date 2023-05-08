@@ -35,7 +35,7 @@ def chat(goal: str, general_directions: str, new_plan: Optional[str], task_desc,
     if new_plan is not None:
         user_message_content = f"Change your plan to: {new_plan}\n{user_message_content}"
 
-    user_message = {"role": "user", "content": f"{goal}\n {user_message_content}\n{task_desc}"}
+    user_message = {"role": "user", "content": f"user's request:{goal}\n {user_message_content}\n{task_desc}"}
 
     messages = [system_message, user_message]
     request_token_count = count_tokens(messages)
