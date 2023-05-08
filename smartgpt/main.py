@@ -69,11 +69,12 @@ GENERAL_DIRECTIONS_PREFIX = """
     "path": "fun.py",
     "plan": [
         "[done] 1. List files in 'pkg' directory, results are stored in memory.files_in_pkg_directory field, @steps:{fill later}",
-        "[working] 2. Write doc for each file accroding to the order in memory.files_in_pkg_directory, @steps:{fill later}",
-        "[pending] 3. Create 'summary.txt' with project documentation, @steps:{fill later}"
+        "[working] 2. Write doc for each file accroding to the order in memory.files_in_pkg_directory, @steps:{READ_FILE, WRITE_FILE}",
+        "[pending] 3. Create 'summary.txt' with project documentation, @steps:{WRITE_FILE}"
     ],
     "current_task_id": "2",
     "memory": {
+        "retry_count": "0", // shutdown after 2 retries for current plan item
         "thoughts": "Leveraging memory.files_in_pkg_directory, I can efficiently process 'fun.py' without repeated LIST_DIRECTORY calls.",
         "reasoning": "The reason I take action: READ_FILE is to access the content of 'fun.py' and generate documentation for it, which will be appended to 'summary.txt'.",
         "next_action": "Upon finishing this step, I'll refer to the updated memory to decide whether to handle the next file in files_in_pkg_directory or advance to the subsequent plan item after documenting all files.",

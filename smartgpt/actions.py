@@ -278,7 +278,7 @@ class FindAndReplaceAction(Action):
             content = file.read()
         new_content = content.replace(self.find_text, self.replace_text, 1)
         if new_content == content:
-            return f"FindAndReplaceAction failed: The string '{self.find_text}' to be replaced was not found in the file."
+            return f"FindAndReplaceAction failed: The string '{self.find_text}' to be replaced was not found in file {self.path}."
         with io.open(self.path, mode="w", encoding="utf-8") as file:
             file.write(new_content)
         print(f"FindAndReplaceAction RESULT: Replaced `{self.find_text}` with `{self.replace_text}` in `{self.path}`.")
