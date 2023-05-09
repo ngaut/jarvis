@@ -28,6 +28,11 @@ GPT_4 = "gpt-4"
 GPT_3_5_TURBO = "gpt-3.5-turbo"
 #GPT_3_5_TURBO = "gpt-35-turbo_playground"
 
+def max_token_count(model:str = GPT_4) -> int:
+    if model == GPT_3_5_TURBO:
+        return 4096 
+    return 8192
+
 
 def chat(goal: str, general_directions: str, new_plan: Optional[str], task_desc, model: str = GPT_4):
     system_message = {"role": "system", "content": f"{general_directions}"}
@@ -39,7 +44,7 @@ def chat(goal: str, general_directions: str, new_plan: Optional[str], task_desc,
 
     messages = [system_message, user_message]
     request_token_count = count_tokens(messages)
-    available_response_tokens = COMBINED_TOKEN_LIMIT - request_token_count
+    available_response_tokens = max_token_count(model) - request_token_count
     assistant_response = send_message(messages, available_response_tokens, model)
     return assistant_response
 
@@ -62,7 +67,7 @@ def send_message(messages, max_response_tokens: int, model: str) -> str:
             #response = openai.ChatCompletion.create(engine=model, messages=messages, max_tokens=max_response_tokens, temperature=0.2)
             #print(f"message sent to AI: {messages}")
             response = openai.ChatCompletion.create(model=model, messages=messages, max_tokens=max_response_tokens, temperature=0.2)
-            time.sleep(1)
+            #time.sleep(1)
             return response.choices[0].message["content"]  # type: ignore
         except openai.error.RateLimitError:  # type: ignore
             print(f"Model {model} currently overloaded. Waiting 30 seconds...")
