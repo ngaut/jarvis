@@ -72,10 +72,9 @@ class RunPythonAction(Action):
             try:
                 exit_code = process.wait(timeout=self.timeout)  # Add the timeout argument
                 output = process.stdout.read() if process.stdout else ""
-                output = f"\nPython script at `{self.path}` returned exit code {exit_code}, content:\n{output}"
+                output = f"\nPython script at `{self.path}` returned exit code {exit_code}, stdout of process:\n{output}"
                 if exit_code != 0:
                     output += f"\n\nPython script code:\n{self.code}"
-                print(output)
                 return output
             except subprocess.TimeoutExpired:
                 process.kill()
@@ -84,13 +83,13 @@ class RunPythonAction(Action):
 
 @dataclass(frozen=True)
 class ShutdownAction(Action):
-    thoughts: str
+    message: str
 
     def key(self):
         return "SHUTDOWN"
 
     def short_string(self) -> str:
-        return f"Shutdown:{self.thoughts}"
+        return f"Shutdown:{self.message}"
 
     def run(self) -> str:
         # This action is treated specially, so this can remain unimplemented.
