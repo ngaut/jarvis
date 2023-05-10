@@ -1,0 +1,21 @@
+database:
+  name: 'jarvis'
+  user: '2bw9XzdKWiSnJgo.root'
+  password: '7YOfrF6jKOZ2RP2L'
+  host: 'gateway01.ap-southeast-1.prod.aws.tidbcloud.com'
+  port: 4000
+  ssl:
+    cert: '/etc/ssl/cert.pem'
+    ssl_verify_cert: true
+
+gpt:
+  model: 'GPT_4'
+
+logging:
+  level: 'INFO'
+
+assistant:
+  timeout: 1
+  verbose: true
+  continuous: true
+
