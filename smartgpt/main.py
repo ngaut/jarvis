@@ -169,7 +169,7 @@ def extract_exit_code(output):
     first_line = output[:output.find('\n') if '\n' in output else None]
 
     # Extract the exit code from the first line.
-    exit_code = re.search(r"exit code ([0-9]+)", first_line).group(1)
+    exit_code = re.search(r"exit code ([0-9]+)", first_line)
 
     # Return the exit code.
     return int(exit_code)
