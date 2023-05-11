@@ -4,14 +4,14 @@ from playhouse.shortcuts import model_to_dict
 from playhouse.mysql_ext import JSONField
 
 db = MySQLDatabase(
-    'test',  # your_database_name
+    'jarvis',  # your_database_name
     user='2bw9XzdKWiSnJgo.root',  # your_username
-    password='your_password',  # your_password
+    password='GAVkkA9tDiGEtV0Q',  # your_password
     host='gateway01.ap-southeast-1.prod.aws.tidbcloud.com',  # your_host
     port=4000,  # your_port
     ssl = {
-        'cert': '/etc/ssl/cert.pem',
-        'ssl_verify_cert': True,
+    'ca': '/etc/ssl/cert.pem',
+    'ssl_mode': "VERIFY_IDENTITY"
     }
 )
 

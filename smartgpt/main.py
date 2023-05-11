@@ -15,8 +15,6 @@ import yaml
 import argparse
 
 
-DEFAULT_TIMEOUT = 3
-
 class InputTimeoutError(Exception):
     pass
 
@@ -199,9 +197,11 @@ You can code any feature you need.
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--verbose', action='store_true', help='Print verbose output')
-    parser.add_argument('--continuous', action='store_true', help='Run the assistant continuously without prompts')
     parser.add_argument('--config', type=str, default='config.yaml', help='Path to the configuration file')
+    parser.add_argument('--timeout', type=int, default=1, help='Timeout for user input')  
+    parser.add_argument('--continuous', action='store_true', help='Continuous mode')  # Add this line
+
+
 
     args = parser.parse_args()
 
@@ -215,25 +215,24 @@ if __name__ == "__main__":
     db_user = db_config.get('user', '2bw9XzdKWiSnJgo.root')
     db_password = db_config.get('password', 'password')
     db_host = db_config.get('host', 'localhost')
-    db_port = db_config.get('port', 3306)
-    ssl_config = db_config.get('ssl', None)
+    db_port = db_config.get('port', 4000)
+    ssl = db_config.get('ssl', None)
 
-    check_point.db = peewee.MySQLDatabase(db_name, user=db_user, password=db_password, host=db_host, port=db_port, ssl=ssl_config)
-
+    check_point.db = peewee.MySQLDatabase(db_name, user=db_user, password=db_password, host=db_host, port=db_port, ssl=ssl)
+    print(f"DB: {check_point.db}")
     # GPT model configuration
     gpt_model = config.get('gpt', {}).get('model', 'GPT_4')
 
     # Logging configuration
     logging_level = config.get('logging', {}).get('level', 'INFO')
-
-    # Assistant configuration
+   
     assistant_config = config.get('assistant', {})
-    timeout = assistant_config.get('timeout', 1)
-    verbose = assistant_config.get('verbose', False)
-    continuous = args.continuous or assistant_config.get('continuous', False)
+    args.timeout = assistant_config.get('timeout', args.timeout)
+    args.verbose = assistant_config.get('verbose', False)
+    args.continuous = args.continuous or assistant_config.get('continuous', False)
 
     check_point.create_table()
 
-    # Start assistant
-    assistant.run()
-
+    # Instantiate and start assistant
+    assistant = Assistant()
+    assistant.run(args)
