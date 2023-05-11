@@ -18,7 +18,6 @@ The program was inspired by [some of my earlier work](https://blog.rok.strnisa.c
 -   :robot: Simple and easy to understand codebase.
 -   :wrench: Extensible design for easy contributions.
 -   :arrows_counterclockwise: Continuous mode for ongoing interaction.
--   :speaker: Speech support (optional) for a more engaging user experience.
 
 Planned:
 
