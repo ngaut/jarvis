@@ -150,9 +150,11 @@ You can code any feature you need.
         os.chdir("workspace")
         new_plan: Optional[str] = None
         timeout = args.timeout
-        user_directions = input("What would you like me to do:\n")
+        user_directions = gpt.revise(input("What would you like me to do:\n"))
+        print(f"As of my understanding, you want me to do:\n{user_directions}\n")
 
-        latest_checkpoint = check_point.load_checkpoint()
+
+        latest_checkpoint = checkpoint_db.load_checkpoint()
         # If a checkpoint exists, load the metadata from it
         if latest_checkpoint:
             self.task_desc = str(**latest_checkpoint['task_description'])
@@ -186,7 +188,7 @@ You can code any feature you need.
 
             self.make_hints(action, metadata, action_output)
             # saving the checkpoint after every iteration
-            check_point.save_checkpoint(self.task_desc)
+            checkpoint_db.save_checkpoint(self.task_desc)
 
             change_plan = self.input_with_timeout("Change the proposed plan? [N/y]", timeout)
             if change_plan is not None and change_plan.lower() == "y":
@@ -209,7 +211,7 @@ if __name__ == "__main__":
     with open(args.config, 'r') as f:
         config = yaml.safe_load(f)
 
-    # Database configuration
+   # Database configuration
     db_config = config.get('database', {})
     db_name = db_config.get('name', 'jarvis')
     db_user = db_config.get('user', '2bw9XzdKWiSnJgo.root')
@@ -218,8 +220,9 @@ if __name__ == "__main__":
     db_port = db_config.get('port', 4000)
     ssl = db_config.get('ssl', None)
 
-    check_point.db = peewee.MySQLDatabase(db_name, user=db_user, password=db_password, host=db_host, port=db_port, ssl=ssl)
-    print(f"DB: {check_point.db}")
+    # Create an instance of CheckpointDatabase
+    checkpoint_db = check_point.CheckpointDatabase(db_name, db_user, db_password, db_host, db_port, ssl)
+
     # GPT model configuration
     gpt_model = config.get('gpt', {}).get('model', 'GPT_4')
 
@@ -231,7 +234,7 @@ if __name__ == "__main__":
     args.verbose = assistant_config.get('verbose', False)
     args.continuous = args.continuous or assistant_config.get('continuous', False)
 
-    check_point.create_table()
+    checkpoint_db.create_table()
 
     # Instantiate and start assistant
     assistant = Assistant()

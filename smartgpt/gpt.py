@@ -72,3 +72,17 @@ def send_message(messages, max_response_tokens: int, model: str) -> str:
         except openai.error.RateLimitError:  # type: ignore
             print(f"Model {model} currently overloaded. Waiting 30 seconds...")
             time.sleep(30)
+
+def revise(text: str, model: str = GPT_3_5_TURBO):
+    messages = [
+        {
+            "role": "system",
+            "content": "You are a task assistant. You will revise the a goal to make it more clear for executing.",
+        },
+        {"role": "user", "content": text[:8192]},
+    ]
+    
+    request_token_count = count_tokens(messages)
+    max_response_token_count = COMBINED_TOKEN_LIMIT - request_token_count
+
+    return send_message(messages, max_response_token_count, model=model)
