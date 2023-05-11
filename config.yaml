@@ -16,6 +16,6 @@ logging:
 
 assistant:
   timeout: 1
-  verbose: true
+  verbose: false
   continuous: true
 

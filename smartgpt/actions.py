@@ -49,21 +49,22 @@ class Action(ABC):
 @dataclass(frozen=True)
 class RunPythonAction(Action):
     path: str
-    timeout: int  # Add the timeout parameter (in seconds)
+    timeout: int  # in seconds
+    cmd_args: str
     code:str
 
     def key(self) -> str:
         return "RUN_PYTHON"
 
     def short_string(self) -> str:
-        return f"Run Python file `{self.path}`."
+        return f"Run Python file `{self.path} {self.cmd_args}`."
 
     def run(self) -> str:
         # write code to path and run
         with io.open(self.path, mode="w", encoding="utf-8") as file:
             file.write(self.code)
         with subprocess.Popen(
-            f"python {self.path}",
+             f"python {self.path} {self.cmd_args}",
             shell=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,

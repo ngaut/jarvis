@@ -6,6 +6,7 @@ from peewee import DoesNotExist
 
 
 class Checkpoint(Model):
+    goal = TextField(index=True)
     task_description = TextField(index=True)
     created_at = DateTimeField(default=datetime.datetime.now)
 
@@ -23,8 +24,8 @@ class CheckpointDatabase:
         self.db.connect()
         self.db.create_tables([Checkpoint])
 
-    def save_checkpoint(self, task_description: str):
-        checkpoint = Checkpoint(task_description=task_description)
+    def save_checkpoint(self, task_description: str, goal:str):
+        checkpoint = Checkpoint(task_description=task_description, goal=goal)
         checkpoint.save()
 
     def load_checkpoint(self, task_description: str = None):

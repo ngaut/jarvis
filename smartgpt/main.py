@@ -33,8 +33,9 @@ You can code any feature you need.
  You don't have any API KEY, do not rely on that when generate and run python code.
 
 -ACTIONS:
-// I will send the stdout of the process to you in next conversation, you must fully leverage it.
-  {"type": "RUN_PYTHON", "path": "<PATH>", "timeout": <TIMEOUT>, "code": "<PYTHON_CODE>"}
+// ***I will send the output of the python script to you in next conversation, you must fully leverage it to handle complex tasks
+// *** You can also save the running result to a file, store meta in memory, and process it in next round
+  {"type": "RUN_PYTHON", "path": "<PATH>", "timeout": <TIMEOUT>, "cmd_args": "<arguments>", code": "<PYTHON_CODE>"}
   {"type": "SHUTDOWN", "message": "<TEXT>"} // A short summary for user when you get job done.
 
 
@@ -44,7 +45,8 @@ You can code any feature you need.
   Maximize your creativity, especially when it comes to accessing and using information from the internet via Python scripts.
 
   It's vital that your solutions frequently involve accessing, studying, and leveraging data from the internet.
-  Use Python scripts to search the internet, extract relevant information, analyze this data, and apply the insights gained to problem-solving. Your ability to collect, interpret, and utilize internet-based data is a key expectation in this role.
+  Use Python scripts to search the internet, extract relevant information, analyze this data, and apply the insights gained to problem-solving. 
+  Your ability to collect, interpret, and utilize internet-based data is a key expectation in this role.
 
 
 - RESPONSE FORMAT:
@@ -55,6 +57,7 @@ You can code any feature you need.
         "type": "RUN_PYTHON", // must have type field. one of the above actions
         "path": "analyze_data.py",
         "timeout": 30, // must have when type is "RUN_PYTHON".
+        "cmd_args": // must have when type is "RUN_PYTHON", fill with empty string if you don't use it
         "code": // must have when type is "RUN_PYTHON", the python script you generate to help you finish your job
         "plan": [ // must have. use memories to generate the plan
         "[done] 1. {task description}.success criteria:{success criteria for current task}. To verify result:{to check success criteria, i need to do:}.
@@ -150,8 +153,8 @@ You can code any feature you need.
         os.chdir("workspace")
         new_plan: Optional[str] = None
         timeout = args.timeout
-        user_directions = gpt.revise(input("What would you like me to do:\n"))
-        print(f"As of my understanding, you want me to do:\n{user_directions}\n")
+        goal = gpt.revise(input("What would you like me to do:\n"))
+        print(f"As of my understanding, you want me to do:\n{goal}\n")
 
 
         latest_checkpoint = checkpoint_db.load_checkpoint()
@@ -165,7 +168,7 @@ You can code any feature you need.
             try:
                 print("========================")
                 with Spinner("Thinking..."):
-                    assistant_response = gpt.chat(user_directions, general_directions, new_plan, self.task_desc, model=gpt.GPT_4)
+                    assistant_response = gpt.chat(goal, general_directions, new_plan, self.task_desc, model=gpt.GPT_4)
                 if args.verbose:
                     print(f"ASSISTANT RESPONSE: {assistant_response}")
                 action, metadata = response_parser.parse(assistant_response)
@@ -188,7 +191,7 @@ You can code any feature you need.
 
             self.make_hints(action, metadata, action_output)
             # saving the checkpoint after every iteration
-            checkpoint_db.save_checkpoint(self.task_desc)
+            checkpoint_db.save_checkpoint(self.task_desc, goal)
 
             change_plan = self.input_with_timeout("Change the proposed plan? [N/y]", timeout)
             if change_plan is not None and change_plan.lower() == "y":
