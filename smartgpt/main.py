@@ -123,7 +123,7 @@ You can code any feature you need.
 
         if self.extract_exit_code(action_output) != 0:
             self.hints_for_ai += "\n\n## Your previous action error, for your reference:\n"
-            self.hints_for_ai += self.hints_for_ai
+            self.hints_for_ai += action_output 
 
         self.task_desc = self.hints_for_ai
 
@@ -143,8 +143,8 @@ You can code any feature you need.
                 f"\n  - Task: {action.short_string()}",
                 f"\n  - Execute Results:\n{action_output}\n"
             ])
-
-    def run(self, args):
+    
+    def initialize(self, args):
         general_directions = self.GENERAL_DIRECTIONS_PREFIX
         general_directions += "\n\n"
         general_directions += "Try your best to finish the job, send the SHUTDOWN action when you finish or can't finish after retry your job.\n"
@@ -156,12 +156,31 @@ You can code any feature you need.
         goal = gpt.revise(input("What would you like me to do:\n"))
         print(f"As of my understanding, you want me to do:\n{goal}\n")
 
-
         latest_checkpoint = checkpoint_db.load_checkpoint()
         # If a checkpoint exists, load the metadata from it
         if latest_checkpoint:
             self.task_desc = str(**latest_checkpoint['task_description'])
-       
+
+        return goal, new_plan, timeout, general_directions
+
+    def process_action(self, action, metadata, args, timeout):
+        if isinstance(action, actions.ShutdownAction):
+            print("Shutting down...")
+            return False
+        if not args.continuous:
+            run_action = self.input_with_timeout("Run the action? [Y/n]", timeout)
+            if run_action is not None and (run_action.lower() != "y" and run_action != ""):
+                return False   
+        if action is not None:
+            action_output = action.run()
+        else:
+            self.task_desc = f"failed to parse assistant response, is it valid json: {assistant_response}"
+            return True
+        self.make_hints(action, metadata, action_output)
+        return True
+
+    def run(self, args):
+        goal, new_plan, timeout, general_directions = self.initialize(args)
 
         while True:
             action = None
@@ -172,32 +191,33 @@ You can code any feature you need.
                 if args.verbose:
                     print(f"ASSISTANT RESPONSE: {assistant_response}")
                 action, metadata = response_parser.parse(assistant_response)
-                if isinstance(action, actions.ShutdownAction):
-                    print("Shutting down...")
+                
+                if not self.process_action(action, metadata, args, timeout):
                     break
-                if not args.continuous:
-                    run_action = self.input_with_timeout("Run the action? [Y/n]", timeout)
-                    if run_action is not None and (run_action.lower() != "y" and run_action != ""):
-                        break   
-                if action is not None:
-                    action_output = action.run()
-                else:
-                    self.task_desc = f"failed to parse assistant response, is it valid json: {assistant_response}"
-                    continue
+
             except Exception as e:
                 logging.exception(f"Error in main: {str(e)}")
                 self.task_desc = f"As an autonomous AI, Please fix this error: {str(e)}"
                 continue
 
-            self.make_hints(action, metadata, action_output)
             # saving the checkpoint after every iteration
             checkpoint_db.save_checkpoint(self.task_desc, goal)
+            new_plan = self.get_new_plan(timeout)
 
+
+    def get_new_plan(self, timeout: int) -> Optional[str]:
+        try:
             change_plan = self.input_with_timeout("Change the proposed plan? [N/y]", timeout)
-            if change_plan is not None and change_plan.lower() == "y":
-                new_plan = input("What would you like me to change the plan to? ")
-            else:
-                new_plan = None
+        except InputTimeoutError:
+            print("Input timed out. Continuing with the current plan...")
+            change_plan = None
+
+        if change_plan is not None and change_plan.lower() == "y":
+            new_plan = input("What would you like me to change the plan to? ")
+            return new_plan
+        else:
+            return None
+
 
 
 if __name__ == "__main__":
