@@ -73,7 +73,7 @@ def send_message(messages, max_response_tokens: int, model: str) -> str:
             print(f"Model {model} currently overloaded. Waiting 30 seconds...")
             time.sleep(30)
 
-def revise(text: str, model: str = GPT_3_5_TURBO):
+def revise(text: str, model: str = GPT_4):
     messages = [
         {
             "role": "system",

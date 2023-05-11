@@ -30,7 +30,7 @@ You can code any feature you need.
 
 -CONSTRAINTS:
  Avoid running Python code that requires user input.
- You don't have any API KEY, do not rely on that when generate and run python code.
+ The generated python code must not rely on any API KEY.
 
 -ACTIONS:
 // ***I will send the output of the python script to you in next conversation, you must fully leverage it to handle complex tasks
@@ -58,7 +58,7 @@ You can code any feature you need.
         "path": "analyze_data.py",
         "timeout": 30, // must have when type is "RUN_PYTHON".
         "cmd_args": // must have when type is "RUN_PYTHON", fill with empty string if you don't use it
-        "code": // must have when type is "RUN_PYTHON", the python script you generate to help you finish your job
+        "code": , // must have when type is "RUN_PYTHON",start from code directly, no prefix please. the python script you generate to help you finish your job
         "plan": [ // must have. use memories to generate the plan
         "[done] 1. {task description}.success criteria:{success criteria for current task}. To verify result:{to check success criteria, i need to do:}.
         "[working] ",
@@ -79,7 +79,6 @@ You can code any feature you need.
                     ...
                     ],
                 "lesson_learned_from_previous_action_result": ,
-                "action_callback_hook_python_source_code": ,
                 // additional fields
                 ...
             }
@@ -88,9 +87,8 @@ You can code any feature you need.
 
 """
     def __init__(self):
-        self.task_desc = ""
-        self.old_memories = ""
-        self.hints_for_ai = ""
+        self.memories = ""
+        self.previous_hints = ""
 
     def input_with_timeout(self, prompt: str, timeout: int) -> Optional[str]:
         signal.signal(signal.SIGALRM, self.signal_handler)
@@ -112,23 +110,24 @@ You can code any feature you need.
         return int(match.group(1)) if match is not None else None
 
     def make_hints(self, action, metadata, action_output):
-        self.hints_for_ai = "" 
-
-        if metadata.memory:
-            self.old_memories = self.get_old_memories(metadata)
-
-        self.hints_for_ai += f"\n## Memories in your mind\nmemory\n{self.old_memories}" if self.old_memories else ""
-        self.hints_for_ai += self.get_plan_hints(metadata)
-        self.hints_for_ai += self.get_action_hints(metadata, action, action_output)
-
+        hints = "" 
+        
         if self.extract_exit_code(action_output) != 0:
-            self.hints_for_ai += "\n\n## Your previous action error, for your reference:\n"
-            self.hints_for_ai += action_output 
+            if len(self.previous_hints) > 0:
+                hints += "\n\n## Your previous action hit an error, for your reference:\n"
+                hints += self.previous_hints 
+        
+        hints += self.get_plan_hints(metadata)
+        hints += self.get_action_hints(metadata, action, action_output)
+        if metadata.memory:
+            self.memories = self.extrace_memories(metadata)
 
-        self.task_desc = self.hints_for_ai
+        hints += f"\n## Memories you have:\nmemory\n{self.memories}" if self.memories else ""
+
+        self.previous_hints = hints
 
     @staticmethod
-    def get_old_memories(metadata):
+    def extrace_memories(metadata):
         return "{\n" + "\n".join([f"  \"{k}\": {v}," for k, v in metadata.memory.items()]) + "}\n" if metadata.memory else ""
 
     @staticmethod
@@ -153,17 +152,23 @@ You can code any feature you need.
         os.chdir("workspace")
         new_plan: Optional[str] = None
         timeout = args.timeout
-        goal = gpt.revise(input("What would you like me to do:\n"))
-        print(f"As of my understanding, you want me to do:\n{goal}\n")
 
+        goal = ""
         latest_checkpoint = checkpoint_db.load_checkpoint()
         # If a checkpoint exists, load the metadata from it
         if latest_checkpoint:
-            self.task_desc = str(**latest_checkpoint['task_description'])
+            print(f"\nload checkpoint success\n")
+
+            self.previous_hints = latest_checkpoint['task_description']
+            goal = latest_checkpoint['goal']
+        else:
+            goal = gpt.revise(input("What would you like me to do:\n"))
+
+        print(f"As of my understanding, you want me to do:\n{goal}\n")
 
         return goal, new_plan, timeout, general_directions
 
-    def process_action(self, action, metadata, args, timeout):
+    def process_action(self, action, metadata, args, timeout, assistant_response):
         if isinstance(action, actions.ShutdownAction):
             print("Shutting down...")
             return False
@@ -174,8 +179,9 @@ You can code any feature you need.
         if action is not None:
             action_output = action.run()
         else:
-            self.task_desc = f"failed to parse assistant response, is it valid json: {assistant_response}"
+            self.previous_hints = f"failed to parse assistant response, is it valid json: {assistant_response}"
             return True
+        
         self.make_hints(action, metadata, action_output)
         return True
 
@@ -187,21 +193,23 @@ You can code any feature you need.
             try:
                 print("========================")
                 with Spinner("Thinking..."):
-                    assistant_response = gpt.chat(goal, general_directions, new_plan, self.task_desc, model=gpt.GPT_4)
+                    assistant_response = gpt.chat(goal, general_directions, new_plan, self.previous_hints, model=gpt.GPT_4)
                 if args.verbose:
                     print(f"ASSISTANT RESPONSE: {assistant_response}")
+                self.previous_msg_to_gpt = assistant_response
                 action, metadata = response_parser.parse(assistant_response)
                 
-                if not self.process_action(action, metadata, args, timeout):
+                if not self.process_action(action, metadata, args, timeout, assistant_response):
                     break
 
             except Exception as e:
                 logging.exception(f"Error in main: {str(e)}")
-                self.task_desc = f"As an autonomous AI, Please fix this error: {str(e)}"
+                self.previous_hints = f"As an autonomous AI, Please fix this error: {str(e)}"
                 continue
 
             # saving the checkpoint after every iteration
-            checkpoint_db.save_checkpoint(self.task_desc, goal)
+            checkpoint_db.save_checkpoint(self.previous_hints, goal)
+            self.previous_hints = ""
             new_plan = self.get_new_plan(timeout)
 
 
