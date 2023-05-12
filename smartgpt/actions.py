@@ -4,8 +4,18 @@ import io
 import subprocess
 import inspect
 import json
+from spinner import Spinner
 from typing import Union
 from abc import ABC
+from abc import ABC
+from bs4 import BeautifulSoup
+from googlesearch import search
+from selenium import webdriver
+from selenium.webdriver.chrome.webdriver import WebDriver as ChromeWebDriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from webdriver_manager.chrome import ChromeDriverManager
 
 
 @dataclass(frozen=True)
@@ -44,6 +54,77 @@ class Action(ABC):
     def run(self) -> str:
         """Returns what jarvis should learn from running the action."""
         raise NotImplementedError
+
+
+
+@dataclass(frozen=True)
+class SearchOnlineAction(Action):
+    query: str
+
+    def key(self) -> str:
+        return "SEARCH_ONLINE"
+
+    def short_string(self) -> str:
+        return f"Search online for `{self.query}`."
+
+    def run(self) -> str:
+        response = search(self.query, num=10)
+        if response is None:
+            return f"SearchOnlineAction RESULT: The online search for `{self.query}` appears to have failed."
+        result = "\n".join([str(url) for url in response])
+        print(f"SearchOnlineAction RESULT: The online search for `{self.query}` returned the following URLs:\n{result}")
+        return result
+
+
+@dataclass(frozen=True)
+class ExtractInfoAction(Action):
+    url: str
+    instructions: str
+
+    def key(self) -> str:
+        return "EXTRACT_INFO"
+
+    def short_string(self) -> str:
+        return f"Extract info from `{self.url}`: {self.instructions}."
+
+    def run(self) -> str:
+        with Spinner("Reading website..."):
+            html = self.get_html(self.url)
+        text = self.extract_text(html)
+        print(f"RESULT: The webpage at `{self.url}` was read successfully.")
+        user_message_content = f"{self.instructions}\n\n```\n{text[:10000]}\n```"
+        messages = [
+            {
+                "role": "system",
+                "content": "You are a helpful assistant. You will be given instructions to extract some information from the contents of a website. Do your best to follow the instructions and extract the info.",
+            },
+            {"role": "user", "content": user_message_content},
+        ]
+        request_token_count = gpt.count_tokens(messages)
+        max_response_token_count = gpt.COMBINED_TOKEN_LIMIT - request_token_count
+        with spinner.Spinner("Extracting info..."):
+            extracted_info = gpt.send_message(messages, max_response_token_count, model=gpt.GPT_3_5_TURBO)
+        print("ExtractInfoAction RESULT: The info was extracted successfully.")
+        return extracted_info
+
+    def get_html(self, url: str) -> str:
+        options = ChromeOptions()
+        options.headless = True
+        browser = ChromeWebDriver(executable_path=ChromeDriverManager().install(), options=options)
+        browser.get(url)
+        html = browser.find_element(By.TAG_NAME, "body").get_attribute("innerHTML")
+        browser.quit()
+        return html
+
+    def extract_text(self, html: str) -> str:
+        soup = BeautifulSoup(html, "html.parser")
+        for script in soup(["script", "style"]):
+            script.extract()
+        text = soup.get_text()
+        lines = (line.strip() for line in text.splitlines())
+        chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+        text = "\n".join(chunk for chunk in chunks if chunk)
+        return text
 
 
 @dataclass(frozen=True)
@@ -121,4 +202,6 @@ def _populate_action_classes(action_classes):
 ACTION_CLASSES = _populate_action_classes([
     RunPythonAction,
     ShutdownAction,
+    ExtractInfoAction,
+    SearchOnlineAction,
 ])
