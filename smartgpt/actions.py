@@ -157,6 +157,7 @@ class RunPythonAction(Action):
                 output = f"\nPython script `python {self.path} {self.cmd_args}` returned exit code {exit_code}, stdout of process:\n{output}"
                 if exit_code != 0:
                     output += f"\n\nPython script code:\n{self.code}"
+                print(f"python {self.path} {self.cmd_args}` returned exit code {exit_code}, stdout of process:\n{output}")
                 return output
             except subprocess.TimeoutExpired:
                 process.kill()
