@@ -103,7 +103,7 @@ def parse(text: str) -> Tuple[Optional[actions.Action], Optional[Metadata]]:
         # If parsing as a JSON object fails, try to extract JSON object(s) from the input string
         json_objects = extract_json_objects(text)
         if not json_objects:
-            raise ValueError(f"Failed to parse input as JSON object: {text}")
+            raise ValueError(f"Failed to parse input as JSON object, please fix it:: {text}")
         
         # Create an Action object and parse the metadata for each JSON object separately
         action = None
@@ -123,6 +123,6 @@ def parse(text: str) -> Tuple[Optional[actions.Action], Optional[Metadata]]:
                 # Parse the metadata
                 metadata = parse_metadata(data)
             except Exception as e:
-                raise ValueError(f"Failed to parse input as JSON object: {json_text}\nError: {str(e)}")
+                raise ValueError(f"Error: {str(e)}, Failed to parse input as JSON object, please fix it: {json_text}\n")
         
         return action, metadata

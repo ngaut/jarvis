@@ -10,7 +10,6 @@ import check_point
 import gpt
 import re
 import logging
-import peewee
 import yaml
 import argparse
 
@@ -213,7 +212,6 @@ You can code any feature you need.
             return True
         
         self.make_hints(action, metadata, action_output)
-        
             
         return True
 
@@ -228,20 +226,19 @@ You can code any feature you need.
                     assistant_response = gpt.chat(goal, general_directions, new_plan, self.previous_hints, model=gpt.GPT_4)
                 if args.verbose:
                     print(f"ASSISTANT RESPONSE: {assistant_response}")
-                self.previous_msg_to_gpt = assistant_response
                 action, metadata = response_parser.parse(assistant_response)
                 
                 if not self.process_action(action, metadata, args, timeout, assistant_response):
                     break
+                # saving the checkpoint after every iteration
+                checkpoint_db.save_checkpoint(self.previous_hints, goal)
 
             except Exception as e:
                 logging.exception(f"Error in main: {str(e)}")
                 self.previous_hints = f"As an autonomous AI, Please fix this error: {str(e)}"
+                checkpoint_db.save_checkpoint(self.previous_hints, goal)
                 continue
 
-            # saving the checkpoint after every iteration
-            checkpoint_db.save_checkpoint(self.previous_hints, goal)
-            self.previous_hints = ""
             new_plan = self.get_new_plan(timeout)
 
 
