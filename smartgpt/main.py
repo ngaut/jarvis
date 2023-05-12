@@ -50,9 +50,9 @@ You can code any feature you need.
 
 
 - RESPONSE FORMAT:
-  Provide responses in JSON format, You should valid it before send to me. it includes the following fields: type, plan, memory, and current_task_id.
+  You response is a JSON, and JSON only, nothing more. It includes the following fields: type, plan, memory, and current_task_id.
   Create a detailed and actionable plan, with step-by-step actions as described above.
-  You should write measurable success criteria for each step and check it after finish the step. Sample JSON response with comments:
+  You should write measurable success criteria for each step and check it after finish the step. A Sample response with comments:
     {
         "type": "RUN_PYTHON", // must have type field. one of the above actions
         "path": "analyze_data.py",
@@ -86,9 +86,23 @@ You can code any feature you need.
     }
 
 """
+
     def __init__(self):
         self.memories = ""
         self.previous_hints = ""
+         # Initialize an empty list for lessons learned
+        self.lesson_history = []
+
+    def add_to_lesson_history(self, lesson):
+        MAX_LESSONS_STORED = 5
+        # Check if lesson is not already in history
+        if lesson not in self.lesson_history:
+            # If the history is already full, remove the oldest entry
+            if len(self.lesson_history) >= MAX_LESSONS_STORED:
+                self.lesson_history.pop(0)
+            # Add the new lesson
+            self.lesson_history.append(lesson)
+
 
     def input_with_timeout(self, prompt: str, timeout: int) -> Optional[str]:
         signal.signal(signal.SIGALRM, self.signal_handler)
@@ -119,6 +133,10 @@ You can code any feature you need.
         
         hints += self.get_plan_hints(metadata)
         hints += self.get_action_hints(metadata, action, action_output)
+        # Add lessons history to hints
+        if self.lesson_history:
+            lessons_string = "\n".join(self.lesson_history)
+            hints += f"\n\n## Lessons learned history:\n{lessons_string}\n\n"
         if metadata.memory:
             self.memories = self.extrace_memories(metadata)
 
@@ -128,7 +146,7 @@ You can code any feature you need.
 
     @staticmethod
     def extrace_memories(metadata):
-        return "{\n" + "\n".join([f"  \"{k}\": {v}," for k, v in metadata.memory.items()]) + "}\n" if metadata.memory else ""
+        return "{\n" + "\n".join([f"  \"{k}\": {v}," for k, v in metadata.memory.items()]) + "\n}\n" if metadata.memory else ""
 
     @staticmethod
     def get_plan_hints(metadata):
@@ -178,11 +196,16 @@ You can code any feature you need.
                 return False   
         if action is not None:
             action_output = action.run()
+            if metadata.memory and 'notes' in metadata.memory and 'lesson_learned_from_previous_action_result' in metadata.memory['notes']:
+                self.add_to_lesson_history(metadata.memory['notes']['lesson_learned_from_previous_action_result'])
         else:
             self.previous_hints = f"failed to parse assistant response, is it valid json: {assistant_response}"
+            self.add_to_lesson_history("Your previous response is not a valid JSON")
             return True
         
         self.make_hints(action, metadata, action_output)
+        
+            
         return True
 
     def run(self, args):
