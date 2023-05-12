@@ -25,8 +25,13 @@ class CheckpointDatabase:
         self.db.create_tables([Checkpoint])
 
     def save_checkpoint(self, task_description: str, goal:str):
-        checkpoint = Checkpoint(task_description=task_description, goal=goal)
-        checkpoint.save()
+        try:
+            checkpoint = Checkpoint(task_description=task_description, goal=goal)
+            checkpoint.save()
+        except Exception as e:
+            print(f"An error occurred while trying to save a checkpoint: {e}")
+            # Consider re-raising the exception or handle it in a way that makes sense for your application
+            # raise e
 
     def load_checkpoint(self, task_description: str = None):
         try:
@@ -34,8 +39,13 @@ class CheckpointDatabase:
                 checkpoint = Checkpoint.select().where(Checkpoint.task_description == task_description).order_by(Checkpoint.created_at.desc()).get()
             else:
                 checkpoint = Checkpoint.select().order_by(Checkpoint.created_at.desc()).get()
-        
+
             return model_to_dict(checkpoint)
         except DoesNotExist:
             return None  # or handle in another way that makes sense for your application
+        except Exception as e:
+            print(f"An error occurred while trying to load a checkpoint: {e}")
+            # Consider re-raising the exception or handle it in a way that makes sense for your application
+            # raise e
+
 
