@@ -73,13 +73,13 @@ class RunPythonAction(Action):
             try:
                 exit_code = process.wait(timeout=self.timeout)  # Add the timeout argument
                 output = process.stdout.read() if process.stdout else ""
-                output = f"\nPython script at `{self.path}` returned exit code {exit_code}, stdout of process:\n{output}"
+                output = f"\nPython script `python {self.path} {self.cmd_args}` returned exit code {exit_code}, stdout of process:\n{output}"
                 if exit_code != 0:
                     output += f"\n\nPython script code:\n{self.code}"
                 return output
             except subprocess.TimeoutExpired:
                 process.kill()
-                return f"RunPythonAction failed: The Python script at `{self.path}` timed out after {self.timeout} seconds."
+                return f"RunPythonAction failed: The Python script at `{self.path} {self.cmd_args}` timed out after {self.timeout} seconds."
 
 
 @dataclass(frozen=True)

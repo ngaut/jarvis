@@ -34,7 +34,15 @@ You can code any feature you need.
 
 -ACTIONS:
 // ***I will send the output of the python script to you in next conversation, you must fully leverage it to handle complex tasks
-// *** You can also save the running result to a file, store meta in memory, and process it in next round
+// *** You can also save the running result to a file, store meta in memory, and process it in next round.
+// The RUN_PYTHON command will be execute like this: 
+        subprocess.Popen(
+             f"python {path} {cmd_args}",
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            universal_newlines=True,
+
   {"type": "RUN_PYTHON", "path": "<PATH>", "timeout": <TIMEOUT>, "cmd_args": "<arguments>", code": "<PYTHON_CODE>"}
   {"type": "SHUTDOWN", "message": "<TEXT>"} // A short summary for user when you get job done.
 
@@ -52,12 +60,13 @@ You can code any feature you need.
 - RESPONSE FORMAT:
   You response is a JSON, and JSON only, nothing more. It includes the following fields: type, plan, memory, and current_task_id.
   Create a detailed and actionable plan, with step-by-step actions as described above.
-  You should write measurable success criteria for each step and check it after finish the step. A Sample response with comments:
+  You should write measurable success criteria for each step and check it after finish the step. 
+  A Sample response(not valid json, just for your understanding, You should return valid json) with comments:
     {
         "type": "RUN_PYTHON", // must have type field. one of the above actions
         "path": "analyze_data.py",
         "timeout": 30, // must have when type is "RUN_PYTHON".
-        "cmd_args": // must have when type is "RUN_PYTHON", fill with empty string if you don't use it
+        "cmd_args": // must have when type is "RUN_PYTHON", fill with empty string if you don't use it. 
         "code": , // must have when type is "RUN_PYTHON",start from code directly, no prefix please. the python script you generate to help you finish your job
         "plan": [ // must have. use memories to generate the plan
         "[done] 1. {task description}.success criteria:{success criteria for current task}. To verify result:{to check success criteria, i need to do:}.
