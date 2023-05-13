@@ -4,6 +4,7 @@ import io
 import subprocess
 import inspect
 import json
+import gpt
 from spinner import Spinner
 from typing import Union
 from abc import ABC
@@ -102,7 +103,7 @@ class ExtractInfoAction(Action):
         ]
         request_token_count = gpt.count_tokens(messages)
         max_response_token_count = gpt.COMBINED_TOKEN_LIMIT - request_token_count
-        with spinner.Spinner("Extracting info..."):
+        with Spinner("Extracting info..."):
             extracted_info = gpt.send_message(messages, max_response_token_count, model=gpt.GPT_3_5_TURBO)
         print("ExtractInfoAction RESULT: The info was extracted successfully.")
         return extracted_info
