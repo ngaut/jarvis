@@ -59,10 +59,12 @@ You can code any feature you need.
 
 
 - RESPONSE FORMAT:
-  You response is a JSON, and JSON only, nothing more. It includes the following fields: type, plan, memory, and current_task_id.
-  Create a detailed and actionable plan, with step-by-step actions as described above.
-  You should write measurable success criteria for each step and check it after finish the step. 
-  A Sample response(not valid json, just for your understanding, You should return valid json) with comments:
+  You response must be a single JSON, that's all, nothing more. 
+  - Inside JSON:
+    Must include fields: type, plan, memory, and current_task_id.
+    The plan should be detail and actionable, with step-by-step actions as described above.
+    You should write measurable success criteria for each step and check it after finishing the step. 
+    A Sample response(not a real json, just for your reference) with comments:
     {
         "type": "RUN_PYTHON", // must have type field. one of the above actions
         "path": "analyze_data.py",
@@ -192,7 +194,7 @@ You can code any feature you need.
             self.previous_hints = latest_checkpoint['task_description']
             goal = latest_checkpoint['goal']
         else:
-            goal = gpt.revise(input("What would you like me to do:\n"))
+            goal = gpt.revise(input("What would you like me to do:\n"), gpt.GPT_3_5_TURBO)
 
         print(f"As of my understanding, you want me to do:\n{goal}\n")
 
@@ -227,7 +229,7 @@ You can code any feature you need.
             try:
                 print("========================")
                 with Spinner("Thinking..."):
-                    assistant_response = gpt.chat(goal, general_directions, new_plan, self.previous_hints, model=gpt.GPT_4)
+                    assistant_response = gpt.chat(goal, general_directions, new_plan, self.previous_hints, model=gpt.GPT_3_5_TURBO)
                 if args.verbose:
                     print(f"ASSISTANT RESPONSE: {assistant_response}")
                 action, metadata = response_parser.parse(assistant_response)
