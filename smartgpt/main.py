@@ -69,9 +69,11 @@ You can code any feature you need.
         "timeout": 30, // must have when type is "RUN_PYTHON".
         "cmd_args": // must have when type is "RUN_PYTHON", fill with empty string if you don't use it. 
         "code": , // must have when type is "RUN_PYTHON",start from code directly, no prefix please. the python script you generate to help you finish your job
-        "plan": [ // must have. use memories to generate the plan
-        "[done] 1. {task description}.success criteria:{success criteria for current task}. To verify result:{to check success criteria, i need to do:}.
-        "[working] ",
+        "plan": [ // This field is required. It should be generated using the information stored in memory.
+            "[done] 1. {task description}. Success criteria: {success criteria for current task}. Verification process: {steps to check if success criteria are met}.",
+            "[working] 2. {task description}. Success criteria: {success criteria for current task}. Verification process: {steps to check if success criteria are met}.",
+            "[pending] 3. {task description}. Success criteria: {success criteria for current task}. Verification process: {steps to check if success criteria are met}.",
+            // Make sure to always include a final step in the plan to check if the overall goal has been achieved, and generate a summary after this process.
         ],
         "current_task_id": "2", // must have.
         "memory": { // must have, everyting you put here will be send back to you in next conversation
