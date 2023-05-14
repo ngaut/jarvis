@@ -56,8 +56,8 @@ Your response must be a single JSON object, containing the fields: type, plan, m
         "cmd_args": // must have when type is "RUN_PYTHON", fill with empty string if you don't use it. 
         "code": , // must have when type is "RUN_PYTHON",start from code directly, no prefix please. the python script you generate to help you finish your job
         "plan": [ // This field is required. It should be generated using the information stored in memory.
-            "[done] 1. {task description}. Success criteria: {success criteria for current task}. Verification process: {steps to check if success criteria are met}.",
-            "[working] 2. {task description}. Success criteria: {success criteria for current task}. Verification process: {steps to check if success criteria are met}.",
+            "[done] 1. {TASK_DESCRIPTION}. Success criteria: {SUCCESS_CRITERIA}. Verification process:{VERIFICATION_PROCESS}.",
+            "[working] 2. {TASK_DESCRIPTION}, Depends on:{DEPENDS_ON[ITEM_NO]}. Success criteria: {SUCCESS_CRITERIA}. Verification process: {VERIFICATION_PROCESS}",
             // Make sure to always include a final step in the plan to check if the overall goal has been achieved, and generate a summary after this process.
         ],
         "current_task_id": "2", // must have.
