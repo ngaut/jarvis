@@ -4,6 +4,7 @@ import io
 import subprocess
 import inspect
 import json
+import base64
 import gpt
 from spinner import Spinner
 from typing import Union
@@ -142,9 +143,11 @@ class RunPythonAction(Action):
         return f"Run Python file `{self.path} {self.cmd_args}`."
 
     def run(self) -> str:
+        #decode code as based64
+        code = base64.b64decode(self.code).decode("utf-8")
         # write code to path and run
         with io.open(self.path, mode="w", encoding="utf-8") as file:
-            file.write(self.code)
+            file.write(code)
         with subprocess.Popen(
              f"python {self.path} {self.cmd_args}",
             shell=True,
@@ -157,12 +160,14 @@ class RunPythonAction(Action):
                 output = process.stdout.read() if process.stdout else ""
                 output = f"\n`python {self.path} {self.cmd_args}` returned exit code {exit_code}, stdout of process:\n{output}"
                 if exit_code != 0:
-                    output += f"\n\nPython script code:\n{self.code}"
-                print(f"python {self.path} {self.cmd_args}` returned exit code {exit_code}, stdout of process:\n{output}")
+                    output += f"\n\nPython script code:\n{code}"
+                print(output)
                 return output
             except subprocess.TimeoutExpired:
                 process.kill()
-                return f"RunPythonAction failed: The Python script at `{self.path} {self.cmd_args}` timed out after {self.timeout} seconds."
+                output = f"RunPythonAction failed: The Python script at `{self.path} {self.cmd_args}` timed out after {self.timeout} seconds."
+                print(output)
+                return output
 
 
 @dataclass(frozen=True)
