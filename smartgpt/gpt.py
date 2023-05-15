@@ -66,7 +66,7 @@ def send_message(messages, max_response_tokens: int, model: str) -> str:
             # For azure
             #response = openai.ChatCompletion.create(engine=model, messages=messages, max_tokens=max_response_tokens, temperature=0.2)
             #print(f"message sent to AI: {messages}")
-            response = openai.ChatCompletion.create(model=model, messages=messages, max_tokens=max_response_tokens, temperature=0.7)
+            response = openai.ChatCompletion.create(model=model, messages=messages, max_tokens=max_response_tokens, temperature=0.2)
             #time.sleep(1)
             return response.choices[0].message["content"]  # type: ignore
         except openai.error.RateLimitError:  # type: ignore
