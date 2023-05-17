@@ -5,10 +5,12 @@ import subprocess
 import inspect
 import json
 import gpt
+import logging
+import time
 from spinner import Spinner
 from typing import Union
 from abc import ABC
-from abc import ABC
+from urllib.error import HTTPError
 from bs4 import BeautifulSoup
 from googlesearch import search
 from selenium import webdriver
@@ -69,12 +71,20 @@ class SearchOnlineAction(Action):
         return f"Search online for `{self.query}`."
 
     def run(self) -> str:
-        response = search(self.query, num=10)
-        if response is None:
-            return f"SearchOnlineAction RESULT: The online search for `{self.query}` appears to have failed."
-        result = "\n".join([str(url) for url in response])
-        print(f"SearchOnlineAction RESULT: The online search for `{self.query}` returned the following URLs:\n{result}")
-        return result
+        try:
+            response = search(self.query, num=10)
+            if response is None:
+                return f"SearchOnlineAction RESULT: The online search for `{self.query}` appears to have failed."
+
+            result = "\n".join([str(url) for url in response])
+            logging.info(f"SearchOnlineAction RESULT: The online search for `{self.query}` returned the following URLs:\n{result}")
+            return result
+        except HTTPError as http_err:
+            if http_err.code == 429:
+                time.sleep(30)
+                return "SearchOnlineAction RESULT: Too many requests. Please try again later."
+            else:
+                return f"SearchOnlineAction RESULT: An HTTP error occurred: {http_err}"
 
 
 @dataclass(frozen=True)
@@ -92,7 +102,7 @@ class ExtractInfoAction(Action):
         with Spinner("Reading website..."):
             html = self.get_html(self.url)
         text = self.extract_text(html)
-        print(f"RESULT: The webpage at `{self.url}` was read successfully.")
+        logging.info(f"RESULT: The webpage at `{self.url}` was read successfully.")
         user_message_content = f"{self.instructions}\n\n```\n{text[:10000]}\n```"
         messages = [
             {
@@ -105,7 +115,7 @@ class ExtractInfoAction(Action):
         max_response_token_count = gpt.max_token_count(gpt.GPT_3_5_TURBO) - request_token_count
         with Spinner("Extracting info..."):
             extracted_info = gpt.send_message(messages, max_response_token_count, model=gpt.GPT_3_5_TURBO)
-        print("ExtractInfoAction RESULT: The info was extracted successfully.")
+        logging.info(f"ExtractInfoAction RESULT: The info was extracted successfully:{extracted_info}")
         return extracted_info
 
     def get_html(self, url: str) -> str:
@@ -159,12 +169,12 @@ class RunPythonAction(Action):
                 output = f"\n`python {self.path} {self.cmd_args}` returned: exit code {exit_code}, stdout of process:\n{output}"
                 if exit_code != 0:
                     output += f"\n\nPython script code:\n{code}"
-                print(output)
+                logging.info(output)
                 return output
             except subprocess.TimeoutExpired:
                 process.kill()
                 output = f"RunPythonAction failed: The Python script at `{self.path} {self.cmd_args}` timed out after {self.timeout} seconds."
-                print(output)
+                logging.info(output)
                 return output
 
 
@@ -182,6 +192,23 @@ class ShutdownAction(Action):
         # This action is treated specially, so this can remain unimplemented.
         raise NotImplementedError
     
+
+@dataclass(frozen=True)
+class AppendFileAction(Action):
+    path: str
+    text: str
+
+    def key(self) -> str:
+        return "APPEND_FILE"
+
+    def short_string(self) -> str:
+        return f"Append file `{self.path}`."
+
+    def run(self) -> str:
+        with io.open(self.path, mode="a", encoding="utf-8") as file:
+            bytes_written = file.write(self.text)
+            print(f"AppendFileAction RESULT: Appended file `{self.path}`.")
+            return f"AppendFileAction File successfully appended with {bytes_written} bytes"
         
 # Helper function to populate the ACTION_CLASSES dictionary
 def _populate_action_classes(action_classes):
@@ -206,6 +233,7 @@ def _populate_action_classes(action_classes):
 
 ACTION_CLASSES = _populate_action_classes([
     RunPythonAction,
+    AppendFileAction,
     ShutdownAction,
     ExtractInfoAction,
     SearchOnlineAction,

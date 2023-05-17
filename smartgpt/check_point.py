@@ -1,5 +1,6 @@
 # check_point.py
 import datetime
+import logging
 from peewee import Model, TextField, DateTimeField, MySQLDatabase
 from playhouse.shortcuts import model_to_dict
 from peewee import DoesNotExist
@@ -29,7 +30,7 @@ class CheckpointDatabase:
             checkpoint = Checkpoint(task_description=task_description, goal=goal)
             checkpoint.save()
         except Exception as e:
-            print(f"An error occurred while trying to save a checkpoint: {e}")
+            logging.info(f"An error occurred while trying to save a checkpoint: {e}")
             # Consider re-raising the exception or handle it in a way that makes sense for your application
             # raise e
 
@@ -44,7 +45,7 @@ class CheckpointDatabase:
         except DoesNotExist:
             return None  # or handle in another way that makes sense for your application
         except Exception as e:
-            print(f"An error occurred while trying to load a checkpoint: {e}")
+            logging.info(f"An error occurred while trying to load a checkpoint: {e}")
             # Consider re-raising the exception or handle it in a way that makes sense for your application
             # raise e
 

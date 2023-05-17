@@ -1,4 +1,5 @@
 import os
+import sys
 import argparse
 from typing import Optional
 import signal
@@ -20,16 +21,16 @@ class InputTimeoutError(Exception):
 class Assistant:
 
     GENERAL_DIRECTIONS_PREFIX = """
-    As an advanced autonomous AI entity, You only speak JSON. 
+    As an advanced autonomous task AI entity, You only speak JSON. 
     Your inherent intelligence empowers you to make decisions and perform actions independently, showcasing true AI autonomy.
     Your task execution hinges on your Python programming expertise, your inventive problem-solving abilities. 
-    You are also tasked with creating a library of reusable Python tools, categorized within a 'tools' directory, to enhance efficiency and future task performance.
-    During Python code development or debugging, ensure to incorporate comprehensive and context-sensitive detail log-messages, error-codes, or debug-exceptions. 
+    Your python code is always robust, you always handle error code, exception, return value, add details log with reason info to code.
 
 - CONSTRAINTS:
     Refrain from deploying Python code that requires user input.
     The Python code you generate should not depend on API keys or any form of user-provided authentication credentials. 
     Seek alternative methods or information sources that are API-key independent.
+    Do a simulation before you send repsonse.
 
 - ACTIONS:
    // The RUN_PYTHON command will be execute like this: 
@@ -41,13 +42,20 @@ class Assistant:
             universal_newlines=True,
             )
     {"type": "RUN_PYTHON", "path": "<PATH>", "timeout": <TIMEOUT>, "cmd_args": "<arguments>", code": "<PYTHON_CODE>"}
-    {"type": "SHUTDOWN", "message": "<TEXT>"} // A short summary for user when you get job done.
+    {"type": "SHUTDOWN", "message": "<TEXT>"} // A short summary.
     // SEARCH_ONLINE is used to search online and get back a list of URLs relevant to the query
     {"type": "SEARCH_ONLINE", "query": "<QUERY>"}
     // extract specific information from a webpage
     {"type": "EXTRACT_INFO", "url": "<URL>", "instructions": "<INSTRUCTIONS>"}
+    {"type": "APPEND_FILE", "path": "<PATH>", "text": "<TEXT>"}
 
-  
+
+- LESSON-LEARNED:
+    Always use proper JSON formatting to avoid errors. 
+    Always use proper f-string formatting to avoid errors. 
+    Always ensure that the input is a valid JSON object before processing. 
+    Be cautious about the reliability of the APIs and ensure that they do not require API keys or user-provided authentication credentials.
+
 - SELF-IMPROVEMENT:
     Reflect on past actions to optimize future strategies.
     Embrace flexibility and creativity, especially when accessing and leveraging web-based information.
@@ -58,38 +66,43 @@ class Assistant:
     The plan consists of multiple measureable tasks. Each task should have many sub-tasks.
     Your response must follow the json format:
     {
-        "type": "RUN_PYTHON", // must have type field. one of the above actions
+        "type": "RUN_PYTHON", // must have. one of the above actions
         "path": "{PATH_TO_PYTHON_CODE}",
-        "timeout": 30, // must have when type is "RUN_PYTHON".
-        "cmd_args": {ARGUMENT_FOR_PYTHON_CODE},// must have when type is "RUN_PYTHON", fill with empty string if you don't use it. 
+        "timeout": 30, // argument for "RUN_PYTHON".
+        "cmd_args": {ARGUMENT_FOR_PYTHON_CODE},// argument for "RUN_PYTHON". 
 
-        "plan": [ // This field is required. It should be generated using the information stored in memory.
-            "[done] 1. {TASK_DESCRIPTION}",
-            "[working] 2. {TASK_DESCRIPTION}, Depends on:{DEPENDS_ON[#ITEM_NO]}",
+        // The plan field is required. You must always store the outcome/output of each task to a file.
+        // And store the meta data of the outcome/output into notebook structure field for future use.
+        "plan": [ 
+            "[done] 1. {TASK_DESCRIPTION}, <SUCCESS_CRITERIA>",
+            "[working] 2. {TASK_DESCRIPTION}, Depends on -> {{task ids}}, <SUCCESS_CRITERIA>",
             // Make sure to always include a final step in the plan to check if the overall goal has been achieved, and generate a summary after this process.
+            // The summary should be user friendly, with examples, user doc and so on.
         ],
         "current_task_id": "2", // must have.
-        "memory": { // must have, everything you put here will be send back to you in next conversation
-            "retry_count": "3", //Shutdown after retry 5 times.
+        "memory": { // must have, everything you put inside memory will be send back to you in next conversation for future useage.
+            "retried_count": "3", //Shutdown after retry 5 times.
             "thoughts": "<THOUGHTS>",
             "reasoning": "<REASONING>",
-            "next_action": "SHUTDOWN, as all tasks in the plan are complete",
+            "next_action": "SHUTDOWN, <REASON>",
             "criticism": "<CRITICISM>",
             // other fields for communication
-            "notes": { // must have. acting as your persistent storage, you can store anything/fields you want by puting it inside notes, and it will be send back to you in next command
+            "notebook": { // must have. acting as your persistent storage, you can store anything/fields you want by puting it bellow, and it will be send back to you in next command
                 "progress of subtasks for current plan item": [
-                    [done], {SUB-TASK_DESCRIPTION}.{SUCCESS_CRITERIA}.{VERIFICATION_PROCESS}
+                    [done], {SUB-TASK_DESCRIPTION}.<SUCCESS_CRITERIA>.<VERIFICATION_PROCESS>
                     [working] ,
                     ...
                     ],
                 "lesson_learned_from_previous_action_result": , // what you should do or should not do in the future
                 "takeaways": <TAKEAWAYS>, // Use it to optimize your future strategies.
-                "expected_python_code_stdout": <EXPECTED_STDOUT>, // what you expect to see in the stdout after you execute the current python code
-                // other fields you need or want to add for future use.
+                "expected_python_code_stdout": <EXPECTED_STDOUT>, // what you expect to see in the stdout after you execute the current python code, should be measurable by yourself.
+                "outcome_or_output_that_you_will_use": <short description with name to saved file>,  
+                // other fields you want to add for future use, fully leverage them.
                 ...
             }
         },
-         // Must exists and can't be empty when type is "RUN_PYTHON", start from code directly, no prefix please.
+         // Must have and can't be empty when type is "RUN_PYTHON", start from code directly, no prefix please.
+         // Do as more as you can with the code once.
         "code": {PYTHON_CODE},  
     }
 """
@@ -182,20 +195,20 @@ class Assistant:
         latest_checkpoint = checkpoint_db.load_checkpoint()
         # If a checkpoint exists, load the metadata from it
         if latest_checkpoint:
-            print(f"\nload checkpoint success\n")
+            logging.info(f"\nload checkpoint success\n")
 
             self.previous_hints = latest_checkpoint['task_description']
             goal = latest_checkpoint['goal']
         else:
             goal = gpt.revise(input("What would you like me to do:\n"), gpt.GPT_4)
 
-        print(f"As of my understanding, you want me to do:\n{goal}\n")
+        logging.info(f"As of my understanding, you want me to do:\n{goal}\n")
 
         return goal, new_plan, timeout, general_directions
 
     def process_action(self, action, metadata, args, timeout, assistant_response):
         if isinstance(action, actions.ShutdownAction):
-            print("Shutting down...")
+            logging.info("Shutting down...")
             return False
         if not args.continuous:
             run_action = self.input_with_timeout("Run the action? [Y/n]", timeout)
@@ -203,8 +216,8 @@ class Assistant:
                 return False   
         if action is not None:
             action_output = action.run()
-            if metadata.memory and 'notes' in metadata.memory and 'lesson_learned_from_previous_action_result' in metadata.memory['notes']:
-                self.add_to_lesson_history(metadata.memory['notes']['lesson_learned_from_previous_action_result'])
+            if metadata.memory and 'notebook' in metadata.memory and 'lesson_learned_from_previous_action_result' in metadata.memory['notebook']:
+                self.add_to_lesson_history(metadata.memory['notebook']['lesson_learned_from_previous_action_result'])
         else:
             self.previous_hints = f"failed to parse assistant response, is it valid json: {assistant_response}"
             self.add_to_lesson_history("Your previous response is not a valid JSON")
@@ -220,11 +233,16 @@ class Assistant:
         while True:
             action = None
             try:
-                print("========================")
+                logging.info("========================")
                 with Spinner("Thinking..."):
-                    assistant_response = gpt.chat(goal, general_directions, new_plan, self.previous_hints, model=gpt.GPT_4)
+                    try:
+                        assistant_response = gpt.chat(goal, general_directions, new_plan, self.previous_hints, model=gpt.GPT_4)
+                    except Exception as e:
+                        logging.info(f"{e}")
+                        continue
+
                 if args.verbose:
-                    print(f"ASSISTANT RESPONSE: {assistant_response}")
+                    logging.info(f"ASSISTANT RESPONSE: {assistant_response}")
                 action, metadata = response_parser.parse(assistant_response)
                 
                 if not self.process_action(action, metadata, args, timeout, assistant_response):
@@ -245,7 +263,7 @@ class Assistant:
         try:
             change_plan = self.input_with_timeout("Change the proposed plan? [N/y]", timeout)
         except InputTimeoutError:
-            print("Input timed out. Continuing with the current plan...")
+            logging.info("Input timed out. Continuing with the current plan...")
             change_plan = None
 
         if change_plan is not None and change_plan.lower() == "y":
@@ -262,11 +280,9 @@ if __name__ == "__main__":
     parser.add_argument('--timeout', type=int, default=1, help='Timeout for user input')  
     parser.add_argument('--continuous', action='store_true', help='Continuous mode')  # Add this line
 
-
-
     args = parser.parse_args()
 
-# Load configuration from YAML file
+    # Load configuration from YAML file
     with open(args.config, 'r') as f:
         config = yaml.safe_load(f)
 
@@ -286,7 +302,7 @@ if __name__ == "__main__":
     gpt_model = config.get('gpt', {}).get('model', 'GPT_4')
 
     # Logging configuration
-    logging_level = config.get('logging', {}).get('level', 'INFO')
+    logging.basicConfig(level=logging.INFO, format='%(message)s', stream=sys.stdout)
    
     assistant_config = config.get('assistant', {})
     args.timeout = assistant_config.get('timeout', args.timeout)

@@ -1,5 +1,6 @@
 import os
 import time
+import logging
 from typing import Optional
 import openai
 import tiktoken
@@ -70,7 +71,7 @@ def send_message(messages, max_response_tokens: int, model: str) -> str:
             #time.sleep(1)
             return response.choices[0].message["content"]  # type: ignore
         except openai.error.RateLimitError:  # type: ignore
-            print(f"Model {model} currently overloaded. Waiting 30 seconds...")
+            logging.info(f"Model {model} currently overloaded. Waiting 30 seconds...")
             time.sleep(30)
 
 def revise(text: str, model: str = GPT_4):
@@ -83,6 +84,6 @@ def revise(text: str, model: str = GPT_4):
     ]
     
     request_token_count = count_tokens(messages)
-    max_response_token_count = 4096 - request_token_count
+    max_response_token_count = max_token_count(model) - request_token_count - len(text)
 
     return send_message(messages, max_response_token_count, model=model)

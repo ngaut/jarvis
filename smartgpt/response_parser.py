@@ -3,6 +3,7 @@ from typing import Optional, Tuple, List
 import regex
 import actions
 import json
+import logging
 
 def preprocess_json(text: str) -> str:
     # Replace single quotes with double quotes for keys and string values
@@ -80,7 +81,7 @@ def parse(text: str) -> Tuple[Optional[actions.Action], Optional[Metadata]]:
     if not text:
         raise ValueError("parse: Empty input received. Cannot parse.")
     
-    print(f"\nparse Text:{text}\n")
+    logging.info(f"\nparse Text:{text}\n")
 
     try:
         # Try to parse the input as a valid JSON object
