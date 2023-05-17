@@ -99,7 +99,26 @@ def parse(text: str) -> Tuple[Optional[actions.Action], Optional[Metadata]]:
         # Parse the metadata
         metadata = parse_metadata(data)
         return action, metadata
+    except json.JSONDecodeError as json_err:
+        # Get the position of the error
+        pos = json_err.pos
+        start = max(0, pos - 20)
+        end = min(len(json_err.doc), pos + 20)
 
+        # Construct the context snippet
+        context = json_err.doc[start:end]
+        caret = " " * (pos - start) + "^"  # Caret pointing to the error position
+
+        # Construct the error message
+        error_message = f"Failed to parse input as JSON object, {json_err.msg}. " \
+                        f"Here is a snippet for context:\n\n{context}\n{caret}"
+
+        # Log the error message
+        logging.error(error_message)
+
+        # Raise a new exception with the pretty error message
+        raise ValueError(error_message)
+        
     except ValueError:
         # If parsing as a JSON object fails, try to extract JSON object(s) from the input string
         json_objects = extract_json_objects(text)
