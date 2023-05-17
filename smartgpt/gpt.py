@@ -10,6 +10,9 @@ import tiktoken
 #openai.api_base = "https://pingcat-bot.openai.azure.com/"
 #openai.api_version = "2023-03-15-preview"
 
+#openai.api_base = "http://localhost:4891/v1"
+
+
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Constants
@@ -28,6 +31,8 @@ GPT_4 = "gpt-4"
 # Alternative model
 GPT_3_5_TURBO = "gpt-3.5-turbo"
 #GPT_3_5_TURBO = "gpt-35-turbo_playground"
+
+GPT_LOCAL = "mpt-7b-chat"
 
 def max_token_count(model:str = GPT_4) -> int:
     if model == GPT_3_5_TURBO:
