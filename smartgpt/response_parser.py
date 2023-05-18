@@ -71,7 +71,7 @@ def parse(text: str) -> Tuple[Optional[actions.Action], Optional[Metadata]]:
         caret = " " * (pos - start) + "^"  # Caret pointing to the error position
 
         # Construct the error message
-        error_message = f"Failed to parse input as JSON object, {json_err.msg}. " \
+        error_message = f"Failed to parse input as JSON object, You should response a valid json. " \
                         f"Here is a snippet for context:\n\n{context}\n{caret}"
 
         # Log the error message
@@ -81,4 +81,4 @@ def parse(text: str) -> Tuple[Optional[actions.Action], Optional[Metadata]]:
         raise ValueError(error_message)
         
     except Exception as e:
-        raise ValueError(f"parse: Failed to parse input as JSON object: {str(e)}\nInput:\n{text}")
+        raise ValueError("parse: Failed to parse input as JSON object, You should response a valid json")
