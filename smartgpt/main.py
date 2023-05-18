@@ -14,6 +14,8 @@ import logging
 import yaml
 import argparse
 
+base_model  = gpt.GPT_4
+
 
 class InputTimeoutError(Exception):
     pass
@@ -27,7 +29,7 @@ Your Python code is robust, following best practice/engineering.
 
 - CONSTRAINTS:
     Avoid deploying Python code demanding user input.
-    Find alternatives or information sources that don't require API keys.
+    Find alternatives or information sources that don't require API keys, unless we already have the api key.
     Conduct simulations prior to response provision.
 
 - ACTIONS:
@@ -43,7 +45,7 @@ Your Python code is robust, following best practice/engineering.
     {"type": "SHUTDOWN", "message": "<TEXT>"} // A concise summary.
     "SEARCH_ONLINE" is used to conduct online searches and retrieve relevant URLs for the query.
     {"type": "SEARCH_ONLINE", "query": "<QUERY>"}
-    "EXTRACT_INFO" is used to extract specific information from a webpage.
+    "EXTRACT_INFO" is used to extract specific information from a URL.
     {"type": "EXTRACT_INFO", "url": "<URL>", "instructions": "<INSTRUCTIONS>"}
     {"type": "APPEND_FILE", "path": "<PATH>", "text": "<TEXT>"}
 
@@ -53,11 +55,12 @@ Your Python code is robust, following best practice/engineering.
     Always ensure that the input/output is a valid JSON object before processing. 
 
 - SELF-IMPROVEMENT:
-    Reflect on memory and tools you have to improve future strategies.
-    Be creative, flexible, smart. Regularly browse the internet, extract information, analyze data, and apply insights to problem-solving.
+    Reflect on memory and tools you built to improve future strategies.
+    Be creative, flexible, smart. 
+    Aggressively browse the internet, extract information, analyze data, and apply insights to problem-solving.
 
 - RESPONSE FORMAT:
-    Your response is a single json, you must follow the JSON template below.:
+    Your response is a single json, you must follow the JSON template below:
     {
         "type": "RUN_PYTHON", // One of the above actions.
         "path": "{PATH_TO_PYTHON_CODE}",
@@ -87,9 +90,10 @@ Your Python code is robust, following best practice/engineering.
                 "takeaways": <TAKEAWAYS>, // To optimize future strategies.
                 "expected_python_code_stdout": <EXPECTED_STDOUT>, // Expected stdout after executing the current Python code when type is "RUN_PYTHON".
                 "__comments":<YOUR-COMMENTS>,
-                // You must add aditional fields that you want or need to memorize for future use, fully leverage it.
-                "remember":<INFO>,
-                "tools_you_built":<INFO>, // You are encouraged to build tools to help you with your tasks.
+                "remember":[{<INFO>}],
+                "tools_you_built":[{{"tool":"<TOOL-NAME>","desc": "<TOOL-DESC>"}}, ] // You are encouraged to build tools to help you with your tasks.
+                ...    // You must add aditional fields that you want or need to memorize for future use, fully leverage it.
+
             }
         },
         "code": {PYTHON_CODE}, // Required and should not be empty when type is "RUN_PYTHON". Always starts from import.
@@ -191,7 +195,7 @@ Your Python code is robust, following best practice/engineering.
             self.previous_hints = latest_checkpoint['task_description']
             goal = latest_checkpoint['goal']
         else:
-            goal = gpt.revise(input("What would you like me to do:\n"), gpt.GPT_4)
+            goal = gpt.revise(input("What would you like me to do:\n"), base_model)
 
         logging.info(f"As of my understanding, you want me to do:\n{goal}\n")
 
@@ -227,7 +231,7 @@ Your Python code is robust, following best practice/engineering.
                 logging.info("========================")
                 with Spinner("Thinking..."):
                     try:
-                        assistant_response = gpt.chat(goal, general_directions, new_plan, self.previous_hints, model=gpt.GPT_4)
+                        assistant_response = gpt.chat(goal, general_directions, new_plan, self.previous_hints, model=base_model)
                     except Exception as e:
                         logging.info(f"{e}")
                         continue
@@ -290,7 +294,7 @@ if __name__ == "__main__":
     checkpoint_db = check_point.CheckpointDatabase(db_name, db_user, db_password, db_host, db_port, ssl)
 
     # GPT model configuration
-    gpt_model = config.get('gpt', {}).get('model', 'GPT_4')
+    gpt_model = config.get('gpt', {}).get('model', base_model)
 
     # Logging configuration
     logging.basicConfig(level=logging.INFO, format='%(message)s', stream=sys.stdout)
