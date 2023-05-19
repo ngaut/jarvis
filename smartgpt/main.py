@@ -41,7 +41,7 @@ ACTIONS:
             universal_newlines=True,
             )
     {"type": "RUN_PYTHON", "path": "<PATH>", "timeout": <TIMEOUT>, "cmd_args": "<ARGUMENTS>", "code": "<CODE>"}
-    {"type": "SHUTDOWN", "message": "<TEXT>"} // A concise summary.
+    {"type": "SHUTDOWN", "message": "<TEXT>"} // A concise summary of the task and outcome when you get job done.
     "SEARCH_ONLINE" is used to conduct online searches and retrieve relevant URLs for the query.
     {"type": "SEARCH_ONLINE", "query": "<QUERY>"}
     "EXTRACT_INFO" is used to extract specific information from a URL.
@@ -54,7 +54,7 @@ ACTIONS:
     {
         "plan": [ // Must have. It includes measurable step by step tasks.
             "[done] 1. {TASK_DESCRIPTION}",
-            "[working] 2. {TASK_DESCRIPTION}, Depends on -> {{task ids}},
+            "[working] 2. {TASK_DESCRIPTION}, Depends on -> {{task ids}}",
             // Final step: verify if the overall goal has been met and generate a user-friendly summary with user guide on what's next.
         ],
         "current_task_id": 2, // Must have.
@@ -62,19 +62,17 @@ ACTIONS:
             "retried_count": "3", // Shutdown after retrying 5 times.
             "thoughts":,
             "reasoning":",
-            "next_action": "<ACTION> - <DESCRIPTION>",
             "criticism": ,
             "notebook": { // Must have. 
                 "__comments":<COMMENTS>, // put comments here if you have any.
                 "reflections": <REFLECTIONS>,
+                "next_action": "<ACTION> - <DESCRIPTION>",
                 "progress of subtasks for current task<<$current_task_id>>": [
                     [done]2.1: {SUB-TASK-DESCRIPTION}.success criteria:<INFO>.Verification process:<INFO>,
                     [working]2.2:
                     [todo]2.3:
                     ],
-                "lessons_learned": {    // what works, what doesn't work, what to do next time.
-                    [{{<LESSON_LEARNED>}}... ]
-                },
+                "lessons_learned":[{<LESSON_LEARNED>}... ], // what works, what doesn't work, what to do next time.
                 "expected_python_code_stdout": <EXPECTED_STDOUT>, // Expected stdout after executing the current Python code when type is "RUN_PYTHON".
                 // You are encouraged to add more fields as you deem necessary for effective task execution or for future reference.
 
@@ -129,7 +127,7 @@ ACTIONS:
             if metadata.memory:
                 self.memories = self.extrace_memories(metadata)
 
-        hints += f"\n## Memories you have:\nmemory\n{self.memories}" if self.memories else ""
+        hints += f"\n## Your memory\n{self.memories}" if self.memories else ""
 
         self.tasks_desc = hints
 
@@ -139,15 +137,15 @@ ACTIONS:
 
     @staticmethod
     def get_plan_hints(metadata):
-        return "\n\n## The plan you are using:\n" + "\n".join([f"  - {task}" for task in metadata.plan]) + "\n" if metadata.plan else ""
+        return "\n\n## The plan you were using:\n" + "\n".join([f"  - {task}" for task in metadata.plan]) + "\n" if metadata.plan else ""
 
     @staticmethod
     def get_action_hints(metadata, action, action_output):
         return "\n".join([
-                "\n## Your current action returned:\n",
+                "\n## Your last action returned:\n",
                 f"- Task ID: {metadata.current_task_id}\n",
-                f"- Task: {action.short_string()}\n",
-                f"- Execute Results:\n{action_output}\n"
+                f"- Action: {action.short_string()}\n",
+                f"- Action Results:\n{action_output}\n"
             ])
     
     def initialize(self, args):

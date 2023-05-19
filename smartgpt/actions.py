@@ -7,6 +7,7 @@ import json
 import gpt
 import logging
 import time
+import re
 from spinner import Spinner
 from typing import Union
 from abc import ABC
@@ -166,8 +167,14 @@ class RunPythonAction(Action):
             try:
                 exit_code = process.wait(timeout=self.timeout)  # Add the timeout argument
                 output = process.stdout.read() if process.stdout else ""
+                include_source = False
+                maybe_error = process.stderr.read() if process.stderr else ""
+                # Use regex to find if there are any possible errors in the output of script
+                if re.search(r"(?i)error|exception|fail|fatal", output + maybe_error):
+                    include_source = True
+
                 output = f"\n`python {self.path} {self.cmd_args}` returned: exit code {exit_code}, stdout of process:\n{output}"
-                if exit_code != 0:
+                if exit_code != 0 or include_source:
                     output += f"\n\nPython script code:\n{code}"
                 logging.info(output)
                 return output

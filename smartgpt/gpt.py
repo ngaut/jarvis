@@ -69,7 +69,7 @@ def chat(goal: str, general_directions: str, task_desc, model: str):
 
     user_message_content = (f"The ultimate goal:{goal}.\n "
     f"The  general instructions for you: \n{general_directions}\n --end of general instructions\n\n"
-    f"The task description you have: \n{task_desc}\n#end of task description\n\n"
+    f"#Current information: \n{task_desc}\n#End of Current information\n\n"
     "my single json object response:")  # guide AI to output json
    
     user_message = {"role": "user", "content": user_message_content}
