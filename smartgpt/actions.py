@@ -61,23 +61,23 @@ class Action(ABC):
 
 
 @dataclass(frozen=True)
-class SearchOnlineAction(Action):
+class SearchOnlineAction:
     query: str
-
-    def key(self) -> str:
+    
+    def key(self):
         return "SEARCH_ONLINE"
 
-    def short_string(self) -> str:
+    def short_string(self):
         return f"Search online for `{self.query}`."
 
-    def run(self) -> str:
+    def run(self):
         try:
-            response = search(self.query, num=10)
+            response = list(search(self.query, num=10, stop=10, pause=2))
             if response is None:
                 return f"SearchOnlineAction RESULT: The online search for `{self.query}` appears to have failed."
 
             result = "\n".join([str(url) for url in response])
-            logging.info(f"SearchOnlineAction RESULT: The online search for `{self.query}` returned the following URLs:\n{result}")
+            logging.info("SearchOnlineAction RESULT: The online search for '%s' returned the following URLs:%s\n", self.query, result)
             return result
         except HTTPError as http_err:
             if http_err.code == 429:
@@ -102,8 +102,8 @@ class ExtractInfoAction(Action):
         with Spinner("Reading website..."):
             html = self.get_html(self.url)
         text = self.extract_text(html)
-        logging.info(f"RESULT: The webpage at `{self.url}` was read successfully.")
-        user_message_content = f"{self.instructions}\n\n```\n{text[:10000]}\n```"
+        logging.info("RESULT: The webpage at %s was read successfully.", self.url)
+        user_message_content = f"{self.instructions}\n\n```\n{text[:3500]}\n```"
         messages = [
             {
                 "role": "system",
@@ -115,7 +115,7 @@ class ExtractInfoAction(Action):
         max_response_token_count = gpt.max_token_count(gpt.GPT_3_5_TURBO) - request_token_count
         with Spinner("Extracting info..."):
             extracted_info = gpt.send_message(messages, max_response_token_count, model=gpt.GPT_3_5_TURBO)
-        logging.info(f"ExtractInfoAction RESULT: The info extracted:{extracted_info}")
+        logging.info("ExtractInfoAction RESULT: The info extracted:%s", extracted_info)
         return extracted_info
 
     def get_html(self, url: str) -> str:

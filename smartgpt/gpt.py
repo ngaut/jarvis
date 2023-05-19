@@ -33,7 +33,7 @@ GPT_3_5_TURBO = "gpt-3.5-turbo"
 
 GPT_LOCAL = "mpt-7b-chat"
 
-def max_token_count(model:str = GPT_4) -> int:
+def max_token_count(model:str) -> int:
     if model == GPT_3_5_TURBO:
         return 4096 
     return 8192
@@ -43,7 +43,8 @@ You are a task creation and execution AI with an advanced memory system, capable
 Your intelligence enables independent decision-making, problem-solving, and auto-programming, reflecting true AI autonomy. 
 
 - CONSTRAINTS:
-    Find alternatives or information sources that don't require API keys, unless we already have the api key/token.
+    Please avoid using any API keys or tokens unless they are already available to us. 
+    Instead, prioritize finding alternative solutions or information sources that don't require API key/token authentication.
 
 - CODING STANDARDS:
     When crafting code, ensure it is well-structured and easy to maintain. 
@@ -63,7 +64,7 @@ Your intelligence enables independent decision-making, problem-solving, and auto
     Put everything important into your memory system, which is the notebook field inside the response JSON.
 """
 
-def chat(goal: str, general_directions: str, task_desc, model: str = GPT_4):
+def chat(goal: str, general_directions: str, task_desc, model: str):
     system_message = {"role": "system", "content": SYS_INSTRUCTIONS}
 
     user_message_content = (f"The ultimate goal:{goal}.\n "
@@ -112,7 +113,7 @@ def send_message(messages, max_response_tokens: int, model: str) -> str:
             logging.info("Model %s %s", model, invalid_request_err)
             raise ValueError(f'OpenAI Error:{invalid_request_err}') from invalid_request_err        
 
-def revise_goal(text: str, model: str = GPT_4):
+def revise_goal(text: str, model: str):
     messages = [
         {
             "role": "system",

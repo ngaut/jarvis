@@ -72,7 +72,7 @@ ACTIONS:
                     [working]2.2:
                     [todo]2.3:
                     ],
-                "lessons_learned": {
+                "lessons_learned": {    // what works, what doesn't work, what to do next time.
                     [{{<LESSON_LEARNED>}}... ]
                 },
                 "expected_python_code_stdout": <EXPECTED_STDOUT>, // Expected stdout after executing the current Python code when type is "RUN_PYTHON".
@@ -204,7 +204,7 @@ ACTIONS:
                     try:
                         if refresh:
                             assistant_resp = gpt.chat(goal,
-                                                      "Reflect and execute plan to match the Goal!\n" + general_directions,
+                                                      "Your goal has changed. Please update your plan to reflect your new objective!\n" + general_directions,
                                                       self.tasks_desc, model=base_model)
                             refresh = False
                         else:
