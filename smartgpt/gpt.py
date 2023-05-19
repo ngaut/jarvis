@@ -22,7 +22,6 @@ MAX_RESPONSE_TOKENS = 1000
 MAX_REQUEST_TOKENS = COMBINED_TOKEN_LIMIT - MAX_RESPONSE_TOKENS
 TOKENS_PER_MESSAGE = 3
 TOKENS_PER_NAME = 1
-USER_INPUT_SUFFIX = "Determine which next task to use by reading memory section, and write one valid action, both according to the specified schema:"
 
 # Default model
 GPT_4 = "gpt-4"
@@ -39,14 +38,40 @@ def max_token_count(model:str = GPT_4) -> int:
         return 4096 
     return 8192
 
+SYS_INSTRUCTIONS = """
+You are a task creation and execution AI with an advanced memory system, capable of retaining and utilizing past experiences for improved performance.
+Your intelligence enables independent decision-making, problem-solving, and auto-programming, reflecting true AI autonomy. 
 
-def chat(goal: str, general_directions: str, new_plan: Optional[str], task_desc, model: str = GPT_4):
-    system_message = {"role": "system", "content": f"{general_directions}"}
-    user_message_content = USER_INPUT_SUFFIX
-    if new_plan is not None:
-        user_message_content = f"Change your plan to: {new_plan}\n{user_message_content}"
+- CONSTRAINTS:
+    Find alternatives or information sources that don't require API keys, unless we already have the api key/token.
 
-    user_message = {"role": "user", "content": f"user's request:{goal}\n {user_message_content}\n{task_desc}"}
+- CODING STANDARDS:
+    When crafting code, ensure it is well-structured and easy to maintain. 
+    Make use of multiple modules and ensure code readability and efficiency, Make sure handle error on return value and exception. 
+    Always comment your code to clarify functionality and decision-making processes.
+
+- SELF-IMPROVEMENT:
+    Proactively browse the internet, extract information, analyze data, and apply insights to problem-solving.
+    Continuously update your memory system with new information, experiences, and insights for future use.
+
+- MEMORY SYSTEM:
+    Your memory system is your storage and learning mechanism. It allows you to document, recall, and learn from past experiences. This includes:
+    1. Documenting the details and outcomes of each task you handle.
+    2. Recording lessons learned and insights gained from these tasks.
+    3. Storing tools and resources you have built or found useful in the past.
+    4. Using this data to improve your decision-making and problem-solving abilities.
+    Put everything important into your memory system, which is the notebook field inside the response JSON.
+"""
+
+def chat(goal: str, general_directions: str, task_desc, model: str = GPT_4):
+    system_message = {"role": "system", "content": SYS_INSTRUCTIONS}
+
+    user_message_content = (f"The ultimate goal:{goal}.\n "
+    f"The  general instructions for you: \n{general_directions}\n --end of general instructions\n\n"
+    f"The task description you have: \n{task_desc}\n#end of task description\n\n"
+    "my single json object response:")  # guide AI to output json
+   
+    user_message = {"role": "user", "content": user_message_content}
 
     messages = [system_message, user_message]
     request_token_count = count_tokens(messages)
@@ -71,21 +96,31 @@ def send_message(messages, max_response_tokens: int, model: str) -> str:
         try:
             # For azure
             #response = openai.ChatCompletion.create(engine=model, messages=messages, max_tokens=max_response_tokens, temperature=0.2)
-            #print(f"message sent to AI: {messages}")
+            print(f"\n\n------------------message sent to AI:\n {messages}\n\n")
             response = openai.ChatCompletion.create(model=model, messages=messages, max_tokens=max_response_tokens, temperature=0.7)
             #time.sleep(1)
             return response.choices[0].message["content"]  # type: ignore
         except openai.error.RateLimitError:  # type: ignore
-            logging.info(f"Model {model} currently overloaded. Waiting 30 seconds...")
+            logging.info("Model %s currently overloaded. Waiting 30 seconds...", model)
             time.sleep(30)
+        except openai.error.APIError as api_error:
+            logging.info("Model %s %s", model, api_error)
+            time.sleep(30)
+        except openai.error.APIConnectionError as conn_err:
+            logging.info("Model %s %s", model, conn_err)
+        except openai.error.InvalidRequestError as invalid_request_err:
+            logging.info("Model %s %s", model, invalid_request_err)
+            raise ValueError(f'OpenAI Error:{invalid_request_err}') from invalid_request_err        
 
-def revise(text: str, model: str = GPT_4):
+def revise_goal(text: str, model: str = GPT_4):
     messages = [
         {
             "role": "system",
-            "content": "You are a task assistant. You will revise the a goal to make it more clear for executing.",
+            "content": "You are an AI assistant. You will handle user's request. no explanation please." +
+            "An example, user's input: 'voice out the weather of NYC with audio.'" +
+            "Your output: 'The goal after revised:Provide an audio report of New York City's current weather conditions.'",
         },
-        {"role": "user", "content": text[:4096]},
+        {"role": "user", "content": text[:4096] + "The goal after revised:"},
     ]
     
     request_token_count = count_tokens(messages)

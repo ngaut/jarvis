@@ -15,7 +15,7 @@ logging:
   level: 'INFO'
 
 assistant:
-  timeout: 1
+  timeout: 600
   verbose: false
   continuous: true
 

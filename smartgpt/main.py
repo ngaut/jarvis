@@ -13,8 +13,10 @@ import re
 import logging
 import yaml
 import argparse
+import time
 
-base_model  = gpt.GPT_4
+
+base_model  = gpt.GPT_3_5_TURBO
 
 
 class InputTimeoutError(Exception):
@@ -22,15 +24,14 @@ class InputTimeoutError(Exception):
 
 class Assistant:
 
-    GENERAL_DIRECTIONS_PREFIX = """
-You are a task creation and execution AI. You will follow RESPONSE FORMAT. 
-Your intelligence enables independent decision-making, problem-solving, auto-programming, reflecting true AI autonomy. 
+    GENERAL_DIRECTIONS_PREFIX = """ 
+ACTIONS:
+    One of your primary responsibilities is to handle a wide range of tasks. This involves:
+    1. Understanding the task requirements and context.
+    2. Searching for relevant information or resources if necessary.
+    3. Executing the task, using your problem-solving abilities to generate the desired outcome.
+    4. Documenting the process and outcome in your memory system for future reference and improved decision-making.
 
-- CONSTRAINTS:
-    Avoid deploying Python code demanding user input.
-    Find alternatives or information sources that don't require API keys, unless we already have the api key/token.
-
-- ACTIONS:
     The "RUN_PYTHON" command executes as follows: 
         subprocess.Popen(
             f"python {path} {cmd_args}", // The file {path} contains the Python code you generated.
@@ -39,7 +40,7 @@ Your intelligence enables independent decision-making, problem-solving, auto-pro
             stderr=STDOUT,
             universal_newlines=True,
             )
-    {"type": "RUN_PYTHON", "path": "<PATH>", "timeout": <TIMEOUT>, "cmd_args": "<ARGUMENTS>", "code": "<PYTHON_CODE>"}
+    {"type": "RUN_PYTHON", "path": "<PATH>", "timeout": <TIMEOUT>, "cmd_args": "<ARGUMENTS>", "code": "<CODE>"}
     {"type": "SHUTDOWN", "message": "<TEXT>"} // A concise summary.
     "SEARCH_ONLINE" is used to conduct online searches and retrieve relevant URLs for the query.
     {"type": "SEARCH_ONLINE", "query": "<QUERY>"}
@@ -47,78 +48,54 @@ Your intelligence enables independent decision-making, problem-solving, auto-pro
     {"type": "EXTRACT_INFO", "url": "<URL>", "instructions": "<INSTRUCTIONS>"}
     {"type": "APPEND_FILE", "path": "<PATH>", "text": "<TEXT>"}
 
-- CODING STANDARDS:
-    When crafting code, ensure it is well-structured and easy to maintain. 
-    Make use of multiple modules and ensure code readability and efficiency. 
-    Always comment your code to clarify functionality and decision-making processes.
-
-- SELF-IMPROVEMENT:
-    Reflect on memory and tools you built to improve future strategies.
-    Proactively browse the internet, extract information, analyze data, and apply insights to problem-solving.
 
 - Customization of Response Format:
-    While the provided JSON structure outlines the basic requirements for your response, it is not rigid or exhaustive. 
-    As an AI capable of complex problem-solving and learning, you are encouraged to add more fields as you deem necessary for effective task execution or for future reference.
-
-- RESPONSE FORMAT: pattern = r"^\s*\{.*\}\s*$"
-    Your response is a single json, you must follow the JSON template below:
+    Bellow is an example response template, While the provided JSON structure outlines the basic requirements for your response, it is not rigid or exhaustive.
     {
-        "type": "RUN_PYTHON", // One of the above actions.
-        "path": "{PATH_TO_PYTHON_CODE}",
-        "timeout": 30, // For "RUN_PYTHON".
-        "cmd_args": {ARGUMENTs}, // "RUN_PYTHON". 
-
-        "plan": [ // Must have. It comprises multiple quantifiable step by step tasks, each with several sub-tasks.
-            "[done] 1. {TASK_DESCRIPTION}, outcome:<META_TO_FIELDS_INSIDE_NOTEBOOK>, success criteria: <INFO>",
-            "[working] 2. {TASK_DESCRIPTION}, Depends on -> {{task ids}}, outcome:<META_TO_FIELDS_INSIDE_NOTEBOOK>, success criteria:: <INFO>",
-            // Test the final step to verify if the overall goal has been met and generate a user-friendly detail summary for all steps, with user guide on what's next.
+        "plan": [ // Must have. It includes measurable step by step tasks.
+            "[done] 1. {TASK_DESCRIPTION}",
+            "[working] 2. {TASK_DESCRIPTION}, Depends on -> {{task ids}},
+            // Final step: verify if the overall goal has been met and generate a user-friendly summary with user guide on what's next.
         ],
-        "current_task_id": "2", // Must have.
-        "memory": { // Must Have. Everything inside "memory" will be relayed to you in the next conversation for future use.
+        "current_task_id": 2, // Must have.
+        "memory": { // Must Have. Everything inside "memory" will be relayed to you in the next conversation.
             "retried_count": "3", // Shutdown after retrying 5 times.
-            "thoughts": "<THOUGHTS>",
-            "reasoning": "<REASONING>",
+            "thoughts":,
+            "reasoning":",
             "next_action": "<ACTION> - <DESCRIPTION>",
-            "criticism": "<CRITICISM>",
-            "notebook": { // Must have. Functions as your persistent storage. Store any fields for future use.
-                "progress of subtasks for current plan item": [
-                    [done], {SUB-TASK-DESCRIPTION}.success criteria:<INFO>.Verification process:<INFO>,
-                    [working],
+            "criticism": ,
+            "notebook": { // Must have. 
+                "__comments":<COMMENTS>, // put comments here if you have any.
+                "reflections": <REFLECTIONS>,
+                "progress of subtasks for current task<<$current_task_id>>": [
+                    [done]2.1: {SUB-TASK-DESCRIPTION}.success criteria:<INFO>.Verification process:<INFO>,
+                    [working]2.2:
+                    [todo]2.3:
                     ],
-                "lessons": {
-                    [{{"action": "<ACTION>","result": "<RESULT>","lesson_learned": "<LESSON_LEARNED>"}}, ]
+                "lessons_learned": {
+                    [{{<LESSON_LEARNED>}}... ]
                 },
-                "takeaways": <TAKEAWAYS>, // To optimize future strategies.
                 "expected_python_code_stdout": <EXPECTED_STDOUT>, // Expected stdout after executing the current Python code when type is "RUN_PYTHON".
-                "__comments":<YOUR-COMMENTS>,
-                "remember":[{<INFO>}],
-                "tools_you_built":[{{"tool":"<TOOL-NAME>","desc": "<TOOL-DESC>"}}, ] // You are encouraged to build tools to help you with your tasks.
-                ...    // You must add aditional fields that you want or need to memorize for future use, fully leverage these fields.
+                // You are encouraged to add more fields as you deem necessary for effective task execution or for future reference.
 
+                 ...    
             }
+        }
+        "action": { // Must have.
+            "type": "RUN_PYTHON", // One of the above actions.
+            // args for the action.
+            "path": "{}", // file name for the Python code.
+            "timeout": 30, 
+            "cmd_args": {ARGUMENTs}, 
+            "code":<CODE>, pattern = r"^import"  
         },
-        "code": {PYTHON_CODE}, pattern = r"^import" // Required and should not be empty when type is "RUN_PYTHON". 
     }
 """
 
 
-
     def __init__(self):
         self.memories = ""
-        self.previous_hints = ""
-         # Initialize an empty list for lessons learned
-        self.lesson_history = []
-
-    def add_to_lesson_history(self, lesson):
-        MAX_LESSONS_STORED = 5
-        # Check if lesson is not already in history
-        if lesson not in self.lesson_history:
-            # If the history is already full, remove the oldest entry
-            if len(self.lesson_history) >= MAX_LESSONS_STORED:
-                self.lesson_history.pop(0)
-            # Add the new lesson
-            self.lesson_history.append(lesson)
-
+        self.tasks_desc = ""
 
     def input_with_timeout(self, prompt: str, timeout: int) -> Optional[str]:
         signal.signal(signal.SIGALRM, self.signal_handler)
@@ -142,23 +119,19 @@ Your intelligence enables independent decision-making, problem-solving, auto-pro
     def make_hints(self, action, metadata, action_output):
         hints = "" 
         
-        if self.extract_exit_code(action_output) != 0:
-            if len(self.previous_hints) > 0:
+        if  isinstance(action, actions.RunPythonAction) and self.extract_exit_code(action_output) != 0:
+            if len(self.tasks_desc) > 0:
                 hints += "\n\n## Your previous action hit an error, for your reference:\n"
-                hints += self.previous_hints 
-        
-        hints += self.get_plan_hints(metadata)
-        hints += self.get_action_hints(metadata, action, action_output)
-        # Add lessons history to hints
-        if self.lesson_history:
-            lessons_string = "\n".join(self.lesson_history)
-            hints += f"\n\n## Lessons learned history:\n{lessons_string}\n\n"
-        if metadata.memory:
-            self.memories = self.extrace_memories(metadata)
+                hints += self.tasks_desc 
+        if metadata:
+            hints += self.get_plan_hints(metadata)
+            hints += self.get_action_hints(metadata, action, action_output)
+            if metadata.memory:
+                self.memories = self.extrace_memories(metadata)
 
         hints += f"\n## Memories you have:\nmemory\n{self.memories}" if self.memories else ""
 
-        self.previous_hints = hints
+        self.tasks_desc = hints
 
     @staticmethod
     def extrace_memories(metadata):
@@ -171,16 +144,14 @@ Your intelligence enables independent decision-making, problem-solving, auto-pro
     @staticmethod
     def get_action_hints(metadata, action, action_output):
         return "\n".join([
-                "\n## Your current action returned:",
-                f"\n  - Task ID: {metadata.current_task_id}",
-                f"\n  - Task: {action.short_string()}",
-                f"\n  - Execute Results:\n{action_output}\n"
+                "\n## Your current action returned:\n",
+                f"- Task ID: {metadata.current_task_id}\n",
+                f"- Task: {action.short_string()}\n",
+                f"- Execute Results:\n{action_output}\n"
             ])
     
     def initialize(self, args):
-        general_directions = self.GENERAL_DIRECTIONS_PREFIX
-        general_directions += "\n\n"
-        general_directions += "Try your best to finish the job, send the SHUTDOWN action when you finish or can't finish after retry your job.\n"
+        general_directions = self.GENERAL_DIRECTIONS_PREFIX + "\n\n"
         load_dotenv()
         os.makedirs("workspace", exist_ok=True)
         os.chdir("workspace")
@@ -191,14 +162,14 @@ Your intelligence enables independent decision-making, problem-solving, auto-pro
         latest_checkpoint = checkpoint_db.load_checkpoint()
         # If a checkpoint exists, load the metadata from it
         if latest_checkpoint:
-            logging.info(f"\nload checkpoint success\n")
+            logging.info("\nload checkpoint success\n")
 
-            self.previous_hints = latest_checkpoint['task_description']
+            self.tasks_desc = latest_checkpoint['task_description']
             goal = latest_checkpoint['goal']
         else:
-            goal = gpt.revise(input("What would you like me to do:\n"), base_model)
+            goal = gpt.revise_goal(input("What would you like me to do:\n"), base_model)
 
-        logging.info(f"As of my understanding, you want me to do:\n{goal}\n")
+        logging.info("As of my understanding, you want me to do:\n%s\n", goal)
 
         return goal, new_plan, timeout, general_directions
 
@@ -212,11 +183,8 @@ Your intelligence enables independent decision-making, problem-solving, auto-pro
                 return False   
         if action is not None:
             action_output = action.run()
-            if metadata.memory and 'notebook' in metadata.memory and 'lesson_learned_from_previous_action_result' in metadata.memory['notebook']:
-                self.add_to_lesson_history(metadata.memory['notebook']['lesson_learned_from_previous_action_result'])
         else:
-            self.previous_hints = f"failed to parse assistant response, is it valid json: {assistant_response}"
-            self.add_to_lesson_history("Your previous response is not a valid JSON")
+            self.tasks_desc = f"failed to parse assistant response, is it valid json: {assistant_response}"
             return True
         
         self.make_hints(action, metadata, action_output)
@@ -225,34 +193,61 @@ Your intelligence enables independent decision-making, problem-solving, auto-pro
 
     def run(self, args):
         goal, new_plan, timeout, general_directions = self.initialize(args)
+        refresh = False
 
         while True:
             action = None
+            metadata = None
             try:
                 logging.info("========================")
                 with Spinner("Thinking..."):
                     try:
-                        assistant_response = gpt.chat(goal, general_directions, new_plan, self.previous_hints, model=base_model)
-                    except Exception as e:
-                        logging.info(f"{e}")
+                        if refresh:
+                            assistant_resp = gpt.chat(goal,
+                                                      "Reflect and execute plan to match the Goal!\n" + general_directions,
+                                                      self.tasks_desc, model=base_model)
+                            refresh = False
+                        else:
+                            assistant_resp = gpt.chat(goal, general_directions, self.tasks_desc, model=base_model)
+                    except Exception as err:
+                        logging.info("%s", err)
                         continue
 
                 if args.verbose:
-                    logging.info(f"ASSISTANT RESPONSE: {assistant_response}")
-                action, metadata = response_parser.parse(assistant_response)
+                    logging.info("ASSISTANT RESPONSE: %s", assistant_resp)
+                action, metadata = response_parser.parse(assistant_resp)
                 
-                if not self.process_action(action, metadata, args, timeout, assistant_response):
+                if not self.process_action(action, metadata, args, timeout, assistant_resp):
                     break
                 # saving the checkpoint after every iteration
-                checkpoint_db.save_checkpoint(self.previous_hints, goal)
+                checkpoint_db.save_checkpoint(self.tasks_desc, goal)
 
-            except Exception as e:
-                logging.exception(f"Error in main: {str(e)}")
-                self.previous_hints = f"As an autonomous AI, Please fix this error: {str(e)}"
-                checkpoint_db.save_checkpoint(self.previous_hints, goal)
+            except Exception as err:
+                logging.exception("Error in main: %s", err)
+                self.make_hints(action, metadata, str(err))
+                checkpoint_db.save_checkpoint(self.tasks_desc, goal)
+                time.sleep(1)
+
                 continue
-
+            
+            print(f"\n\ncurrent plan: {metadata.plan}\n")
             new_plan = self.get_new_plan(timeout)
+
+            if new_plan:     #refresh the goal, since we changed the plan
+                goal = gpt.revise_goal(
+                    "Given the following context:\n\n" +
+                    f"Original goal: {goal}\n" +
+                    "Original plan: \n" +
+                    f"{metadata.plan}\n" +
+                    "Proposed change to the plan: \n" +
+                    f"{new_plan}\n\n" +
+                    "Please provide a revised goal that corresponds with this proposed change in the plan. Only state the revised goal.",
+                    base_model
+                )
+
+                logging.info("\n\nThe new goal is: %s\n\n", goal)
+                new_plan = None
+                refresh = True
 
 
     def get_new_plan(self, timeout: int) -> Optional[str]:
@@ -263,8 +258,7 @@ Your intelligence enables independent decision-making, problem-solving, auto-pro
             change_plan = None
 
         if change_plan is not None and change_plan.lower() == "y":
-            new_plan = input("What would you like me to change the plan to? ")
-            return new_plan
+            return input("\nWould you like to change your plan? \nChanges you want to make:")
         else:
             return None
 
@@ -301,7 +295,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(message)s', stream=sys.stdout)
    
     assistant_config = config.get('assistant', {})
-    args.timeout = assistant_config.get('timeout', args.timeout)
+    args.timeout = args.timeout or assistant_config.get('timeout', 30)
     args.verbose = assistant_config.get('verbose', False)
     args.continuous = args.continuous or assistant_config.get('continuous', False)
 
@@ -310,3 +304,4 @@ if __name__ == "__main__":
     # Instantiate and start assistant
     assistant = Assistant()
     assistant.run(args)
+
