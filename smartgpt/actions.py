@@ -116,8 +116,9 @@ class ExtractInfoAction(Action):
         max_response_token_count = gpt.max_token_count(gpt.GPT_3_5_TURBO) - request_token_count
         with Spinner("Extracting info..."):
             extracted_info = gpt.send_message(messages, max_response_token_count, model=gpt.GPT_3_5_TURBO)
-        logging.info("ExtractInfoAction RESULT: The info extracted:%s", extracted_info)
-        return extracted_info
+        result = f"{self.short_string()}, The info extracted:{extracted_info}"
+        logging.info(result)
+        return result
 
     def get_html(self, url: str) -> str:
         options = ChromeOptions()

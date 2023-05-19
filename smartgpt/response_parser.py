@@ -51,15 +51,12 @@ def parse(text: str) -> Tuple[Optional[actions.Action], Optional[Metadata]]:
 
         # Create an Action object from the action data (if it exists)
         action_data = data.get("action", data.get("Action", data.get("ACTION")))
-        print(f"\n\n\n\naction_data:{action_data}\n\n\n\n")
         action = None
         if action_data:
             action = actions.Action.from_dict(action_data)
         
         if action is None:
             action = actions.Action.from_dict(data)
-
-        print(f"\n\n\n\naction:{action}\n\n\n\n")
 
         # Parse the metadata
         metadata = parse_metadata(data)

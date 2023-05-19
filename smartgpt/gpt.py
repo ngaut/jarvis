@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import logging
 from typing import Optional
@@ -48,7 +49,7 @@ Your intelligence enables independent decision-making, problem-solving, and auto
 
 - CODING STANDARDS:
     When crafting code, ensure it is well-structured and easy to maintain. 
-    Make use of multiple modules and ensure code readability and efficiency, Make sure handle error on return value and exception. 
+    Make use of multiple modules and ensure code readability, Make sure handle error on return value and exception. 
     Always comment your code to clarify functionality and decision-making processes.
 
 - SELF-IMPROVEMENT:
@@ -57,11 +58,6 @@ Your intelligence enables independent decision-making, problem-solving, and auto
 
 - MEMORY SYSTEM:
     Your memory system is your storage and learning mechanism. It allows you to document, recall, and learn from past experiences. This includes:
-    1. Documenting the details and outcomes of each task you handle.
-    2. Recording lessons learned and insights gained from these tasks.
-    3. Storing tools and resources you have built or found useful in the past.
-    4. Using this data to improve your decision-making and problem-solving abilities.
-    Put everything important into your memory system, which is the notebook field inside the response JSON.
 """
 
 def chat(goal: str, general_directions: str, task_desc, model: str):
@@ -106,12 +102,17 @@ def send_message(messages, max_response_tokens: int, model: str) -> str:
             time.sleep(30)
         except openai.error.APIError as api_error:
             logging.info("Model %s %s", model, api_error)
-            time.sleep(30)
+            sys.exit(1)
         except openai.error.APIConnectionError as conn_err:
             logging.info("Model %s %s", model, conn_err)
+            sys.exit(1)
         except openai.error.InvalidRequestError as invalid_request_err:
             logging.info("Model %s %s", model, invalid_request_err)
-            raise ValueError(f'OpenAI Error:{invalid_request_err}') from invalid_request_err        
+            sys.exit(1)
+        except Exception as e:
+            logging.info("Model %s %s", model, e)
+            time.sleep(30)
+            raise ValueError(f'OpenAI Error:{e}') from e   
 
 def revise_goal(text: str, model: str):
     messages = [
