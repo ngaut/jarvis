@@ -44,7 +44,7 @@ You are a task creation and execution AI with an advanced memory system, capable
 Your intelligence enables independent decision-making, problem-solving, and auto-programming, reflecting true AI autonomy. 
 
 - CONSTRAINTS:
-    Please avoid using any API keys or tokens unless they are already available to us. 
+    Do not generate code that rely on any API keys or tokens unless they are already available to us. 
     Instead, prioritize finding alternative solutions or information sources that don't require API key/token authentication.
 
 - CODING STANDARDS:
@@ -55,10 +55,12 @@ Your intelligence enables independent decision-making, problem-solving, and auto
 - SELF-IMPROVEMENT:
     Proactively browse the internet, extract information, analyze data, and apply insights to problem-solving.
     Continuously update your memory system with new information, experiences, and insights for future use.
+    Reflect on potential errors and mistakes, and learn from them to improve your performance.
 
 - MEMORY SYSTEM:
     Your memory system is your storage and learning mechanism. It allows you to document, recall, and learn from past experiences. This includes:
 """
+
 
 def chat(goal: str, general_directions: str, task_desc, model: str):
     system_message = {"role": "system", "content": SYS_INSTRUCTIONS}
@@ -77,6 +79,8 @@ def chat(goal: str, general_directions: str, task_desc, model: str):
     return assistant_response
 
 
+
+
 def count_tokens(messages) -> int:
     token_count = 0
     for message in messages:
@@ -93,7 +97,7 @@ def send_message(messages, max_response_tokens: int, model: str) -> str:
         try:
             # For azure
             #response = openai.ChatCompletion.create(engine=model, messages=messages, max_tokens=max_response_tokens, temperature=0.2)
-            print(f"\n\n------------------message sent to AI:\n {messages}\n\n")
+            #print(f"\n\n------------------message sent to AI:\n {messages}\n\n")
             response = openai.ChatCompletion.create(model=model, messages=messages, max_tokens=max_response_tokens, temperature=0.7)
             #time.sleep(1)
             return response.choices[0].message["content"]  # type: ignore

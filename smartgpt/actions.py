@@ -73,7 +73,7 @@ class SearchOnlineAction:
 
     def run(self):
         try:
-            response = list(search(self.query, num=10, stop=10, pause=2))
+            response = list(search(self.query, num=15, stop=15, pause=2))
             if response is None:
                 return f"SearchOnlineAction RESULT: The online search for `{self.query}` appears to have failed."
 
