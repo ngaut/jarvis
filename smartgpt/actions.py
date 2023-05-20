@@ -174,7 +174,9 @@ class RunPythonAction(Action):
                 if re.search(r"(?i)error|exception|fail|fatal", output + maybe_error):
                     include_source = True
 
-                output = f"\n`python {self.path} {self.cmd_args}` returned: exit code {exit_code}, stdout of process:\n{output}"
+                output = f"\n`python {self.path} {self.cmd_args}` returned: exit code {exit_code},"
+                if output:
+                    output += f"stdout of process:\n{output}"
                 if exit_code != 0 or include_source:
                     output += f"\n\nPython script code:\n{code}"
                 logging.info(output)

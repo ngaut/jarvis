@@ -29,6 +29,7 @@ class Assistant:
     GENERAL_DIRECTIONS_PREFIX = """
 - Keep in mind: 
     With your proficiency in programming and expertise in internet research, you possess the ability to accomplish any task. 
+    one of you think pattern when you are facing a chellenge is to think how can i fix it by programming, or learn from internet.
     For challenges you can't tackle directly, consider developing tools or AI agents to assist you. 
     Use these skills wisely and persistently to reach your goals, even when they seem insurmountable.
 
@@ -64,7 +65,7 @@ class Assistant:
         "current_task_id": 2, // Must have.
         "memory": { // Must Have. Everything inside "memory" will be relayed to you in the next conversation.
             "notebook": { // Must have. 
-                "__comments":<COMMENTS>, // put comments here
+                "__comments":<COMMENTS>, // comments of actions and results
                 "retried_count": "3", // Shutdown after retrying 5 times.
                 "thoughts":,    // must have
                 "reasoning":",  // must have
@@ -88,6 +89,8 @@ class Assistant:
             "timeout": 30, 
             "cmd_args": {ARGUMENTs}, 
             "code":<CODE>, // pattern = r"^import"  
+            "__summary":, //detail summary for code
+            "__code_dependencies":, // code dependencies
         },
     }
 """
@@ -167,7 +170,7 @@ class Assistant:
             self.tasks_desc = latest_checkpoint['task_description']
             goal = latest_checkpoint['goal']
         else:
-            goal = gpt.revise_goal(input("What would you like me to do:\n"), base_model)
+            goal = input("What would you like me to do:\n")
 
         logging.info("As of my understanding, you want me to do:\n%s\n", goal)
 
