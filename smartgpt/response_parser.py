@@ -41,7 +41,7 @@ def parse(text: str) -> Tuple[Optional[actions.Action], Optional[Metadata]]:
     if not text:
         raise ValueError("parse: Empty input received. Cannot parse.")
     
-    logging.info(f"\nparse Text:{text}\n")
+    #logging.info(f"\nparse Text:{text}\n")
 
     try:
         # Try to decode json

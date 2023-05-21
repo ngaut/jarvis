@@ -167,16 +167,18 @@ class RunPythonAction(Action):
         ) as process:
             try:
                 exit_code = process.wait(timeout=self.timeout)  # Add the timeout argument
-                output = process.stdout.read() if process.stdout else ""
+                stdout_output = process.stdout.read() if process.stdout else ""
                 include_source = False
-                maybe_error = process.stderr.read() if process.stderr else ""
+                stderr_error = process.stderr.read() if process.stderr else ""
                 # Use regex to find if there are any possible errors in the output of script
-                if re.search(r"(?i)error|exception|fail|fatal", output + maybe_error):
+                if re.search(r"(?i)error|exception|fail|fatal", stdout_output + stderr_error):
                     include_source = True
 
-                output = f"\n`python {self.path} {self.cmd_args}` returned: exit code {exit_code},"
-                if output:
-                    output += f"stdout of process:\n{output}"
+                output = f"\n`python {self.path} {self.cmd_args}` returned: \n#exit code {exit_code}\n"
+                if len(stdout_output) > 0:
+                    output += f"#stdout of process:\n{stdout_output}"
+                if len(stderr_error) > 0:
+                    output += f"#stderr of process:\n{stderr_error}"
                 if exit_code != 0 or include_source:
                     output += f"\n\nPython script code:\n{code}"
                 logging.info(output)

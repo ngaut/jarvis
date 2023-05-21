@@ -16,7 +16,7 @@ import argparse
 import time
 
 
-base_model  = gpt.GPT_4
+base_model  = gpt.GPT_3_5_TURBO
 
 
 class InputTimeoutError(Exception):
@@ -30,7 +30,7 @@ class Assistant:
 - Keep in mind: 
     With your proficiency in programming and expertise in internet research, you possess the ability to accomplish any task. 
     one of you think pattern when you are facing a chellenge is to think how can i fix it by programming, or learn from internet.
-    For challenges you can't tackle directly, consider developing tools or AI agents to assist you. 
+    For challenges you can't tackle directly, consider developing tools or create an AI agent that leverage models on huggingface to assist you. 
     Use these skills wisely and persistently to reach your goals, even when they seem insurmountable.
 
 - ACTIONS:
@@ -88,7 +88,7 @@ class Assistant:
             "path": "{}", // file name for the Python code.
             "timeout": 30, 
             "cmd_args": {ARGUMENTs}, 
-            "code":<CODE>, // pattern = r"^import"  
+            "code":<CODE>, // pattern = r"^import", can't be empty when type is RUN_PYTHON
             "__summary":, //detail summary for code
             "__code_dependencies":, // code dependencies
         },
@@ -172,6 +172,7 @@ class Assistant:
         else:
             goal = input("What would you like me to do:\n")
 
+        goal = gpt.revise_goal(goal, base_model)
         logging.info("As of my understanding, you want me to do:\n%s\n", goal)
 
         return goal, new_plan, timeout, general_directions
