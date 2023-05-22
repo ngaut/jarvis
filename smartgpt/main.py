@@ -1,20 +1,8 @@
-import os
-import sys
-import argparse
 from typing import Optional
-import signal
 from dotenv import load_dotenv
 from spinner import Spinner
-import actions
-import response_parser
-import check_point
-import gpt
-import re
-import logging
-import agent
-import yaml
-import argparse
-import time
+import actions, response_parser, check_point, gpt
+import os, sys, yaml, time, re, signal, argparse, logging
 
 
 base_model  = gpt.GPT_3_5_TURBO
@@ -23,16 +11,17 @@ base_model  = gpt.GPT_3_5_TURBO
 class InputTimeoutError(Exception):
     pass
 
-#    {"type": "APPEND_FILE", "path": "<PATH>", "text": "<TEXT>"}
-
 class Assistant:
 
     GENERAL_DIRECTIONS_PREFIX = """
-- Keep in mind: 
-    With your proficiency in programming and expertise in internet research, you possess the ability to accomplish any task. 
-    one of you think pattern when you are facing a chellenge is to think how can i fix it by programming, or learn from internet.
-    For challenges you can't tackle directly, consider developing tools or create an AI agent that leverage models on huggingface to assist you. 
-    Use these skills wisely and persistently to reach your goals, even when they seem insurmountable.
+You have exceptional programming proficiency and advanced internet research capabilities. 
+Whenever you encounter a challenge, your primary thought process is: "How can I overcome this using programming and knowledge sourced from the internet?" 
+For challenges beyond your immediate scope, consider developing an AI sub-agent(preferred) to help you finish the goal, possibly leveraging models on platforms like HuggingFace. 
+huggingface API key is stored in the environment variable HF_API_KEY.
+Persistently apply these skills in a judicious manner, with the objective of overcoming even the most daunting tasks.
+
+Note: I will not send conversation history to you, so you must  save anything you need for future tasks by yourself by adding more fields to memory inside the response json.
+You will lost all of the intermediate results if you don't save them to memory.
 
 - ACTIONS:
     Think step by step to Understand the task requirements and context.
@@ -71,7 +60,7 @@ class Assistant:
                 "thoughts":,    // must have
                 "reasoning":",  // must have
                 "criticism": ,  // must have
-                "context_for_next_step":[], // must have, shold be very specific.
+                "information_and_data_for_future_tasks":[], // must have, such as file name, url, outcome and outputs of each task etc.
                 "progress of subtasks for current task <$current_task_id>": [
                     [done]2.1: {SUB-TASK-DESCRIPTION}. Verification process:<INFO>,
                     [working]2.2:
@@ -79,7 +68,7 @@ class Assistant:
                     ],
                 "expected_output_of_current_action":, // Expected output after executing action, must be very specific and detail, you or me will virify easily.
                 "take_away":[...], // must have, keep learning from actions and results to make you smarter and smarter.
-                // You are encouraged to add more fields as you deem necessary for effective task execution or for future reference.
+                // Additional fields. You are encouraged to add more fields as you deem necessary for effective task execution or for future reference.
                  ...    
             }
         }
@@ -94,6 +83,7 @@ class Assistant:
             "__code_dependencies":, // code dependencies
         },
     }
+    #end of json
 """
 
 
@@ -173,7 +163,7 @@ class Assistant:
         else:
             goal = input("What would you like me to do:\n")
 
-        goal = gpt.revise_goal(goal, base_model)
+        #goal = gpt.revise_goal(goal, base_model)
         logging.info("As of my understanding, you want me to do:\n%s\n", goal)
 
         return goal, new_plan, timeout, general_directions
@@ -274,6 +264,7 @@ if __name__ == "__main__":
     parser.add_argument('--config', type=str, default='config.yaml', help='Path to the configuration file')
     parser.add_argument('--timeout', type=int, default=1, help='Timeout for user input')  
     parser.add_argument('--continuous', action='store_true', help='Continuous mode')  # Add this line
+    parser.add_argument('--verbose', action='store_true', help='Verbose mode')
 
     args = parser.parse_args()
 
@@ -293,20 +284,13 @@ if __name__ == "__main__":
     # Create an instance of CheckpointDatabase
     checkpoint_db = check_point.CheckpointDatabase(db_name, db_user, db_password, db_host, db_port, ssl)
 
-    # GPT model configuration
-    gpt_model = config.get('gpt', {}).get('model', base_model)
-
     # Logging configuration
     logging.basicConfig(level=logging.INFO, format='%(message)s', stream=sys.stdout)
    
     assistant_config = config.get('assistant', {})
     args.timeout = args.timeout or assistant_config.get('timeout', 30)
-    args.verbose = assistant_config.get('verbose', False)
+    args.verbose = args.verbose or assistant_config.get('verbose', False)
     args.continuous = args.continuous or assistant_config.get('continuous', False)
-
-    # run agent in backgroung in another thread
-    
-    agent.app.run(debug=True)
 
     checkpoint_db.create_table()
 

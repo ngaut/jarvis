@@ -9,7 +9,7 @@ database:
     ssl_model: 'VERIFY_IDENTITY'
 
 gpt:
-  model: 'GPT_4'
+  model: 'unused'
 
 logging:
   level: 'INFO'

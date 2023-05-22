@@ -1,13 +1,7 @@
 
 from dataclasses import dataclass
-import io
-import subprocess
-import inspect
-import json
+import io, subprocess, inspect, json, logging, time, re
 import gpt
-import logging
-import time
-import re
 from spinner import Spinner
 from typing import Union
 from abc import ABC
@@ -104,7 +98,7 @@ class ExtractInfoAction(Action):
             html = self.get_html(self.url)
         text = self.extract_text(html)
         logging.info("RESULT: The webpage at %s was read successfully.", self.url)
-        user_message_content = f"{self.instructions}\n\n```\n{text[:3500]}\n```"
+        user_message_content = f"{self.instructions}\n\n```\n{text[:3000]}\n```"
         messages = [
             {
                 "role": "system",
