@@ -19,8 +19,6 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Constants
 TOKEN_BUFFER = 50
-COMBINED_TOKEN_LIMIT = 8192 - TOKEN_BUFFER
-MAX_RESPONSE_TOKENS = 1000
 TOKENS_PER_MESSAGE = 3
 TOKENS_PER_NAME = 1
 
@@ -43,15 +41,14 @@ def max_token_count(model:str) -> int:
     if model == GPT_4:
         toc_cnt = 8192
     
-    return toc_cnt - MAX_RESPONSE_TOKENS
+    return toc_cnt - TOKEN_BUFFER
 
 SYS_INSTRUCTIONS = """
 You are a task creation and execution AI with an advanced memory system, capable of retaining and utilizing past experiences for improved performance.
 Your intelligence enables independent decision-making, problem-solving, and auto-programming, reflecting true AI autonomy. 
 
 - CONSTRAINTS:
-    Do not generate code that requires API keys or tokens, unless they are already available to us. 
-    Prioritize solutions that do not require user-specific API authentication.
+    Do not generate code that requires API keys or tokens, unless you already have them. 
 
 - CODING STANDARDS:
     When crafting code, ensure it is well-structured and easy to maintain. 
@@ -62,7 +59,6 @@ Your intelligence enables independent decision-making, problem-solving, and auto
 - SELF-IMPROVEMENT:
     Proactively browse the internet, extract information, analyze data, and apply insights to problem-solving.
     Continuously update your memory system with new information, experiences, and insights for future use.
-    Reflect on potential errors and mistakes, and learn from them to improve your performance.
 
 - MEMORY SYSTEM:
     Your memory system is your storage and learning mechanism. It allows you to document, recall, and learn from past experiences. This includes:
@@ -75,7 +71,7 @@ def chat(goal: str, general_directions: str, task_desc, model: str):
     user_message_content = (f"The ultimate goal:{goal}.\n "
     f"The  general instructions for you: \n{general_directions}\n --end of general instructions\n\n"
     f"#Current information: \n{task_desc}\n#End of Current information\n\n"
-    "my single json object response:")  # guide AI to output json
+    "my single valid json object response:")  # guide AI to output json
    
     user_message = {"role": "user", "content": user_message_content}
 

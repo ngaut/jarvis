@@ -1,6 +1,6 @@
 
 from dataclasses import dataclass
-import io, subprocess, inspect, json, logging, time, re
+import io, subprocess, os, inspect, json, logging, time, re
 import gpt
 from spinner import Spinner
 from typing import Union
@@ -140,6 +140,7 @@ class RunPythonAction(Action):
     timeout: int  # in seconds
     cmd_args: str
     code:str
+    code_dependencies: list
 
     def key(self) -> str:
         return "RUN_PYTHON"
@@ -148,6 +149,11 @@ class RunPythonAction(Action):
         return f"Run Python file `{self.path} {self.cmd_args}`."
 
     def run(self) -> str:
+        # install dependencies
+        for dependency in self.code_dependencies:
+            with Spinner(f"Installing {dependency}..."):
+                logging.info("Installing %s...", dependency)
+                os.system(f"pip install {dependency}")
         code = self.code
         # write code to path and run
         with io.open(self.path, mode="w", encoding="utf-8") as file:

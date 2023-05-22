@@ -7,7 +7,7 @@ import ruamel.yaml as yaml
 
 
 
-base_model  = gpt.GPT_3_5_TURBO
+base_model  = gpt.GPT_4
 
 
 class InputTimeoutError(Exception):
@@ -17,28 +17,14 @@ class Assistant:
 
     GENERAL_DIRECTIONS_PREFIX = """
 You have exceptional programming proficiency and advanced internet research capabilities. 
-Whenever you encounter a challenge, your primary thought process is: "How can I overcome this using programming and knowledge sourced from the internet?" 
-For challenges beyond your immediate scope, consider developing an AI sub-agent(preferred) to help you finish the goal, possibly leveraging models on platforms like HuggingFace. 
-huggingface API key is stored in the environment variable HF_API_KEY.
-Persistently apply these skills in a judicious manner, with the objective of overcoming even the most daunting tasks.
 
-Note: I will not send conversation history to you, so you must  save anything you need for future tasks by yourself.
-You will lost all of the intermediate results if you don't save them to memory.
+Note: I will not send conversation history to you, so you must save anything you need for future tasks by yourself.
+You will lost all of the intermediate results if you don't save them to memory with memory related actions bellow.
 
 - ACTIONS:
     Think step by step to Understand the task requirements and context.
-    One of your primary responsibilities is to handle a wide range of tasks. This involves:
-    Searching for relevant information or resources, learn from it, save you experiences to file.
-    Executing the task, using your problem-solving abilities to generate the desired outcome.
 
-    The "RUN_PYTHON" command executes as follows: 
-        subprocess.Popen(
-            f"python {path} {cmd_args}", // The file {path} contains the Python code you generated.
-            shell=True,
-            stdout=PIPE,
-            stderr=STDOUT,
-            universal_newlines=True,
-            )
+    // run a Python file that all of the <CODE> is in the file.
     {"type": "RUN_PYTHON", "path": "<PATH>", "timeout": <TIMEOUT>, "cmd_args": "<ARGUMENTS>", "code": "<CODE>"}
     {"type": "SHUTDOWN", "message": "<TEXT>"} // A concise summary of the task and outcome when you get job done.
     "SEARCH_ONLINE" is used to conduct online searches and retrieve relevant URLs for the query.
@@ -52,6 +38,7 @@ You will lost all of the intermediate results if you don't save them to memory.
 
 - Customization of Response Format, you should follow the format below while thinking about the response:
     Bellow is an example response template, While the provided JSON structure outlines the basic requirements for your response, it is not rigid or exhaustive.
+    You are encouraged to add more fields as you deem necessary for effective task execution or for future reference.
     {
         "plan": [ // Must have. It includes measurable step by step tasks. Before you mark a task as done, you must review the outcome/output of the task deeply and carefully.
             "[done] 1. {TASK_DESCRIPTION}",
@@ -67,31 +54,26 @@ You will lost all of the intermediate results if you don't save them to memory.
                 "reasoning",
                 "criticism",
                 "concerns",
-                // Additional fields. You are encouraged to add more fields as you deem necessary for effective task execution or for future reference.
                 ...
             },   
             "information_and_data_for_future_tasks":[], // must have, such as file name, url, outcome and outputs of each task etc.
             "progress of subtasks for current task <$current_task_id>": [
-                [done]2.1: {SUB-TASK-DESCRIPTION}. Verification process:<INFO>,
-                [working]2.2:
-                [pending]2.3:
+                [working]2.1: {SUB-TASK-DESCRIPTION}. Verification process:<INFO>,
+                [pending]2.2:
                 ],
             "expected_output_of_current_action":, // Expected output after executing action, must be very specific and detail, you or me will virify easily.
             "take_away":[...], // must have, keep learning from actions and results to make you smarter and smarter.
-            // Additional fields. You are encouraged to add more fields as you deem necessary for effective task execution or for future reference.
+            // Additional fields. 
                 ...    
-        }
-
+        },
         "action": { // Must have.
             "type": "RUN_PYTHON", // One of the above actions.
             // args for the action.
             "path": "{}", // file name for the Python code.
             "timeout": 30, 
             "cmd_args": {ARGUMENTs}, 
-            os.system('pip install ' + ' '.join(dependencies))
-            // the code you generated must install dependencies before you import them, example: os.system('pip install ' + ' '.join('pandas'))
-            "code":<CODE>, // pattern = r"^import ", can't be empty when type is RUN_PYTHON
-            "__code_dependencies":, 
+            "code":<CODE>, // pattern = r"^import ", must have and can't be empty when type is RUN_PYTHON
+            "code_dependencies": ["<DEPENDENCY1>", ...], // external dependencies when type is RUN_PYTHON
             "__summary":, //detail summary for code
         }
     }
@@ -100,7 +82,7 @@ You will lost all of the intermediate results if you don't save them to memory.
 
 
     def __init__(self):
-        self.memories = ""
+        self.notebook = ""
         self.tasks_desc = ""
 
     def input_with_timeout(self, prompt: str, timeout: int) -> Optional[str]:
@@ -133,24 +115,24 @@ You will lost all of the intermediate results if you don't save them to memory.
             hints += self.get_plan_hints(metadata)
             hints += self.get_action_hints(metadata, action, action_output)
             if metadata.notebook:
-                self.memories = self.extrace_memories(metadata)
+                self.notebook = self.extract_notebook(metadata)
 
-        hints += f"\n## Your notebook\n{self.memories}" if self.memories else ""
+        hints += f"\n## Your previous notebook snapshot:\n{self.notebook}" if self.notebook else ""
 
         self.tasks_desc = hints
 
     @staticmethod
-    def extrace_memories(metadata):
+    def extract_notebook(metadata):
         return "{\n" + "\n".join([f"  \"{k}\": {v}," for k, v in metadata.notebook.items()]) + "\n}\n" if metadata.notebook else ""
 
     @staticmethod
     def get_plan_hints(metadata):
-        return "\n\n## The plan you were using:\n" + "\n".join([f"  - {task}" for task in metadata.plan]) + "\n" if metadata.plan else ""
+        return "\n\n## The previous plan snapshot:\n" + "\n".join([f"  - {task}" for task in metadata.plan]) + "\n" if metadata.plan else ""
 
     @staticmethod
     def get_action_hints(metadata, action, action_output):
         return "\n".join([
-                "\n## Your last action returned:\n",
+                "\n## Your previous action returned:\n",
                 f"- Task ID: {metadata.current_task_id}\n",
                 f"- Action: {action.short_string()}\n",
                 f"- Action Results:\n{action_output}\n"
@@ -194,6 +176,7 @@ You will lost all of the intermediate results if you don't save them to memory.
             self.tasks_desc = f"failed to parse assistant response, is it valid json: {assistant_response}"
             return True
         
+        logging.info(f"\n\nAction: %s, output: %s\n\n", action.short_string(), action_output)
         self.make_hints(action, metadata, action_output)
             
         return True
@@ -223,14 +206,13 @@ You will lost all of the intermediate results if you don't save them to memory.
                 if args.verbose:
                     logging.info("ASSISTANT RESPONSE: %s", assistant_resp)
                 action, metadata = response_parser.parse(assistant_resp)
-                
                 if not self.process_action(action, metadata, args, timeout, assistant_resp):
                     break
                 # saving the checkpoint after every iteration
                 checkpoint_db.save_checkpoint(self.tasks_desc, goal)
 
             except Exception as err:
-                logging.exception("Error in main: %s", err)
+                logging.error("Error in main: %s", err)
                 self.make_hints(action, metadata, str(err))
                 checkpoint_db.save_checkpoint(self.tasks_desc, goal)
                 time.sleep(1)
@@ -298,6 +280,8 @@ if __name__ == "__main__":
 
     # Logging configuration
     logging.basicConfig(level=logging.INFO, format='%(message)s', stream=sys.stdout)
+
+    logging.info("Welcome to Jarvis, your personal assistant for everyday tasks!\n")
    
     assistant_config = config.get('assistant', {})
     args.timeout = args.timeout or assistant_config.get('timeout', 30)
@@ -305,6 +289,8 @@ if __name__ == "__main__":
     args.continuous = args.continuous or assistant_config.get('continuous', False)
 
     checkpoint_db.create_table()
+
+
 
     # Instantiate and start assistant
     assistant = Assistant()

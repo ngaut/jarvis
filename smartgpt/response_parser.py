@@ -47,6 +47,8 @@ def parse(text: str) -> Tuple[Optional[actions.Action], Optional[Metadata]]:
         # Try to decode json
         start = text.index('{')
         end = text.rindex('}')
+        if start >= end:
+            raise ValueError("parse: Failed to parse input as JSON object, You should response a valid json")
         data = json.loads(text[start:end+1])
 
         # Create an Action object from the action data (if it exists)
@@ -82,4 +84,5 @@ def parse(text: str) -> Tuple[Optional[actions.Action], Optional[Metadata]]:
         raise ValueError(error_message)
         
     except Exception as e:
+        logging.error("\n%s\n", e)
         raise ValueError("parse: Failed to parse input as JSON object, You should response a valid json")
