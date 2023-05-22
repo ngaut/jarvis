@@ -11,6 +11,7 @@ import check_point
 import gpt
 import re
 import logging
+import agent
 import yaml
 import argparse
 import time
@@ -302,6 +303,10 @@ if __name__ == "__main__":
     args.timeout = args.timeout or assistant_config.get('timeout', 30)
     args.verbose = assistant_config.get('verbose', False)
     args.continuous = args.continuous or assistant_config.get('continuous', False)
+
+    # run agent in backgroung in another thread
+    
+    agent.app.run(debug=True)
 
     checkpoint_db.create_table()
 
