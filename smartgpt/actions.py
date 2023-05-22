@@ -7,7 +7,7 @@ from typing import Union
 from abc import ABC
 from urllib.error import HTTPError
 from bs4 import BeautifulSoup
-from googlesearch import search
+import googlesearch
 from selenium import webdriver
 from selenium.webdriver.chrome.webdriver import WebDriver as ChromeWebDriver
 from selenium.webdriver.common.by import By
@@ -67,7 +67,7 @@ class SearchOnlineAction:
 
     def run(self):
         try:
-            response = list(search(self.query, num=15, stop=15, pause=2))
+            response = list(googlesearch.search(self.query, num=15, stop=15, pause=2))
             if response is None:
                 return f"SearchOnlineAction RESULT: The online search for `{self.query}` appears to have failed."
 
@@ -198,24 +198,70 @@ class ShutdownAction(Action):
         # This action is treated specially, so this can remain unimplemented.
         raise NotImplementedError
     
+class Memory:
+    def __init__(self):
+        self.storage = {}
+
+    def add(self, key, value):
+        self.storage[key] = value
+
+    def query(self, key):
+        return self.storage.get(key)
+
+    def delete(self, keys):
+        for key in keys:
+            if key in self.storage:
+                del self.storage[key]
 
 @dataclass(frozen=True)
-class AppendFileAction(Action):
-    path: str
-    text: str
+class MemoryAddAction(Action):
+    kvs: list[dict[str, Union[str, dict]]]
 
     def key(self) -> str:
-        return "APPEND_FILE"
+        return "memory"
 
     def short_string(self) -> str:
-        return f"Append file `{self.path}`."
+        return f"Add key-value pairs to memory."
 
-    def run(self) -> str:
-        with io.open(self.path, mode="a", encoding="utf-8") as file:
-            bytes_written = file.write(self.text)
-            print(f"AppendFileAction RESULT: Appended file `{self.path}`.")
-            return f"AppendFileAction File successfully appended with {bytes_written} bytes"
-        
+    def run(self, memory: Memory) -> str:
+        for pair in self.kvs:
+            memory.add(pair["key"], pair["value"])
+        return "MemoryAddAction completed successfully."
+
+
+@dataclass(frozen=True)
+class MemoryQueryAction(Action):
+    k: str
+
+    def key(self) -> str:
+        return "memory"
+
+    def short_string(self) -> str:
+        return f"Query key `{self.k}` from memory."
+
+    def run(self, memory: Memory) -> str:
+        value = memory.query(self.k)
+        if value is None:
+            return f"No value found in memory for key `{self.k}`."
+        else:
+            return json.dumps(value, indent=2)
+
+
+@dataclass(frozen=True)
+class MemoryDeleteAction(Action):
+    ks: list[str]
+
+    def key(self) -> str:
+        return "memory"
+
+    def short_string(self) -> str:
+        return f"Delete keys {', '.join(self.ks)} from memory."
+
+    def run(self, memory: Memory) -> str:
+        memory.delete(self.ks)
+        return "MemoryDeleteAction completed successfully."
+
+
 # Helper function to populate the ACTION_CLASSES dictionary
 def _populate_action_classes(action_classes):
     result = {}
@@ -239,8 +285,10 @@ def _populate_action_classes(action_classes):
 
 ACTION_CLASSES = _populate_action_classes([
     RunPythonAction,
-    AppendFileAction,
     ShutdownAction,
     ExtractInfoAction,
     SearchOnlineAction,
+    MemoryAddAction,
+    MemoryQueryAction,
+    MemoryDeleteAction,
 ])

@@ -46,9 +46,9 @@ You will lost all of the intermediate results if you don't save them to memory.
     "EXTRACT_INFO" is used to extract specific information from a URL.
     {"type": "EXTRACT_INFO", "url": "<URL>", "instructions": "<INSTRUCTIONS>"}
     // your memory related actions are used to save and query information
-    {"type": "memory", "OP":"mem_add", keyvalue_pairs: [{"key": "<KEY>", "value": "<json_value>"}...]}
-    {"type": "memory", "OP": "mem_query", "key": "<KEY>"}
-    {"type": "memory", "OP": "mem_delete", "keys":["<KEY1>", "<KEY2>", ...]}
+    {"type": "mem_add", kvs: [{"k": "<KEY>", "v": "<json_value>"}...]}
+    {"type": "mem_query", "k": "<KEY>"}
+    {"type": "mem_delete", "ks":["<KEY1>", "<KEY2>", ...]}
 
 - Customization of Response Format, you should follow the format below while thinking about the response:
     Bellow is an example response template, While the provided JSON structure outlines the basic requirements for your response, it is not rigid or exhaustive.
@@ -88,9 +88,11 @@ You will lost all of the intermediate results if you don't save them to memory.
             "path": "{}", // file name for the Python code.
             "timeout": 30, 
             "cmd_args": {ARGUMENTs}, 
-            "code":<CODE>, // pattern = r"^import", can't be empty when type is RUN_PYTHON
+            os.system('pip install ' + ' '.join(dependencies))
+            // the code you generated must install dependencies before you import them, example: os.system('pip install ' + ' '.join('pandas'))
+            "code":<CODE>, // pattern = r"^import ", can't be empty when type is RUN_PYTHON
+            "__code_dependencies":, 
             "__summary":, //detail summary for code
-            "__code_dependencies":, // code dependencies, you should install denpendencies in the code before you import them.
         }
     }
     #end of json

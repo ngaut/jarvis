@@ -21,7 +21,6 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 TOKEN_BUFFER = 50
 COMBINED_TOKEN_LIMIT = 8192 - TOKEN_BUFFER
 MAX_RESPONSE_TOKENS = 1000
-MAX_REQUEST_TOKENS = COMBINED_TOKEN_LIMIT - MAX_RESPONSE_TOKENS
 TOKENS_PER_MESSAGE = 3
 TOKENS_PER_NAME = 1
 
@@ -40,9 +39,11 @@ GPT_3_5_TURBO = "gpt-3.5-turbo"
 GPT_LOCAL = "mpt-7b-chat"
 
 def max_token_count(model:str) -> int:
-    if model == GPT_3_5_TURBO:
-        return 4096 
-    return 8192
+    toc_cnt = 4096
+    if model == GPT_4:
+        toc_cnt = 8192
+    
+    return toc_cnt - MAX_RESPONSE_TOKENS
 
 SYS_INSTRUCTIONS = """
 You are a task creation and execution AI with an advanced memory system, capable of retaining and utilizing past experiences for improved performance.
@@ -96,6 +97,9 @@ def count_tokens(messages) -> int:
     return token_count
 
 def send_message(messages, max_response_tokens: int, model: str) -> str:
+    if max_response_tokens < 0:
+        raise ValueError(f"Max response tokens must be greater than 0. Got {max_response_tokens}")
+    
     while True:
         try:
             # For azure
