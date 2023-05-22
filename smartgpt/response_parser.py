@@ -10,11 +10,11 @@ import os
 @dataclass(frozen=True)
 class Metadata:
     plan: List[str]
-    memory: dict[str, str]
+    notebook: dict[str, str]
     current_task_id: Optional[str] = None
 
     def __str__(self):
-        return f"Metadata(\n  plan={self._pretty_list(self.plan)},\n  memory={self._pretty_dict(self.memory)},\n  current_task_id='{self.current_task_id}'\n)"
+        return f"Metadata(\n  plan={self._pretty_list(self.plan)},\n  notebook={self._pretty_dict(self.notebook)},\n  current_task_id='{self.current_task_id}'\n)"
 
     def _pretty_list(self, lst):
         return "[\n" + ",\n".join(f"    '{item}'" for item in lst) + "\n  ]"
@@ -25,12 +25,12 @@ class Metadata:
 def parse_metadata(metadata_json: dict) -> Metadata:
     try:
         plan = metadata_json.get("plan", [])
-        memory = metadata_json.get("memory", {})
+        notebook = metadata_json.get("notebook", {})
         current_task_id = metadata_json.get("current_task_id", None)
 
         return Metadata(
             plan=plan,
-            memory=memory,
+            notebook=notebook,
             current_task_id=current_task_id,
         )
     except Exception as e:

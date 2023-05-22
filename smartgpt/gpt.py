@@ -6,6 +6,7 @@ from typing import Optional
 import openai
 import tiktoken
 
+
 # OpenAI API for Azure
 #openai.api_type = "azure"
 #openai.api_base = "https://pingcat-bot.openai.azure.com/"
@@ -23,6 +24,10 @@ MAX_RESPONSE_TOKENS = 1000
 MAX_REQUEST_TOKENS = COMBINED_TOKEN_LIMIT - MAX_RESPONSE_TOKENS
 TOKENS_PER_MESSAGE = 3
 TOKENS_PER_NAME = 1
+
+MODEL = "gpt-4"
+ENCODING = tiktoken.encoding_for_model(MODEL)
+
 
 # Default model
 GPT_4 = "gpt-4"
@@ -49,7 +54,7 @@ Your intelligence enables independent decision-making, problem-solving, and auto
 
 - CODING STANDARDS:
     When crafting code, ensure it is well-structured and easy to maintain. 
-    Make sure handle error on return value and exception. 
+    Make sure handle error on return value and exception, the error message must always indicate the error on what's next to do. 
     Always comment your code to clarify functionality and decision-making processes.
     Do not generate placeholder code.
 
@@ -79,19 +84,16 @@ def chat(goal: str, general_directions: str, task_desc, model: str):
     assistant_response = send_message(messages, available_response_tokens, model)
     return assistant_response
 
-
-
-
 def count_tokens(messages) -> int:
     token_count = 0
     for message in messages:
         token_count += TOKENS_PER_MESSAGE
         for key, value in message.items():
-            token_count += (len(value) + len(key)) / 3
+            token_count += len(ENCODING.encode(value))
+            if key == "name":
+                token_count += TOKENS_PER_NAME
     token_count += 3
-    return round(token_count)
-
-
+    return token_count
 
 def send_message(messages, max_response_tokens: int, model: str) -> str:
     while True:

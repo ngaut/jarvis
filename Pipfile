@@ -6,10 +6,14 @@ name = "pypi"
 [packages]
 openai = "*"
 playsound = "*"
-tiktoken = "*"
 python-dotenv = "*"
 googlesearch-python = "*"
 selenium = "*"
+tiktoken = "*"
+webdriver-manager = "*"
+peewee = "*"
+"ruamel.yaml" = "*"
+mysqlclient = "*"
 
 [dev-packages]
 pylint = "*"

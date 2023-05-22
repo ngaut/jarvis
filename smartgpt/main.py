@@ -2,7 +2,9 @@ from typing import Optional
 from dotenv import load_dotenv
 from spinner import Spinner
 import actions, response_parser, check_point, gpt
-import os, sys, yaml, time, re, signal, argparse, logging
+import os, sys, time, re, signal, argparse, logging
+import ruamel.yaml as yaml
+
 
 
 base_model  = gpt.GPT_3_5_TURBO
@@ -20,7 +22,7 @@ For challenges beyond your immediate scope, consider developing an AI sub-agent(
 huggingface API key is stored in the environment variable HF_API_KEY.
 Persistently apply these skills in a judicious manner, with the objective of overcoming even the most daunting tasks.
 
-Note: I will not send conversation history to you, so you must  save anything you need for future tasks by yourself by adding more fields to memory inside the response json.
+Note: I will not send conversation history to you, so you must  save anything you need for future tasks by yourself.
 You will lost all of the intermediate results if you don't save them to memory.
 
 - ACTIONS:
@@ -43,6 +45,10 @@ You will lost all of the intermediate results if you don't save them to memory.
     {"type": "SEARCH_ONLINE", "query": "<QUERY>"}
     "EXTRACT_INFO" is used to extract specific information from a URL.
     {"type": "EXTRACT_INFO", "url": "<URL>", "instructions": "<INSTRUCTIONS>"}
+    // your memory related actions are used to save and query information
+    {"type": "memory", "OP":"mem_add", keyvalue_pairs: [{"key": "<KEY>", "value": "<json_value>"}...]}
+    {"type": "memory", "OP": "mem_query", "key": "<KEY>"}
+    {"type": "memory", "OP": "mem_delete", "keys":["<KEY1>", "<KEY2>", ...]}
 
 - Customization of Response Format, you should follow the format below while thinking about the response:
     Bellow is an example response template, While the provided JSON structure outlines the basic requirements for your response, it is not rigid or exhaustive.
@@ -53,25 +59,29 @@ You will lost all of the intermediate results if you don't save them to memory.
             // Final step: verify if the overall goal has been met and generate a summary with user guide on what's next.
         ],
         "current_task_id": 2, // Must have.
-        "memory": { // Must Have. Everything inside "memory" will be relayed to you in the next conversation.
-            "notebook": { // Must have. 
-                "__comments":<COMMENTS>, // comments of actions and results
-                "retried_count": "3", // Shutdown after retrying 5 times.
-                "thoughts":,    // must have
-                "reasoning":",  // must have
-                "criticism": ,  // must have
-                "information_and_data_for_future_tasks":[], // must have, such as file name, url, outcome and outputs of each task etc.
-                "progress of subtasks for current task <$current_task_id>": [
-                    [done]2.1: {SUB-TASK-DESCRIPTION}. Verification process:<INFO>,
-                    [working]2.2:
-                    [pending]2.3:
-                    ],
-                "expected_output_of_current_action":, // Expected output after executing action, must be very specific and detail, you or me will virify easily.
-                "take_away":[...], // must have, keep learning from actions and results to make you smarter and smarter.
+        "notebook": { // Must have. 
+            "retried_count": "3", // Shutdown after retrying 5 times.
+            "thoughts":{  // must have, your thoughts about the task, such as what you have learned, what you have done, what you have got, what you have failed, what you have to do next etc.
+                "observations":,
+                "text":,
+                "reasoning",
+                "criticism",
+                "concerns",
                 // Additional fields. You are encouraged to add more fields as you deem necessary for effective task execution or for future reference.
-                 ...    
-            }
+                ...
+            },   
+            "information_and_data_for_future_tasks":[], // must have, such as file name, url, outcome and outputs of each task etc.
+            "progress of subtasks for current task <$current_task_id>": [
+                [done]2.1: {SUB-TASK-DESCRIPTION}. Verification process:<INFO>,
+                [working]2.2:
+                [pending]2.3:
+                ],
+            "expected_output_of_current_action":, // Expected output after executing action, must be very specific and detail, you or me will virify easily.
+            "take_away":[...], // must have, keep learning from actions and results to make you smarter and smarter.
+            // Additional fields. You are encouraged to add more fields as you deem necessary for effective task execution or for future reference.
+                ...    
         }
+
         "action": { // Must have.
             "type": "RUN_PYTHON", // One of the above actions.
             // args for the action.
@@ -80,8 +90,8 @@ You will lost all of the intermediate results if you don't save them to memory.
             "cmd_args": {ARGUMENTs}, 
             "code":<CODE>, // pattern = r"^import", can't be empty when type is RUN_PYTHON
             "__summary":, //detail summary for code
-            "__code_dependencies":, // code dependencies
-        },
+            "__code_dependencies":, // code dependencies, you should install denpendencies in the code before you import them.
+        }
     }
     #end of json
 """
@@ -120,16 +130,16 @@ You will lost all of the intermediate results if you don't save them to memory.
         if metadata:
             hints += self.get_plan_hints(metadata)
             hints += self.get_action_hints(metadata, action, action_output)
-            if metadata.memory:
+            if metadata.notebook:
                 self.memories = self.extrace_memories(metadata)
 
-        hints += f"\n## Your memory\n{self.memories}" if self.memories else ""
+        hints += f"\n## Your notebook\n{self.memories}" if self.memories else ""
 
         self.tasks_desc = hints
 
     @staticmethod
     def extrace_memories(metadata):
-        return "{\n" + "\n".join([f"  \"{k}\": {v}," for k, v in metadata.memory.items()]) + "\n}\n" if metadata.memory else ""
+        return "{\n" + "\n".join([f"  \"{k}\": {v}," for k, v in metadata.notebook.items()]) + "\n}\n" if metadata.notebook else ""
 
     @staticmethod
     def get_plan_hints(metadata):
