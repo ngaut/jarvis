@@ -19,16 +19,26 @@ class Assistant:
 
 ## ACTIONS:
     Understand the task requirements and context in a step-by-step manner. Here are the actions you can perform:
+    The "RunPython" command executes as follows: 
+        subprocess.Popen(
+            f"python {path} {cmd_args}", // The file {path} contains the Python code you generated.
+            shell=True,
+            stdout=PIPE,
+            stderr=STDOUT,
+            universal_newlines=True,
+            )
+    {"type": "RunPython", "path": "<PATH>", "timeout": "<TIMEOUT>", "cmd_args": "<ARGUMENTS>", "code": "<CODE>"}
+    {"type": "SHUTDOWN", "message": "<TEXT>"} // A concise summary of the task, steps and outcome when you get job done.
+    {"type": "SearchOnline", "query": "<QUERY>"}     // used to conduct online searches and retrieve relevant URLs for the query.
+    {"type": "ExtraceInfo", "url": "<URL>", "instructions": "<INSTRUCTIONS>"}     //to extract specific information from a URL.
+    // database-related actions, You must fully leverage your amazing capability to save, query:
+    {"type": "DbUpsert", kvs: [{"k": "<KEY>", "v": "<json_value>"}...]} // insert or update records in the database.
+    {"type": "DbQuery", "k": "<KEY>"}   // query records from the database.
 
-    - Run a Python file that all of the <CODE> is in the file: `{"type": "RUN_PYTHON", "path": "<PATH>", "timeout": "<TIMEOUT>", "cmd_args": "<ARGUMENTS>", "code": "<CODE>"}`
-    - Shutdown with a summary, need to collect info from memory: `{"type": "SHUTDOWN", "message": "<TEXT>"}`
-    - Conduct online searches: `{"type": "SEARCH_ONLINE", "query": "<QUERY>"}`
-    - Extract information from a URL: `{"type": "EXTRACT_INFO", "url": "<URL>", "instructions": "<INSTRUCTIONS>"}`
-    - Memory-related actions (saving, querying, deleting), You must fully leverage your amazing capability to save, query or delete memory:
-        - Save: `{"type": "mem_add", kvs: [{"k": "<KEY>", "v": "<json_value>"}...]}`
-        - Query: `{"type": "mem_query", "k": "<KEY>"}`
-        - Delete: `{"type": "mem_delete", "ks":["<KEY1>", "<KEY2>", ...]}`
-
+## Resources:
+    A huge database is available to you, including:
+        - You should fully leverage your amazing capability to operate with database-related actions.
+        
 ## Customization of Response Format
     Your response should be a JSON object adhering to the provided structure. 
     Feel free to add more fields for effective task execution or future reference.
@@ -43,13 +53,13 @@ class Assistant:
         "notebook": { // Must have. 
             "retried_count": "3", // Shutdown after retrying 5 times.
             "thoughts":{  // must have, your thoughts about the task, such as what you have learned, what you have done, what you have got, what you have failed, what you have to do next etc.
-                "observation_on_action_results":,
-                "reasoning",
-                "criticism",
+                "observation_on_action_results":<TEXT>, 
+                "reasoning":<TEXT>,
+                "criticism":<TEXT>,
                 ...
             },   
             "information_and_data_for_future_tasks":[], // must have, such as file name, url, outcome and outputs of each task etc.
-            "key_words_in_memory":[key value pair], // must have, used for searching information from memory.
+            "key_words_point_to_database":[key value pair], // must have, used for searching information from DB.
             "progress of subtasks for current task <$current_task_id>": [
                 [working]2.1: {SUB-TASK-DESCRIPTION}. Verification process:<INFO>,
                 [pending]2.2:
@@ -60,18 +70,15 @@ class Assistant:
                 ...    
         },
         "action": { // Must have.
-            "type": "RUN_PYTHON", // One of the above actions.
-            // fields bellow are for arguments for "RUN_PYTHON" action.
+            "type": "RunPython", // One of the above actions.
+            // fields bellow are for arguments for "RunPython" action.
             "path": "{}", // must have, file name for the Python code
             "timeout": 30,  // must have
             "cmd_args": {ARGUMENTs}, 
             "code":<CODE>, // must have, must not be empty 
             "code_summary":, //must have, summary for <CODE>
             "code_dependencies": ["<DEPENDENCY1>", ...], // external dependencies for <CODE>
-            "additional_mem_action": { // You must fully leverage this structure to save, query or delete memory
-                "type": "mem_add", // One of the above memory actions.
-                ...
-            }
+           
         }
     }
     #end of json
@@ -120,9 +127,6 @@ class Assistant:
 
     @staticmethod
     def extract_notebook(metadata):
-        return "{\n" + "\n".join([f"  \"{k}\": {v}," for k, v in metadata.notebook.items()]) + "\n}\n" if metadata.notebook else ""
-    
-    """
         result = "{\n"
         notebook = metadata.notebook
         if notebook:
@@ -131,7 +135,6 @@ class Assistant:
                     result += f"  \"{k}\": {v},\n"
         result += "}\n"
         return result
-    """ 
 
     @staticmethod
     def get_plan_hints(metadata):

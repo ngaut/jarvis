@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 import io, subprocess, os, inspect, json, logging, time, re
 import gpt
 from spinner import Spinner
-from typing import Union
+from typing import Union,List, Dict
 from abc import ABC
 from urllib.error import HTTPError
 from bs4 import BeautifulSoup
@@ -15,6 +15,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from webdriver_manager.chrome import ChromeDriverManager
+import sqlite3
 
 
 @dataclass(frozen=True)
@@ -61,7 +62,7 @@ class SearchOnlineAction:
     query: str
     
     def key(self):
-        return "SEARCH_ONLINE"
+        return "SearchOnline"
 
     def short_string(self):
         return f"Search online for `{self.query}`."
@@ -89,7 +90,7 @@ class ExtractInfoAction(Action):
     instructions: str
 
     def key(self) -> str:
-        return "EXTRACT_INFO"
+        return "ExtraceInfo"
 
     def short_string(self) -> str:
         return f"Extract info from `{self.url}`: {self.instructions}."
@@ -134,6 +135,7 @@ class ExtractInfoAction(Action):
         text = "\n".join(chunk for chunk in chunks if chunk)
         return text
 
+# todo implement database related actions
 
 @dataclass(frozen=True)
 class RunPythonAction(Action):
@@ -144,7 +146,7 @@ class RunPythonAction(Action):
     cmd_args: str = ""
 
     def key(self) -> str:
-        return "RUN_PYTHON"
+        return "RunPython"
 
     def short_string(self) -> str:
         return f"Run Python file `{self.path} {self.cmd_args}`."
@@ -208,69 +210,57 @@ class ShutdownAction(Action):
     def run(self) -> str:
         # This action is treated specially, so this can remain unimplemented.
         raise NotImplementedError
-    
-class Memory:
-    def __init__(self):
-        self.storage = {}
-
-    def add(self, key, value):
-        self.storage[key] = value
-
-    def query(self, key):
-        return self.storage.get(key)
-
-    def delete(self, keys):
-        for key in keys:
-            if key in self.storage:
-                del self.storage[key]
+ 
 
 @dataclass(frozen=True)
-class MemoryAddAction(Action):
-    kvs: list[dict[str, Union[str, dict]]]
+class DbUpsertAction(Action):
+    kvs: List[Dict[str, Union[str, dict]]]
 
     def key(self) -> str:
-        return "memory"
+        return "DbUpsert"
 
     def short_string(self) -> str:
-        return f"Add key-value pairs to memory."
+        return f"Upsert keys and values into the database."
 
-    def run(self, memory: Memory) -> str:
-        for pair in self.kvs:
-            memory.add(pair["key"], pair["value"])
-        return "MemoryAddAction completed successfully."
+    def run(self) -> str:
+        conn = sqlite3.connect('my_database.db')
+        c = conn.cursor()
+
+        # Ensure the table is created
+        c.execute('''CREATE TABLE IF NOT EXISTS kvstore
+                    (key text primary key, value text)''')
+
+        for kv in self.kvs:
+            c.execute("INSERT OR REPLACE INTO kvstore VALUES (?, ?)", (kv['k'], json.dumps(kv['v'])))
+        
+        conn.commit()
+        conn.close()
+        return f"DbUpsertAction: Successfully upserted {len(self.kvs)} key-value pair(s) into the database."
 
 
 @dataclass(frozen=True)
-class MemoryQueryAction(Action):
+class DbQueryAction(Action):
     k: str
 
     def key(self) -> str:
-        return "memory"
+        return "DbQuery"
 
     def short_string(self) -> str:
-        return f"Query key `{self.k}` from memory."
+        return f"Query the value of `{self.k}` from the database."
 
-    def run(self, memory: Memory) -> str:
-        value = memory.query(self.k)
-        if value is None:
-            return f"No value found in memory for key `{self.k}`."
-        else:
-            return json.dumps(value, indent=2)
+    def run(self) -> str:
+        conn = sqlite3.connect('my_database.db')
+        c = conn.cursor()
 
+        c.execute("SELECT value FROM kvstore WHERE key=?", (self.k,))
 
-@dataclass(frozen=True)
-class MemoryDeleteAction(Action):
-    ks: list[str]
+        row = c.fetchone()
+        if row is None:
+            return f"DbQueryAction: Key `{self.k}` does not exist in the database."
 
-    def key(self) -> str:
-        return "memory"
-
-    def short_string(self) -> str:
-        return f"Delete keys {', '.join(self.ks)} from memory."
-
-    def run(self, memory: Memory) -> str:
-        memory.delete(self.ks)
-        return "MemoryDeleteAction completed successfully."
+        value = json.loads(row[0])
+        conn.close()
+        return f"DbQueryAction: The value of key `{self.k}` in the database is {value}."
 
 
 # Helper function to populate the ACTION_CLASSES dictionary
@@ -299,7 +289,6 @@ ACTION_CLASSES = _populate_action_classes([
     ShutdownAction,
     ExtractInfoAction,
     SearchOnlineAction,
-    MemoryAddAction,
-    MemoryQueryAction,
-    MemoryDeleteAction,
+    DbUpsertAction,
+    DbQueryAction,
 ])
