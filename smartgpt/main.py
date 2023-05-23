@@ -16,29 +16,24 @@ class InputTimeoutError(Exception):
 class Assistant:
 
     GENERAL_DIRECTIONS_PREFIX = """
-You have exceptional programming proficiency and advanced internet research capabilities. 
 
-Note: I will not send conversation history to you, so you must save anything you need for future tasks by yourself.
-You will lost all of the intermediate results if you don't save them to memory with memory related actions bellow.
+## ACTIONS:
+    Understand the task requirements and context in a step-by-step manner. Here are the actions you can perform:
 
-- ACTIONS:
-    Think step by step to Understand the task requirements and context.
+    - Run a Python file that all of the <CODE> is in the file: `{"type": "RUN_PYTHON", "path": "<PATH>", "timeout": "<TIMEOUT>", "cmd_args": "<ARGUMENTS>", "code": "<CODE>"}`
+    - Shutdown with a summary, need to collect info from memory: `{"type": "SHUTDOWN", "message": "<TEXT>"}`
+    - Conduct online searches: `{"type": "SEARCH_ONLINE", "query": "<QUERY>"}`
+    - Extract information from a URL: `{"type": "EXTRACT_INFO", "url": "<URL>", "instructions": "<INSTRUCTIONS>"}`
+    - Memory-related actions (saving, querying, deleting), You must fully leverage your amazing capability to save, query or delete memory:
+        - Save: `{"type": "mem_add", kvs: [{"k": "<KEY>", "v": "<json_value>"}...]}`
+        - Query: `{"type": "mem_query", "k": "<KEY>"}`
+        - Delete: `{"type": "mem_delete", "ks":["<KEY1>", "<KEY2>", ...]}`
 
-    // run a Python file that all of the <CODE> is in the file.
-    {"type": "RUN_PYTHON", "path": "<PATH>", "timeout": <TIMEOUT>, "cmd_args": "<ARGUMENTS>", "code": "<CODE>"}
-    {"type": "SHUTDOWN", "message": "<TEXT>"} // A concise summary of the task and outcome when you get job done.
-    "SEARCH_ONLINE" is used to conduct online searches and retrieve relevant URLs for the query.
-    {"type": "SEARCH_ONLINE", "query": "<QUERY>"}
-    "EXTRACT_INFO" is used to extract specific information from a URL.
-    {"type": "EXTRACT_INFO", "url": "<URL>", "instructions": "<INSTRUCTIONS>"}
-    // your memory related actions are used to save and query information
-    {"type": "mem_add", kvs: [{"k": "<KEY>", "v": "<json_value>"}...]}
-    {"type": "mem_query", "k": "<KEY>"}
-    {"type": "mem_delete", "ks":["<KEY1>", "<KEY2>", ...]}
 
-- Customization of Response Format, you should follow the format below while thinking about the response:
-    Bellow is an example response template, While the provided JSON structure outlines the basic requirements for your response, it is not rigid or exhaustive.
-    You are encouraged to add more fields as you deem necessary for effective task execution or for future reference.
+## Customization of Response Format
+    Your response should be a JSON object adhering to the provided structure. 
+    Feel free to add more fields for effective task execution or future reference.
+    Here is an example of a valid response format:
     {
         "plan": [ // Must have. It includes measurable step by step tasks. Before you mark a task as done, you must review the outcome/output of the task deeply and carefully.
             "[done] 1. {TASK_DESCRIPTION}",
@@ -50,12 +45,12 @@ You will lost all of the intermediate results if you don't save them to memory w
             "retried_count": "3", // Shutdown after retrying 5 times.
             "thoughts":{  // must have, your thoughts about the task, such as what you have learned, what you have done, what you have got, what you have failed, what you have to do next etc.
                 "observation_on_action_results":,
-                "text":,
                 "reasoning",
                 "criticism",
                 ...
             },   
             "information_and_data_for_future_tasks":[], // must have, such as file name, url, outcome and outputs of each task etc.
+            "key_words_in_memory":[], // must have, used for searching information from memory.
             "progress of subtasks for current task <$current_task_id>": [
                 [working]2.1: {SUB-TASK-DESCRIPTION}. Verification process:<INFO>,
                 [pending]2.2:
@@ -67,13 +62,17 @@ You will lost all of the intermediate results if you don't save them to memory w
         },
         "action": { // Must have.
             "type": "RUN_PYTHON", // One of the above actions.
-            // args for the action.
-            "path": "{}", // file name for the Python code.
-            "timeout": 30, 
+            // fields bellow are for arguments for "RUN_PYTHON" action.
+            "path": "{}", // must have, file name for the Python code
+            "timeout": 30,  // must have
             "cmd_args": {ARGUMENTs}, 
-            "code":<CODE>, // pattern = r"^import ", must have and can't be empty when type is RUN_PYTHON
-            "code_dependencies": ["<DEPENDENCY1>", ...], // external dependencies when type is RUN_PYTHON
-            "__summary":, //detail summary for code
+            "code":<CODE>, // must have, must not be empty 
+            "code_summary":, //must have, summary for <CODE>
+            "code_dependencies": ["<DEPENDENCY1>", ...], // external dependencies for <CODE>
+            "additional_mem_action": { // You must fully leverage this structure to save, query or delete memory
+                "type": "mem_add", // One of the above memory actions.
+                ...
+            }
         }
     }
     #end of json
@@ -122,7 +121,15 @@ You will lost all of the intermediate results if you don't save them to memory w
 
     @staticmethod
     def extract_notebook(metadata):
-        return "{\n" + "\n".join([f"  \"{k}\": {v}," for k, v in metadata.notebook.items()]) + "\n}\n" if metadata.notebook else ""
+        result = "{\n"
+        notebook = metadata.notebook
+        if notebook:
+            for k, v in notebook.items():
+                if v is not None and v != "":
+                    result += f"  \"{k}\": {v},\n"
+        result += "}\n"
+        return result
+
 
     @staticmethod
     def get_plan_hints(metadata):

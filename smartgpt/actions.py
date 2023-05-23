@@ -138,7 +138,7 @@ class ExtractInfoAction(Action):
 @dataclass(frozen=True)
 class RunPythonAction(Action):
     path: str
-    timeout: int  # in seconds
+    timeout: int  = 30 # in seconds
     code:str = ""
     code_dependencies: list = field(default_factory=list)
     cmd_args: str = ""
@@ -182,12 +182,10 @@ class RunPythonAction(Action):
                     output += f"#stderr of process:\n{stderr_error}"
                 if exit_code != 0 or include_source:
                     output += f"\n\nPython script code:\n{code}"
-                logging.info(output)
                 return output
             except subprocess.TimeoutExpired:
                 process.kill()
                 output = f"RunPythonAction failed: The Python script at `{self.path} {self.cmd_args}` timed out after {self.timeout} seconds."
-                logging.info(output)
                 return output
 
 
