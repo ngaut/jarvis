@@ -7,7 +7,7 @@ import ruamel.yaml as yaml
 
 
 
-base_model  = gpt.GPT_4
+base_model  = gpt.GPT_3_5_TURBO
 
 
 class InputTimeoutError(Exception):
@@ -29,7 +29,6 @@ class Assistant:
         - Query: `{"type": "mem_query", "k": "<KEY>"}`
         - Delete: `{"type": "mem_delete", "ks":["<KEY1>", "<KEY2>", ...]}`
 
-
 ## Customization of Response Format
     Your response should be a JSON object adhering to the provided structure. 
     Feel free to add more fields for effective task execution or future reference.
@@ -50,7 +49,7 @@ class Assistant:
                 ...
             },   
             "information_and_data_for_future_tasks":[], // must have, such as file name, url, outcome and outputs of each task etc.
-            "key_words_in_memory":[], // must have, used for searching information from memory.
+            "key_words_in_memory":[key value pair], // must have, used for searching information from memory.
             "progress of subtasks for current task <$current_task_id>": [
                 [working]2.1: {SUB-TASK-DESCRIPTION}. Verification process:<INFO>,
                 [pending]2.2:
@@ -121,6 +120,9 @@ class Assistant:
 
     @staticmethod
     def extract_notebook(metadata):
+        return "{\n" + "\n".join([f"  \"{k}\": {v}," for k, v in metadata.notebook.items()]) + "\n}\n" if metadata.notebook else ""
+    
+    """
         result = "{\n"
         notebook = metadata.notebook
         if notebook:
@@ -129,7 +131,7 @@ class Assistant:
                     result += f"  \"{k}\": {v},\n"
         result += "}\n"
         return result
-
+    """ 
 
     @staticmethod
     def get_plan_hints(metadata):

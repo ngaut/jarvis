@@ -150,6 +150,12 @@ class RunPythonAction(Action):
         return f"Run Python file `{self.path} {self.cmd_args}`."
 
     def run(self) -> str:
+        # check if path exists
+        if self.path is None or not os.path.exists(self.path):
+            return f"RunPythonAction RESULT: The path `{self.path}` does not exist, but it shoud."
+        if self.code is None or self.code == "":
+            return "RunPythonAction RESULT: The code is empty, but it shoud not be."
+ 
         # install dependencies
         for dependency in self.code_dependencies:
             with Spinner(f"Installing {dependency}..."):
