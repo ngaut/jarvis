@@ -16,6 +16,10 @@ class InputTimeoutError(Exception):
 class Assistant:
 
     GENERAL_DIRECTIONS_PREFIX = """
+You have exceptional programming proficiency and advanced internet research capabilities. 
+
+Note: I will not send conversation history to you, so you must save anything you need for future tasks by yourself.
+You will lost all of the intermediate results if you don't save them to memory with memory related actions bellow.
 
 ## ACTIONS:
     Understand the task requirements and context in a step-by-step manner. Here are the actions you can perform:
