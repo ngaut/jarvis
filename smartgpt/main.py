@@ -7,7 +7,7 @@ import ruamel.yaml as yaml
 
 
 
-base_model  = gpt.GPT_3_5_TURBO
+base_model  = gpt.GPT_4
 #    You must execute each task in a step-by-step manner, and verify the outcome of each step before moving on to the next step.
 
 
@@ -53,10 +53,10 @@ Note: I will not send conversation history to you, so you must save anything you
         ],
 
         "current_task_id": 1, // Must have.
+
         "notebook": { // Must have. 
             "retried_count": "3", // Shutdown after retrying 5 times.
             "thoughts":{  // must have, your thoughts about the task, such as what you have learned, what you have done, what you have got, what you have failed, what you have to do next etc.
-                
                 "verification_process":<TEXT>,
                 "reasoning":<TEXT>,
                 "criticism":<TEXT>,
@@ -66,7 +66,7 @@ Note: I will not send conversation history to you, so you must save anything you
             "review_of_previous_action":{   // null if no previous action.
                     "action_type":,
                     "status":, // must have, such as "success", "failed", "unknown"
-                    "reason":, // must have, such as "timeout", "error", "unknown" and so on
+                    "failed_reason":, // must have, such as "timeout", "error", "unknown" and so on
                     "outcome": // in key value pair
                     "summary":,
             },     
@@ -82,7 +82,7 @@ Note: I will not send conversation history to you, so you must save anything you
             "take_away":[...], // must have, keep learning from actions and results to make you smarter.
             // Additional fields
                 ...    
-        },
+        }, //end of notebook
 
         "action": { // Must have.
             "type": "RunPython" // Must have, One of the above actions.
@@ -90,12 +90,10 @@ Note: I will not send conversation history to you, so you must save anything you
             "file_name":  // must have. where to save the code.
             "timeout":30 // in seconds
             "cmd_args": {ARGUMENTs}
-            "code": //must have
+            "code": // pattern = r"^import, must have
             "code_dependencies": ["<DEPENDENCY1>", ...] // external dependencies for <CODE>
             "__summary":, //detail summary for code
         }
-
-        "__confusion": <TEXT>, // if you are confused, you should write down your confusion, so that I can help you.
     }
     #end of json
 """
