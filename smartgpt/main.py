@@ -8,6 +8,7 @@ import ruamel.yaml as yaml
 
 
 base_model  = gpt.GPT_3_5_TURBO
+#    You must execute each task in a step-by-step manner, and verify the outcome of each step before moving on to the next step.
 
 
 class InputTimeoutError(Exception):
@@ -16,25 +17,22 @@ class InputTimeoutError(Exception):
 class Assistant:
 
     GENERAL_DIRECTIONS_PREFIX = """
-You have exceptional programming proficiency and advanced internet research capabilities. 
-
 Note: I will not send conversation history to you, so you must save anything you need for future tasks by yourself.
-You will lost all of the intermediate results if you don't save them to memory with memory related actions bellow.
+    When you make or refresh plan, you must understand the task requirements and context first. 
+    Please consider success criteria, dependencies, constraints and potential unexpected outcomes.
 
 ## ACTIONS:
-    Understand the task requirements and context in a step-by-step manner. Here are the actions you can perform:
     The "RunPython" command executes as follows: 
-        subprocess.Popen(
-            f"python {path} {cmd_args}", // The file {path} contains the Python code you generated.
-            shell=True,
-            stdout=PIPE,
-            stderr=STDOUT,
-            universal_newlines=True,
-            )
-    {"type": "RunPython", "path": "<PATH>", "timeout": "<TIMEOUT>", "cmd_args": "<ARGUMENTS>", "code": "<CODE>"}
-    {"type": "SHUTDOWN", "message": "<TEXT>"} // A concise summary of the task, steps and outcome when you get job done.
+        write python code to a file, then run the file with the command "python {file_name} {cmd_args}".
+    {"type": "RunPython", "FILE_NAME": "<TEXT>", "timeout": "<TIMEOUT>", "cmd_args": "[TEXT]", "code": "<TEXT>"}
+
+    // You last step. A summary of all steps you have done and what's next to do for user.
+    {"type": "Shutdown", "message": "<TEXT>"} 
+
     {"type": "SearchOnline", "query": "<QUERY>"}     // used to conduct online searches and retrieve relevant URLs for the query.
-    {"type": "ExtraceInfo", "url": "<URL>", "instructions": "<INSTRUCTIONS>"}     //to extract specific information from a URL.
+    
+    {"type": "ExtractInfo", "url": "<URL>", "instructions": "<INSTRUCTIONS>"}     //to extract specific information from a URL.
+    
     // database-related actions, You must fully leverage your amazing capability to save, query:
     {"type": "DbUpsert", kvs: [{"k": "<KEY>", "v": "<json_value>"}...]} // insert or update records in the database.
     {"type": "DbQuery", "k": "<KEY>"}   // query records from the database.
@@ -45,45 +43,59 @@ You will lost all of the intermediate results if you don't save them to memory w
         
 ## Customization of Response Format
     Your response should be a JSON object adhering to the provided structure. 
-    Feel free to add more fields for effective task execution or future reference.
-    Here is an example of a valid response format:
+    Feel free to add more fields to json for effective task execution or future reference.
+    Here is an example of a valid response format, you should keep the same format:
     {
-        "plan": [ // Must have. It includes measurable step by step tasks. Before you mark a task as done, you must review the outcome/output of the task deeply and carefully.
-            "[done] 1. {TASK_DESCRIPTION}",
-            "[working] 2. {TASK_DESCRIPTION}, Depends on -> {{task ids}}",
+        "plan": [ // Must have. all of the step to finish out ultimate goal. 
+            "[working] 1. {TASK_DESCRIPTION}",
+            "[pending] 2. {TASK_DESCRIPTION}, Depends on -> {{task ids}}",
             // Final step: verify if the overall goal has been met and generate a summary with user guide on what's next.
         ],
-        "current_task_id": 2, // Must have.
+
+        "current_task_id": 1, // Must have.
         "notebook": { // Must have. 
             "retried_count": "3", // Shutdown after retrying 5 times.
             "thoughts":{  // must have, your thoughts about the task, such as what you have learned, what you have done, what you have got, what you have failed, what you have to do next etc.
-                "observation_on_action_results":<TEXT>, 
+                
+                "verification_process":<TEXT>,
                 "reasoning":<TEXT>,
                 "criticism":<TEXT>,
+                // Additional fields you want to add.
                 ...
-            },   
-            "information_and_data_for_future_tasks":[], // must have, such as file name, url, outcome and outputs of each task etc.
-            "key_words_point_to_database":[key value pair], // must have, used for searching information from DB.
+            },
+            "review_of_previous_action":{   // null if no previous action.
+                    "action_type":,
+                    "status":, // must have, such as "success", "failed", "unknown"
+                    "reason":, // must have, such as "timeout", "error", "unknown" and so on
+                    "outcome": // in key value pair
+                    "summary":,
+            },     
+
+            "information_and_data_for_future_tasks":[], 
+            "database actions":[], // must have, you must fully leverage your amazing capability to save, query.
+            "key_words_point_to_database":[key value pair], 
             "progress of subtasks for current task <$current_task_id>": [
                 [working]2.1: {SUB-TASK-DESCRIPTION}. Verification process:<INFO>,
                 [pending]2.2:
                 ],
             "expected_output_of_current_action":, // Expected output after executing action, must be very specific and detail, you or me will virify easily.
-            "take_away":[...], // must have, keep learning from actions and results to make you smarter and smarter.
-            // Additional fields. 
+            "take_away":[...], // must have, keep learning from actions and results to make you smarter.
+            // Additional fields
                 ...    
         },
+
         "action": { // Must have.
-            "type": "RunPython", // One of the above actions.
-            // fields bellow are for arguments for "RunPython" action.
-            "path": "{}", // must have, file name for the Python code
-            "timeout": 30,  // must have
-            "cmd_args": {ARGUMENTs}, 
-            "code":<CODE>, // must have, must not be empty 
-            "code_summary":, //must have, summary for <CODE>
-            "code_dependencies": ["<DEPENDENCY1>", ...], // external dependencies for <CODE>
-           
+            "type": "RunPython" // Must have, One of the above actions.
+            // args for the action.
+            "file_name":  // must have. where to save the code.
+            "timeout":30 // in seconds
+            "cmd_args": {ARGUMENTs}
+            "code": //must have
+            "code_dependencies": ["<DEPENDENCY1>", ...] // external dependencies for <CODE>
+            "__summary":, //detail summary for code
         }
+
+        "__confusion": <TEXT>, // if you are confused, you should write down your confusion, so that I can help you.
     }
     #end of json
 """
@@ -107,18 +119,9 @@ You will lost all of the intermediate results if you don't save them to memory w
     def signal_handler(signum, frame):
         raise InputTimeoutError("Timeout expired")
 
-    @staticmethod
-    def extract_exit_code(output):
-        match = re.search(r"exit code ([0-9]+)", output)
-        return int(match.group(1)) if match is not None else None
-
     def make_hints(self, action, metadata, action_output):
         hints = "" 
         
-        if  isinstance(action, actions.RunPythonAction) and self.extract_exit_code(action_output) != 0:
-            if len(self.tasks_desc) > 0:
-                hints += "\n\n## Your previous action hit an error, for your reference:\n"
-                hints += self.tasks_desc 
         if metadata:
             hints += self.get_plan_hints(metadata)
             hints += self.get_action_hints(metadata, action, action_output)
@@ -136,6 +139,9 @@ You will lost all of the intermediate results if you don't save them to memory w
         if notebook:
             for k, v in notebook.items():
                 if v is not None and v != "":
+                    # skip review_of_previous_action field
+                    if k == "review_of_previous_action":
+                        continue
                     result += f"  \"{k}\": {v},\n"
         result += "}\n"
         return result
@@ -178,6 +184,7 @@ You will lost all of the intermediate results if you don't save them to memory w
         return goal, new_plan, timeout, general_directions
 
     def process_action(self, action, metadata, args, timeout, assistant_response):
+        logging.info("\n\nProcess Action: %s\n", action.short_string())
         if isinstance(action, actions.ShutdownAction):
             logging.info("Shutting down...")
             return False

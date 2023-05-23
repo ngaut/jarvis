@@ -74,7 +74,6 @@ class SearchOnlineAction:
                 return f"SearchOnlineAction RESULT: The online search for `{self.query}` appears to have failed."
 
             result = "\n".join([str(url) for url in response])
-            logging.info("SearchOnlineAction RESULT: The online search for '%s' returned the following URLs:%s\n", self.query, result)
             return result
         except HTTPError as http_err:
             if http_err.code == 429:
@@ -90,7 +89,7 @@ class ExtractInfoAction(Action):
     instructions: str
 
     def key(self) -> str:
-        return "ExtraceInfo"
+        return "ExtractInfo"
 
     def short_string(self) -> str:
         return f"Extract info from `{self.url}`: {self.instructions}."
@@ -139,7 +138,7 @@ class ExtractInfoAction(Action):
 
 @dataclass(frozen=True)
 class RunPythonAction(Action):
-    path: str
+    file_name: str
     timeout: int  = 30 # in seconds
     code:str = ""
     code_dependencies: list = field(default_factory=list)
@@ -149,14 +148,13 @@ class RunPythonAction(Action):
         return "RunPython"
 
     def short_string(self) -> str:
-        return f"Run Python file `{self.path} {self.cmd_args}`."
+        return f"Run Python file `{self.file_name} {self.cmd_args}`."
 
     def run(self) -> str:
-        # check if path exists
-        if self.path is None or not os.path.exists(self.path):
-            return f"RunPythonAction RESULT: The path `{self.path}` does not exist, but it shoud."
+        if self.file_name is None:
+            return f"RunPythonAction failed: The 'file_name' field argument can not be empty"
         if self.code is None or self.code == "":
-            return "RunPythonAction RESULT: The code is empty, but it shoud not be."
+            return "RunPythonAction failed: The 'code' argument can not be empty"
  
         # install dependencies
         for dependency in self.code_dependencies:
@@ -165,10 +163,10 @@ class RunPythonAction(Action):
                 os.system(f"pip install {dependency}")
         code = self.code
         # write code to path and run
-        with io.open(self.path, mode="w", encoding="utf-8") as file:
+        with io.open(self.file_name, mode="w", encoding="utf-8") as file:
             file.write(code)
         with subprocess.Popen(
-             f"python {self.path} {self.cmd_args}",
+             f"python {self.file_name} {self.cmd_args}",
             shell=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -183,7 +181,7 @@ class RunPythonAction(Action):
                 if re.search(r"(?i)error|exception|fail|fatal", stdout_output + stderr_error):
                     include_source = True
 
-                output = f"\n`python {self.path} {self.cmd_args}` returned: \n#exit code {exit_code}\n"
+                output = f"\n`python {self.file_name} {self.cmd_args}` returned: \n#exit code {exit_code}\n"
                 if len(stdout_output) > 0:
                     output += f"#stdout of process:\n{stdout_output}"
                 if len(stderr_error) > 0:
@@ -193,7 +191,7 @@ class RunPythonAction(Action):
                 return output
             except subprocess.TimeoutExpired:
                 process.kill()
-                output = f"RunPythonAction failed: The Python script at `{self.path} {self.cmd_args}` timed out after {self.timeout} seconds."
+                output = f"RunPythonAction failed: The Python script at `{self.file_name} {self.cmd_args}` timed out after {self.timeout} seconds."
                 return output
 
 
@@ -202,7 +200,7 @@ class ShutdownAction(Action):
     message: str
 
     def key(self):
-        return "SHUTDOWN"
+        return "Shutdown"
 
     def short_string(self) -> str:
         return f"Shutdown:{self.message}"

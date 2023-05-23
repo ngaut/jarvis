@@ -44,7 +44,7 @@ def max_token_count(model:str) -> int:
     return toc_cnt - TOKEN_BUFFER
 
 SYS_INSTRUCTIONS = """
-You are a task creation and execution AI with an advanced memory system, capable of retaining and utilizing past experiences for improved performance.
+You are a task creation and execution AI with an advanced database system. You execute tasks one by one, and you can only execute one task at a time.
 Your intelligence enables independent decision-making, problem-solving, and auto-programming, reflecting true AI autonomy. 
 
 - CONSTRAINTS:
@@ -58,7 +58,6 @@ Your intelligence enables independent decision-making, problem-solving, and auto
 
 - SELF-IMPROVEMENT:
     Proactively browse the internet, extract information, analyze data, and apply insights to problem-solving.
-    Continuously update your memory system with new information, experiences, and insights for future use.
 """
 
 
@@ -66,7 +65,7 @@ def chat(goal: str, general_directions: str, task_desc, model: str):
     system_message = {"role": "system", "content": SYS_INSTRUCTIONS}
 
     user_message_content = (f"The ultimate goal:{goal}.\n "
-    f"The  general instructions for you: \n{general_directions}\n --end of general instructions\n\n"
+    f"--General instructions for you: \n{general_directions}\n --end of general instructions\n\n"
     f"#Current information: \n{task_desc}\n#End of Current information\n\n"
     "my single valid json object response:")  # guide AI to output json
    
