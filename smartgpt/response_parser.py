@@ -56,10 +56,7 @@ def parse(text: str) -> Tuple[Optional[actions.Action], Optional[Metadata]]:
         action = None
         if action_data:
             action = actions.Action.from_dict(action_data)
-        
-        if action is None:
-            action = actions.Action.from_dict(data)
-
+    
         # Parse the metadata
         metadata = parse_metadata(data)
         return action, metadata

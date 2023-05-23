@@ -49,11 +49,10 @@ You will lost all of the intermediate results if you don't save them to memory w
         "notebook": { // Must have. 
             "retried_count": "3", // Shutdown after retrying 5 times.
             "thoughts":{  // must have, your thoughts about the task, such as what you have learned, what you have done, what you have got, what you have failed, what you have to do next etc.
-                "observations":,
+                "observation_on_action_results":,
                 "text":,
                 "reasoning",
                 "criticism",
-                "concerns",
                 ...
             },   
             "information_and_data_for_future_tasks":[], // must have, such as file name, url, outcome and outputs of each task etc.
@@ -117,7 +116,7 @@ You will lost all of the intermediate results if you don't save them to memory w
             if metadata.notebook:
                 self.notebook = self.extract_notebook(metadata)
 
-        hints += f"\n## Your previous notebook snapshot:\n{self.notebook}" if self.notebook else ""
+        hints += f"\n## Your previous notebook:\n{self.notebook}" if self.notebook else ""
 
         self.tasks_desc = hints
 
@@ -127,7 +126,7 @@ You will lost all of the intermediate results if you don't save them to memory w
 
     @staticmethod
     def get_plan_hints(metadata):
-        return "\n\n## The previous plan snapshot:\n" + "\n".join([f"  - {task}" for task in metadata.plan]) + "\n" if metadata.plan else ""
+        return "\n\n## The previous plan:\n" + "\n".join([f"  - {task}" for task in metadata.plan]) + "\n" if metadata.plan else ""
 
     @staticmethod
     def get_action_hints(metadata, action, action_output):
@@ -228,7 +227,7 @@ You will lost all of the intermediate results if you don't save them to memory w
                     f"Original goal: {goal}\n" +
                     "Original plan: \n" +
                     f"{metadata.plan}\n" +
-                    "Proposed change to the plan: \n" +
+                    "Proposed changes to the plan: \n" +
                     f"{new_plan}\n\n" +
                     "Please provide a revised goal that corresponds with this proposed change in the plan. Only state the revised goal.",
                     base_model

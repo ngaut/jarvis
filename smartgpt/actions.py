@@ -1,5 +1,6 @@
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
 import io, subprocess, os, inspect, json, logging, time, re
 import gpt
 from spinner import Spinner
@@ -138,9 +139,9 @@ class ExtractInfoAction(Action):
 class RunPythonAction(Action):
     path: str
     timeout: int  # in seconds
-    cmd_args: str
-    code:str
-    code_dependencies: list
+    code:str = ""
+    code_dependencies: list = field(default_factory=list)
+    cmd_args: str = ""
 
     def key(self) -> str:
         return "RUN_PYTHON"
