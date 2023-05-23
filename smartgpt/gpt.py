@@ -65,12 +65,10 @@ Your intelligence enables independent decision-making, problem-solving, and auto
 def chat(goal: str, general_directions: str, task_desc, model: str):
     system_message = {"role": "system", "content": SYS_INSTRUCTIONS}
 
-    user_message_content = (
-        f"## Ultimate Goal: {goal}\n\n"
-        f"## General Instructions:\n{general_directions}\n"
-        f"## Current Task:\n{task_desc}\n"
-        f"## JSON Response Template:\n\n"  # guide AI to output json
-    )
+    user_message_content = (f"The ultimate goal:{goal}.\n "
+    f"The  general instructions for you: \n{general_directions}\n --end of general instructions\n\n"
+    f"#Current information: \n{task_desc}\n#End of Current information\n\n"
+    "my single valid json object response:")  # guide AI to output json
    
     user_message = {"role": "user", "content": user_message_content}
 
