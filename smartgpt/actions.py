@@ -249,7 +249,9 @@ class DbQueryAction(Action):
     def run(self) -> str:
         conn = sqlite3.connect('my_database.db')
         c = conn.cursor()
-
+        # Ensure the table is created
+        c.execute('''CREATE TABLE IF NOT EXISTS kvstore
+                    (key text primary key, value text)''')
         c.execute("SELECT value FROM kvstore WHERE key=?", (self.k,))
 
         row = c.fetchone()

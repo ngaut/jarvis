@@ -9,7 +9,7 @@ import ruamel.yaml as yaml
 
 base_model  = gpt.GPT_3_5_TURBO
 #    You must execute each task in a step-by-step manner, and verify the outcome of each step before moving on to the next step.
-
+#    "information_and_data_for_future_tasks":[], 
 
 class InputTimeoutError(Exception):
     pass
@@ -17,11 +17,17 @@ class InputTimeoutError(Exception):
 class Assistant:
 
     GENERAL_DIRECTIONS_PREFIX = """
-Note: I will not send conversation history to you, so you must save anything you need for future tasks by yourself.
-    When you make or refresh plan, you must understand the task requirements and context first. 
+Note: user won't send conversation history to you, so you must save anything you need for future tasks by yourself.
+    When you make planing, you must understand the task requirements and context first. 
     Please consider success criteria, dependencies, constraints and potential unexpected outcomes.
+    Be aware you only have previous action result and database to use, you can't access to user's conversation history.
+    So you can use database to save information for passing to next task.
 
 ## ACTIONS:
+    The following actions are executed by other different agents, you can use them to achieve your goal.
+    After the action is executed, the result will send to you with context in next turn.
+
+
     The "RunPython" command executes as follows: 
         write python code to a file, then run the file with the command "python {file_name} {cmd_args}".
     {"type": "RunPython", "FILE_NAME": "<TEXT>", "timeout": "<TIMEOUT>", "cmd_args": "[TEXT]", "code": "<TEXT>"}
@@ -29,13 +35,14 @@ Note: I will not send conversation history to you, so you must save anything you
     // You last step. Summary of all steps you have done and what's next to do for user.
     {"type": "Shutdown", "summary": "<TEXT>"} 
 
-    {"type": "SearchOnline", "query": "<QUERY>"}     // used to conduct online searches and retrieve relevant URLs for the query.
+    // used to conduct online searches and retrieve relevant URLs for the query.
+    {"type": "SearchOnline", "query": "<QUERY>"}
     
     {"type": "ExtractInfo", "url": "<URL>", "instructions": "<INSTRUCTIONS>"}     //to extract specific information from a URL.
     
     // database-related actions, You must fully leverage your amazing capability to save, query:
-    {"type": "DbUpsert", kvs: [{"k": "<KEY>", "v": "<json_value>"}...]} // insert or update records in the database.
-    {"type": "DbQuery", "k": "<KEY>"}   // query records from the database.
+    {"type": "DbUpsert", kvs: [{"k": "<TEXT>", "v": <JSON>}...]} // insert or update records in the database.
+    {"type": "DbQuery", "k": "<TEXT>"}   // query records from the database.
 
 ## Resources:
     A huge database is available to you, including:
@@ -46,54 +53,48 @@ Note: I will not send conversation history to you, so you must save anything you
     Feel free to add more fields to json for effective task execution or future reference.
     Here is an example of a valid response format, you should keep the same format:
     {
-        "plan": [ // Must have. all of the step to finish out ultimate goal. 
+        "plan": [ // Must have. A detailed step by step task to finish out ultimate goal. 
             "[working] 1. {TASK_DESCRIPTION}",
-            "[pending] 2. {TASK_DESCRIPTION}, Depends on -> {{task ids}}",
+            "[todo] 2. {TASK_DESCRIPTION}, Depends on -> {{task ids}}",
             // Final step: verify if the overall goal has been met and generate a summary with user guide on what's next.
         ],
 
-        "current_task_id": 1, // Must have.
+        "current_task_id": "1", // Must have.
 
-        "notebook": { // Must have. 
-            "retried_count": "3", // Shutdown after retrying 5 times.
-            "thoughts":{  // must have, your thoughts about the task, such as what you have learned, what you have done, what you have got, what you have failed, what you have to do next etc.
-                "verification_process":<TEXT>,
-                "reasoning":<TEXT>,
-                "criticism":<TEXT>,
-                // Additional fields you want to add.
-                ...
-            },
-            "review_of_previous_action":{   // null if no previous action.
-                    "action_type":,
-                    "status":, // must have, such as "success", "failed", "unknown"
-                    "failed_reason":, // must have, such as "timeout", "error", "unknown" and so on
-                    "outcome": // in key value pair
-                    "summary":,
-            },     
-
-            "information_and_data_for_future_tasks":[], 
-            "database actions":[], // must have, you must fully leverage your amazing capability to save, query.
-            "key_words_point_to_database":[key value pair], 
-            "progress of subtasks for current task <$current_task_id>": [
-                [working]2.1: {SUB-TASK-DESCRIPTION}. Verification process:<INFO>,
-                [pending]2.2:
-                ],
-            "expected_output_of_current_action":, // Expected output after executing action, must be very specific and detail, you or me will virify easily.
-            "take_away":[...], // must have, keep learning from actions and results to make you smarter.
-            // Additional fields
-                ...    
-        }, //end of notebook
-
-        "action": { // Must have.
-            "type": "RunPython" // Must have, One of the above actions.
+         "action": { // Must have.
+            "type": "RunPython" // Must have, One of the above action types.
             // args for the action.
             "file_name":  // must have. where to save the code.
             "timeout":30 // in seconds
             "cmd_args": {ARGUMENTs}
-            "code": // pattern = r"^import, must have
+            "code": // pattern = r"^import", must have
             "code_dependencies": ["<DEPENDENCY1>", ...] // external dependencies for <CODE>
             "__summary":, //detail summary for code
-        }
+        },
+
+        "notebook": { // Must have. 
+            "retried_count": 3, // Shutdown after retrying 5 times.
+            "thoughts":{  // must have, your thoughts about the task, such as what you have learned, what you have done, what you have got, what you have failed, what you have to do next etc.
+                "verification_process":<TEXT>,
+                "reasoning":<TEXT>,
+                "criticism":<TEXT>,
+            },
+            "review_of_previous_action":{   // must have.
+                    "action_type":,
+                    "status":, // must have, such as "success", "failed", "unknown"
+                    "failed_reason":, // must have if status is "failed"
+                    "action_to_take":{"type":"DbUpsert", other fields}, // save outcome and important information to database for future use. also make sure restartable.
+                    "summary":,
+            },     
+
+            "progress of subtasks for current task <$current_task_id>": [
+                [working]2.1: {SUB-TASK-DESCRIPTION}. Verification process:<INFO>,
+                [todo]2.2:
+                ],
+            "expected_output_of_current_action":, // Expected output after executing action, must be very specific and detail, you or me will virify easily.
+            // Additional fields
+                ...    
+        } 
     }
     #end of json
 """

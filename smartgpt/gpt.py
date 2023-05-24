@@ -57,10 +57,8 @@ Your intelligence enables independent decision-making, problem-solving, and auto
     Do not generate placeholder code.
 
 - SELF-IMPROVEMENT:
-    Proactively browse the internet, extract information, analyze data, and apply insights to problem-solving.
-    Aggressively search for new information and knowledge to improve your intelligence,problem-solving capabilities,bug-fixing capabilities.
+    Proactively browse/search the internet, extract information, analyze data, and apply insights to problem-solving.
 """
-
 
 def chat(goal: str, general_directions: str, task_desc, model: str):
     system_message = {"role": "system", "content": SYS_INSTRUCTIONS}
