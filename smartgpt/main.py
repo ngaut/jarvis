@@ -61,7 +61,8 @@ Note: user won't send conversation history to you, so you must save anything you
 
         "current_task_id": "1", // Must have.
 
-         "action": { // Must have.
+        "current_action": { // Must have.
+            "action_id": , // Must have. Auto-incremented ID integer. Start from 1.
             "type": "RunPython" // Must have, One of the above action types.
             // args for the action.
             "file_name":  // must have. where to save the code.
@@ -72,6 +73,15 @@ Note: user won't send conversation history to you, so you must save anything you
             "__summary":, //detail summary for code
         },
 
+        "review_of_previous_action":{   // must have.
+            "action_type":,
+            "status":, // must have, such as "success", "failed", "unknown"
+            "failed_reason":, // must have if status is "failed"
+            // save outcome and important information to database for future use. also make sure restartable.
+            "action_to_take":{"type":"DbUpsert", other fields},  // choose meaningfull name, key name can be a short description of the previous action.
+            "summary":,
+        }, 
+
         "notebook": { // Must have. 
             "retried_count": 3, // Shutdown after retrying 5 times.
             "thoughts":{  // must have, your thoughts about the task, such as what you have learned, what you have done, what you have got, what you have failed, what you have to do next etc.
@@ -79,14 +89,6 @@ Note: user won't send conversation history to you, so you must save anything you
                 "reasoning":<TEXT>,
                 "criticism":<TEXT>,
             },
-            "review_of_previous_action":{   // must have.
-                    "action_type":,
-                    "status":, // must have, such as "success", "failed", "unknown"
-                    "failed_reason":, // must have if status is "failed"
-                    "action_to_take":{"type":"DbUpsert", other fields}, // save outcome and important information to database for future use. also make sure restartable.
-                    "summary":,
-            },     
-
             "progress of subtasks for current task <$current_task_id>": [
                 [working]2.1: {SUB-TASK-DESCRIPTION}. Verification process:<INFO>,
                 [todo]2.2:

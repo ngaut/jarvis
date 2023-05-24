@@ -43,7 +43,8 @@ class Action(ABC):
 
         return action_class(**constructor_args)
 
-
+    def id(self) -> int:
+        raise NotImplementedError
 
     def key(self) -> str:
         raise NotImplementedError
@@ -59,11 +60,15 @@ class Action(ABC):
 
 @dataclass(frozen=True)
 class SearchOnlineAction:
+    action_id: int
     query: str
     
     def key(self):
         return "SearchOnline"
 
+    def id(self) -> int:
+        return self.action_id
+    
     def short_string(self):
         return f"Search online for `{self.query}`."
 
@@ -85,12 +90,16 @@ class SearchOnlineAction:
 
 @dataclass(frozen=True)
 class ExtractInfoAction(Action):
+    action_id: int
     url: str
     instructions: str
 
     def key(self) -> str:
         return "ExtractInfo"
 
+    def id(self) -> int:
+        return self.action_id
+    
     def short_string(self) -> str:
         return f"Extract info from `{self.url}`: {self.instructions}."
 
@@ -138,6 +147,7 @@ class ExtractInfoAction(Action):
 
 @dataclass(frozen=True)
 class RunPythonAction(Action):
+    action_id: int
     file_name: str
     timeout: int  = 30 # in seconds
     code:str = ""
@@ -147,6 +157,9 @@ class RunPythonAction(Action):
     def key(self) -> str:
         return "RunPython"
 
+    def id(self) -> int:
+        return self.action_id
+    
     def short_string(self) -> str:
         return f"Run Python file `{self.file_name} {self.cmd_args}`."
 
@@ -197,11 +210,15 @@ class RunPythonAction(Action):
 
 @dataclass(frozen=True)
 class ShutdownAction(Action):
+    action_id: int
     summary: str
 
     def key(self):
         return "Shutdown"
-
+    
+    def id(self) -> int:
+        return self.action_id
+    
     def short_string(self) -> str:
         return f"Shutdown:{self.summary}"
 
@@ -212,11 +229,15 @@ class ShutdownAction(Action):
 
 @dataclass(frozen=True)
 class DbUpsertAction(Action):
+    action_id: int
     kvs: List[Dict[str, Union[str, dict]]]
 
     def key(self) -> str:
         return "DbUpsert"
 
+    def id(self) -> int:
+        return self.action_id
+    
     def short_string(self) -> str:
         return f"Upsert keys and values into the database."
 
@@ -238,10 +259,14 @@ class DbUpsertAction(Action):
 
 @dataclass(frozen=True)
 class DbQueryAction(Action):
+    action_id: int
     k: str
 
     def key(self) -> str:
         return "DbQuery"
+    
+    def id(self) -> int:
+        return self.action_id
 
     def short_string(self) -> str:
         return f"Query the value of `{self.k}` from the database."
