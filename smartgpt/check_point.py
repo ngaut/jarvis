@@ -7,9 +7,10 @@ from peewee import DoesNotExist
 
 
 class Checkpoint(Model):
-    goal = TextField(index=True)
-    task_description = TextField(index=True)
+    goal = TextField()
+    task_description = TextField()
     created_at = DateTimeField(default=datetime.datetime.now)
+    response_from_ai = TextField()
 
     # The Meta class is now empty, we will set the database later
     class Meta:
@@ -25,9 +26,9 @@ class CheckpointDatabase:
         self.db.connect()
         self.db.create_tables([Checkpoint])
 
-    def save_checkpoint(self, task_description: str, goal:str):
+    def save_checkpoint(self, task_description: str, goal:str, response_from_ai: str):
         try:
-            checkpoint = Checkpoint(task_description=task_description, goal=goal)
+            checkpoint = Checkpoint(task_description=task_description, goal=goal, response_from_ai=response_from_ai)
             checkpoint.save()
         except Exception as e:
             logging.info(f"An error occurred while trying to save a checkpoint: {e}")

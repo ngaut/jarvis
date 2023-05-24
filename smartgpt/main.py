@@ -10,6 +10,8 @@ import ruamel.yaml as yaml
 base_model  = gpt.GPT_3_5_TURBO
 #    You must execute each task in a step-by-step manner, and verify the outcome of each step before moving on to the next step.
 #    "information_and_data_for_future_tasks":[], 
+#    "verification_process":<TEXT>,
+
 
 class InputTimeoutError(Exception):
     pass
@@ -54,7 +56,7 @@ Note: user won't send conversation history to you, so you must save anything you
     Here is an example of a valid response format, you should keep the same format:
     {
         // Must have. A detailed step by step task to finish out ultimate goal. Mark the current task with [working] prefix.
-        // Mark previous tasks with [done] or [failed] prefix, and mark future tasks with [todo] prefix.
+        // If a task done or failed mark it with [done] or [failed] prefix, and mark future tasks with [todo] prefix.
         "plan": [ 
             "[working] 1. {TASK_DESCRIPTION}",
             "[todo] 2. {TASK_DESCRIPTION}, Depends on -> {{task ids}}",
@@ -63,8 +65,8 @@ Note: user won't send conversation history to you, so you must save anything you
 
         "current_task_id": "1", // Must have.
 
-        "current_action": { // Must have.
-            "action_id": , // action_id = previous_action_id + 1
+        "current_action": { // Must have. must not empty
+            "action_id": action_id++, // Must have. 
             "type": "RunPython" // Must have, One of the above action types.
             // args for the action.
             "file_name":  // must have. where to save the code.
@@ -75,20 +77,9 @@ Note: user won't send conversation history to you, so you must save anything you
             "__summary":, //detail summary for code
         },
 
-        "review_of_previous_action_result":{   // must have.
-            "action_id":,   // must have, previous action id.
-            "action_type":,
-            "status":, // must have, such as "success", "failed", "unknown"
-            "failed_reason":, // if status is "failed"
-            // save outcome and important information to database for future use. also make sure restartable.
-            "action_to_take":{"type":"DbUpsert", other fields},  // choose meaningfull name, key name can be a short description of the previous action.
-            "summary":,
-        }, 
-
         "notebook": { // Must have. 
             "retried_count": 3, // Shutdown after retrying 5 times.
             "thoughts":{  // must have, your thoughts about the task, such as what you have learned, what you have done, what you have got, what you have failed, what you have to do next etc.
-                "verification_process":<TEXT>,
                 "reasoning":<TEXT>,
                 "criticism":<TEXT>,
             },
@@ -97,6 +88,17 @@ Note: user won't send conversation history to you, so you must save anything you
                 [todo]2.2:
                 ],
             "expected_output_of_current_action":, // Expected output after executing action, must be very specific and detail, you or me will virify easily.
+            
+            "review_of_previous_action_result":{   // must have.
+                "previous_action_id":,   // must have
+                "action_desc":,
+                "status":, // must have, such as "success", "failed", "unknown"
+                "failed_reason":, // if status is "failed"
+                // save outcome and important information to database for future use. also make sure restartable.
+                "data_need_to_save":{"type":"DbUpsert", other fields},  // choose meaningfull name, key name can be a short description of the previous action.
+                "summary":,
+            }, 
+            
             // Additional fields
                 ...    
         } 
@@ -128,11 +130,11 @@ Note: user won't send conversation history to you, so you must save anything you
         
         if metadata:
             hints += self.get_plan_hints(metadata)
-            hints += self.get_action_hints(metadata, action, action_output)
+            if action:
+                hints += self.get_action_hints(metadata, action, action_output)
             if metadata.notebook:
                 self.notebook = self.extract_notebook(metadata)
-
-        hints += f"\n## Your previous notebook:\n{self.notebook}" if self.notebook else ""
+                hints += f"\n## Your previous notebook:\n{self.notebook}" if self.notebook else ""
 
         self.tasks_desc = hints
 
@@ -188,7 +190,7 @@ Note: user won't send conversation history to you, so you must save anything you
         return goal, new_plan, timeout, general_directions
 
     def process_action(self, action, metadata, args, timeout, assistant_response):
-        logging.info("\n\nProcess Action: %s\n", action.short_string())
+        action_output = ""
         if isinstance(action, actions.ShutdownAction):
             logging.info("Shutting down...")
             return False
@@ -198,11 +200,11 @@ Note: user won't send conversation history to you, so you must save anything you
                 return False   
         if action is not None:
             action_output = action.run()
+            logging.info(f"\n\nAction: %s, output: %s\n\n", action.short_string(), action_output)
         else:
-            self.tasks_desc = f"failed to parse assistant response, is it valid json: {assistant_response}"
-            return True
+            logging.info("\n\nNo action to run, response is not valid json or missing fields\n\n")
+            self.tasks_desc = f"failed to parse response, is it valid json or missing fields? please review: {assistant_response}"
         
-        logging.info(f"\n\nAction: %s, output: %s\n\n", action.short_string(), action_output)
         self.make_hints(action, metadata, action_output)
             
         return True
@@ -235,12 +237,11 @@ Note: user won't send conversation history to you, so you must save anything you
                 if not self.process_action(action, metadata, args, timeout, assistant_resp):
                     break
                 # saving the checkpoint after every iteration
-                checkpoint_db.save_checkpoint(self.tasks_desc, goal)
+                checkpoint_db.save_checkpoint(self.tasks_desc, goal, assistant_resp)
 
             except Exception as err:
                 logging.error("Error in main: %s", err)
                 self.make_hints(action, metadata, str(err))
-                checkpoint_db.save_checkpoint(self.tasks_desc, goal)
                 time.sleep(1)
 
                 continue
