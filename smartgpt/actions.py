@@ -70,7 +70,7 @@ class SearchOnlineAction:
         return self.action_id
     
     def short_string(self):
-        return f"Search online for `{self.query}`."
+        return f"action_id: {self.id()}, Search online for `{self.query}`."
 
     def run(self):
         try:
@@ -101,7 +101,7 @@ class ExtractInfoAction(Action):
         return self.action_id
     
     def short_string(self) -> str:
-        return f"Extract info from `{self.url}`: {self.instructions}."
+        return f"action_id: {self.id()}, Extract info from `{self.url}`: {self.instructions}."
 
     def run(self) -> str:
         with Spinner("Reading website..."):
@@ -161,7 +161,7 @@ class RunPythonAction(Action):
         return self.action_id
     
     def short_string(self) -> str:
-        return f"Run Python file `{self.file_name} {self.cmd_args}`."
+        return f"action_id: {self.id()}, Run Python file `{self.file_name} {self.cmd_args}`."
 
     def run(self) -> str:
         if self.file_name is None:
@@ -220,7 +220,7 @@ class ShutdownAction(Action):
         return self.action_id
     
     def short_string(self) -> str:
-        return f"Shutdown:{self.summary}"
+        return f"action_id: {self.id()}, Shutdown:{self.summary}"
 
     def run(self) -> str:
         # This action is treated specially, so this can remain unimplemented.
@@ -239,7 +239,7 @@ class DbUpsertAction(Action):
         return self.action_id
     
     def short_string(self) -> str:
-        return f"Upsert keys and values into the database."
+        return f"action_id: {self.id()}, Upsert keys and values into the database."
 
     def run(self) -> str:
         conn = sqlite3.connect('my_database.db')
@@ -269,7 +269,7 @@ class DbQueryAction(Action):
         return self.action_id
 
     def short_string(self) -> str:
-        return f"Query the value of `{self.k}` from the database."
+        return f"action_id: {self.id()}, Query the value of `{self.k}` from the database."
 
     def run(self) -> str:
         conn = sqlite3.connect('my_database.db')

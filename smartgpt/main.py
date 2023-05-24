@@ -53,7 +53,9 @@ Note: user won't send conversation history to you, so you must save anything you
     Feel free to add more fields to json for effective task execution or future reference.
     Here is an example of a valid response format, you should keep the same format:
     {
-        "plan": [ // Must have. A detailed step by step task to finish out ultimate goal. 
+        // Must have. A detailed step by step task to finish out ultimate goal. Mark the current task with [working] prefix.
+        // Mark previous tasks with [done] or [failed] prefix, and mark future tasks with [todo] prefix.
+        "plan": [ 
             "[working] 1. {TASK_DESCRIPTION}",
             "[todo] 2. {TASK_DESCRIPTION}, Depends on -> {{task ids}}",
             // Final step: verify if the overall goal has been met and generate a summary with user guide on what's next.
@@ -62,7 +64,7 @@ Note: user won't send conversation history to you, so you must save anything you
         "current_task_id": "1", // Must have.
 
         "current_action": { // Must have.
-            "action_id": , // Must have. Auto-incremented ID integer. Start from 1.
+            "action_id": , // action_id = previous_action_id + 1
             "type": "RunPython" // Must have, One of the above action types.
             // args for the action.
             "file_name":  // must have. where to save the code.
@@ -73,10 +75,11 @@ Note: user won't send conversation history to you, so you must save anything you
             "__summary":, //detail summary for code
         },
 
-        "review_of_previous_action":{   // must have.
+        "review_of_previous_action_result":{   // must have.
+            "action_id":,   // must have, previous action id.
             "action_type":,
             "status":, // must have, such as "success", "failed", "unknown"
-            "failed_reason":, // must have if status is "failed"
+            "failed_reason":, // if status is "failed"
             // save outcome and important information to database for future use. also make sure restartable.
             "action_to_take":{"type":"DbUpsert", other fields},  // choose meaningfull name, key name can be a short description of the previous action.
             "summary":,
@@ -140,8 +143,8 @@ Note: user won't send conversation history to you, so you must save anything you
         if notebook:
             for k, v in notebook.items():
                 if v is not None and v != "":
-                    # skip review_of_previous_action field
-                    if k == "review_of_previous_action":
+                    # skip review_of_previous_action_result field
+                    if k == "review_of_previous_action_result":
                         continue
                     result += f"  \"{k}\": {v},\n"
         result += "}\n"
