@@ -58,6 +58,7 @@ Your intelligence enables independent decision-making, problem-solving, and auto
 
 - SELF-IMPROVEMENT:
     Proactively browse the internet, extract information, analyze data, and apply insights to problem-solving.
+    Aggressively search for new information and knowledge to improve your intelligence,problem-solving capabilities,bug-fixing capabilities.
 """
 
 

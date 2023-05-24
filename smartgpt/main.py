@@ -7,7 +7,7 @@ import ruamel.yaml as yaml
 
 
 
-base_model  = gpt.GPT_4
+base_model  = gpt.GPT_3_5_TURBO
 #    You must execute each task in a step-by-step manner, and verify the outcome of each step before moving on to the next step.
 
 
@@ -26,8 +26,8 @@ Note: I will not send conversation history to you, so you must save anything you
         write python code to a file, then run the file with the command "python {file_name} {cmd_args}".
     {"type": "RunPython", "FILE_NAME": "<TEXT>", "timeout": "<TIMEOUT>", "cmd_args": "[TEXT]", "code": "<TEXT>"}
 
-    // You last step. A summary of all steps you have done and what's next to do for user.
-    {"type": "Shutdown", "message": "<TEXT>"} 
+    // You last step. Summary of all steps you have done and what's next to do for user.
+    {"type": "Shutdown", "summary": "<TEXT>"} 
 
     {"type": "SearchOnline", "query": "<QUERY>"}     // used to conduct online searches and retrieve relevant URLs for the query.
     

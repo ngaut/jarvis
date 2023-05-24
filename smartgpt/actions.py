@@ -197,13 +197,13 @@ class RunPythonAction(Action):
 
 @dataclass(frozen=True)
 class ShutdownAction(Action):
-    message: str
+    summary: str
 
     def key(self):
         return "Shutdown"
 
     def short_string(self) -> str:
-        return f"Shutdown:{self.message}"
+        return f"Shutdown:{self.summary}"
 
     def run(self) -> str:
         # This action is treated specially, so this can remain unimplemented.
