@@ -52,7 +52,7 @@ def parse(text: str) -> Tuple[Optional[actions.Action], Optional[Metadata]]:
         data = json.loads(text[start:end+1])
 
         # Create an Action object from the action data (if it exists)
-        action_data = data.get("current_action")
+        action_data = data.get("next_action")
         action = None
         if action_data:
             action = actions.Action.from_dict(action_data)

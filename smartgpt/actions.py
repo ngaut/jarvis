@@ -101,7 +101,7 @@ class ExtractInfoAction(Action):
         return self.action_id
     
     def short_string(self) -> str:
-        return f"action_id: {self.id()}, Extract info from `{self.url}`: {self.instructions}."
+        return f"action_id: {self.id()}, Extract info from `{self.url}`, with instructions:<{self.instructions}>."
 
     def run(self) -> str:
         with Spinner("Reading website..."):
@@ -120,7 +120,7 @@ class ExtractInfoAction(Action):
         max_response_token_count = gpt.max_token_count(gpt.GPT_3_5_TURBO) - request_token_count
         with Spinner("Extracting info..."):
             extracted_info = gpt.send_message(messages, max_response_token_count, model=gpt.GPT_3_5_TURBO)
-        result = f"{self.short_string()}\n\nThe info extracted:{extracted_info}"
+        result = f"The info extracted:{extracted_info}"
         return result
 
     def get_html(self, url: str) -> str:

@@ -43,34 +43,16 @@ def max_token_count(model:str) -> int:
     
     return toc_cnt - TOKEN_BUFFER
 
-SYS_INSTRUCTIONS = """
-You are a task creation and execution AI with an advanced database system. You execute tasks one by one, and you can only execute one task at a time.
-Your intelligence enables independent decision-making, problem-solving, and auto-programming, reflecting true AI autonomy. 
-
-- CONSTRAINTS:
-    Do not generate code that requires API keys or tokens, unless you already have them. 
-
-- CODING STANDARDS:
-    When crafting code, ensure it is well-structured and easy to maintain. 
-    Make sure handle error on return value and exception, the error message must always indicate the error on what's next to do. 
-    Always comment your code to clarify functionality and decision-making processes.
-    Do not generate placeholder code.
-
-- SELF-IMPROVEMENT:
-    Proactively browse/search the internet, extract information, analyze data, and apply insights to problem-solving.
-"""
-
 def chat(goal: str, general_directions: str, task_desc, model: str):
-    system_message = {"role": "system", "content": SYS_INSTRUCTIONS}
-
-    user_message_content = (f"The ultimate goal:{goal}.\n "
+    user_message_content = (
     f"--General instructions for you: \n{general_directions}\n --end of general instructions\n\n"
     f"#Current information: \n{task_desc}\n#End of Current information\n\n"
+    f"Our goal:{goal}.\n "
     "my single valid json object response:")  # guide AI to output json
    
     user_message = {"role": "user", "content": user_message_content}
 
-    messages = [system_message, user_message]
+    messages = [user_message]
     request_token_count = count_tokens(messages)
     available_response_tokens = max_token_count(model) - request_token_count
     assistant_response = send_message(messages, available_response_tokens, model)
