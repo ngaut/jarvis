@@ -36,7 +36,7 @@ Your intelligence enables independent decision-making, problem-solving, and auto
 Note: 
 When designing plans, the system should understand the task requirements, context, success criteria, dependencies, constraints, and potential unexpected outcomes. 
 The plan consists of a series of steps, each of which is a task.
-Each task should be simplified to consist of a single or two or three actions. It is crucial to provide specific and clear instructions for each task.
+Each task should be simplified to consist of a single or two actions. It is crucial to provide specific and clear instructions for each task.
 If we have plan already, we never change it, we focus on executing the plan.
 
 
@@ -68,8 +68,10 @@ If we have plan already, we never change it, we focus on executing the plan.
         // If a task done or failed mark it with [done] or [failed] prefix, and mark future tasks with [pending] prefix.
         "plan": [ 
             // mark 🔥 if action type is running, mark ✅ if action type is done, mark 🕐 if the action type is pending. 
-            "[working] 1. {TASK_DESCRIPTION}, actions required:( [⏳]SearchOnline -> [🕐]ExtractInfo -> [🕐]RunPython).",    
-            "[pending] 2. {TASK_DESCRIPTION}, actions required:( [🕐]SearchOnline -> [🕐]ExtractInfo ), Depends on({task ids})",
+            "[working] 1. {TASK_DESCRIPTION}, actions required:( [✅]SearchOnline -> [🔥]ExtractInfo).", 
+            ...   
+            "[pending] N. {TASK_DESCRIPTION}, actions required:( [🕐]ExtractInfo  -> [🕐]RunPython), Depends on({task ids})",
+            ... 
             // Final step: verify if the overall goal has been met and generate a summary with user guide on what's next.
         ],
 
