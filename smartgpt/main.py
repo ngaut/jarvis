@@ -64,13 +64,13 @@ If we have plan already, we never change it, we focus on executing the plan.
     Feel free to add more fields to json for effective task execution or future reference.
     Here is an example of a valid response format, you should keep the same format:
     {
-        // Must have.  Mark the current task with [working] prefix.
-        // If a task done or failed mark it with [done] or [failed] prefix, and mark future tasks with [pending] prefix.
+        // Must have.  Mark the current task with [🔥] prefix.
+        // If a task done mark it with [✅] prefix, and mark future tasks with [🕐] prefix.
         "plan": [ 
             // mark 🔥 if action type is running, mark ✅ if action type is done, mark 🕐 if the action type is pending. 
-            "[working] 1. {TASK_DESCRIPTION}, actions required:( [✅]SearchOnline -> [🔥]ExtractInfo).", 
+            "[🔥] 1. {TASK_DESCRIPTION}, actions required:( [✅]SearchOnline -> [🔥]ExtractInfo).", 
             ...   
-            "[pending] N. {TASK_DESCRIPTION}, actions required:( [🕐]ExtractInfo  -> [🕐]RunPython), Depends on({task ids})",
+            "[🕐] N. {TASK_DESCRIPTION}, actions required:( [🕐]ExtractInfo  -> [🕐]RunPython), Depends on({task ids})",
             ... 
             // Final step: verify if the overall goal has been met and generate a summary with user guide on what's next.
         ],
