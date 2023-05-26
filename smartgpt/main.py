@@ -68,7 +68,7 @@ If we have plan already, we never change it, we focus on executing the plan.
         // If a task done or failed mark it with [done] or [failed] prefix, and mark future tasks with [pending] prefix.
         "plan": [ 
             // mark 🔥 if action type is running, mark ✅ if action type is done, mark 🕐 if the action type is pending. 
-            "[working] 1. {TASK_DESCRIPTION}, actions required:( [✅]SearchOnline -> [🔥]ExtractInfo -> [🕐]RunPython)",    
+            "[working] 1. {TASK_DESCRIPTION}, actions required:( [⏳]SearchOnline -> [🕐]ExtractInfo -> [🕐]RunPython).",    
             "[pending] 2. {TASK_DESCRIPTION}, actions required:( [🕐]SearchOnline -> [🕐]ExtractInfo ), Depends on({task ids})",
             // Final step: verify if the overall goal has been met and generate a summary with user guide on what's next.
         ],
