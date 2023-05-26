@@ -62,6 +62,7 @@ class Action(ABC):
 class SearchOnlineAction:
     action_id: int
     query: str
+    expect_outcome_of_action: str = ""
     
     def key(self):
         return "SearchOnline"
@@ -70,15 +71,15 @@ class SearchOnlineAction:
         return self.action_id
     
     def short_string(self):
-        return f"action_id: {self.id()}, Search online for `{self.query}`."
+        return f"action_id: {self.id()}, Search online for `{self.query}`, expect_outcome_of_action: `{self.expect_outcome_of_action}`."
 
     def run(self):
         try:
-            response = list(googlesearch.search(self.query, num=15, stop=15, pause=2))
+            response = list(googlesearch.search(self.query, num=20, pause=1))
             if response is None:
                 return f"SearchOnlineAction RESULT: The online search for `{self.query}` appears to have failed."
 
-            result = "\n".join([str(url) for url in response])
+            result = str(response)
             return result
         except HTTPError as http_err:
             if http_err.code == 429:
@@ -93,6 +94,8 @@ class ExtractInfoAction(Action):
     action_id: int
     url: str
     instructions: str
+    expect_outcome_of_action: str = ""
+
 
     def key(self) -> str:
         return "ExtractInfo"
@@ -101,7 +104,7 @@ class ExtractInfoAction(Action):
         return self.action_id
     
     def short_string(self) -> str:
-        return f"action_id: {self.id()}, Extract info from `{self.url}`, with instructions:<{self.instructions}>."
+        return f"action_id: {self.id()}, Extract info from `{self.url}`, with instructions:<{self.instructions}>, expect_outcome_of_action: `{self.expect_outcome_of_action}`."
 
     def run(self) -> str:
         with Spinner("Reading website..."):
@@ -152,6 +155,8 @@ class RunPythonAction(Action):
     code:str = ""
     code_dependencies: list = field(default_factory=list)
     cmd_args: str = ""
+    expect_outcome_of_action: str = ""
+    
 
     def key(self) -> str:
         return "RunPython"
@@ -160,7 +165,7 @@ class RunPythonAction(Action):
         return self.action_id
     
     def short_string(self) -> str:
-        return f"action_id: {self.id()}, Run Python file `{self.file_name} {self.cmd_args}`."
+        return f"action_id: {self.id()}, Run Python file `{self.file_name} {self.cmd_args}`, expect_outcome_of_action: `{self.expect_outcome_of_action}`."
 
     def run(self) -> str:
         if self.file_name is None:
@@ -224,68 +229,6 @@ class ShutdownAction(Action):
     def run(self) -> str:
         # This action is treated specially, so this can remain unimplemented.
         raise NotImplementedError
- 
-
-@dataclass(frozen=True)
-class DbUpsertAction(Action):
-    action_id: int
-    kvs: List[Dict[str, Union[str, dict]]]
-
-    def key(self) -> str:
-        return "DbUpsert"
-
-    def id(self) -> int:
-        return self.action_id
-    
-    def short_string(self) -> str:
-        return f"action_id: {self.id()}, Upsert keys and values into the database."
-
-    def run(self) -> str:
-        conn = sqlite3.connect('my_database.db')
-        c = conn.cursor()
-
-        # Ensure the table is created
-        c.execute('''CREATE TABLE IF NOT EXISTS kvstore
-                    (key text primary key, value text)''')
-
-        for kv in self.kvs:
-            c.execute("INSERT OR REPLACE INTO kvstore VALUES (?, ?)", (kv['k'], json.dumps(kv['v'])))
-        
-        conn.commit()
-        conn.close()
-        return f"DbUpsertAction: Successfully upserted {len(self.kvs)} key-value pair(s) into the database."
-
-
-@dataclass(frozen=True)
-class DbQueryAction(Action):
-    action_id: int
-    k: str
-
-    def key(self) -> str:
-        return "DbQuery"
-    
-    def id(self) -> int:
-        return self.action_id
-
-    def short_string(self) -> str:
-        return f"action_id: {self.id()}, Query the value of `{self.k}` from the database."
-
-    def run(self) -> str:
-        conn = sqlite3.connect('my_database.db')
-        c = conn.cursor()
-        # Ensure the table is created
-        c.execute('''CREATE TABLE IF NOT EXISTS kvstore
-                    (key text primary key, value text)''')
-        c.execute("SELECT value FROM kvstore WHERE key=?", (self.k,))
-
-        row = c.fetchone()
-        if row is None:
-            return f"DbQueryAction: Key `{self.k}` does not exist in the database."
-
-        value = json.loads(row[0])
-        conn.close()
-        return f"DbQueryAction: The value of key `{self.k}` in the database is {value}."
-
 
 # Helper function to populate the ACTION_CLASSES dictionary
 def _populate_action_classes(action_classes):
@@ -313,6 +256,4 @@ ACTION_CLASSES = _populate_action_classes([
     ShutdownAction,
     ExtractInfoAction,
     SearchOnlineAction,
-    DbUpsertAction,
-    DbQueryAction,
 ])

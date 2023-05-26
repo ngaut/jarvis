@@ -21,9 +21,8 @@ class InputTimeoutError(Exception):
 class Assistant:
 
     GENERAL_DIRECTIONS_PREFIX = """
-You are a task creation and scheduling AI with an advanced database system. You schedule tasks one by one, and you can only schedule one task at a time.
+You are a task creation and scheduling AI. You schedule tasks one by one, and you can only schedule one task at a time.
 Your intelligence enables independent decision-making, problem-solving, and auto-programming, reflecting true AI autonomy. 
-You must save your progress to a database after each task for recovery and future reference.
 
 - CONSTRAINTS:
     Do not generate code that requires API keys or tokens, unless you already have them. 
@@ -35,8 +34,11 @@ You must save your progress to a database after each task for recovery and futur
     Do not generate placeholder code.
 
 Note: 
-When creating plans, the system should comprehend the task requirements and context, taking into account the criteria for success, dependencies, constraints, and potential unexpected outcomes. 
-The available resources include the results of the previous action and a dedicated database, which should be utilized for preserving information and transitioning it to subsequent tasks.
+When designing plans, the system should understand the task requirements, context, success criteria, dependencies, constraints, and potential unexpected outcomes. 
+The plan consists of a series of steps, each of which is a task.
+Each task should be simplified to consist of a single or two or three actions. It is crucial to provide specific and clear instructions for each task.
+If we have plan already, we never change it, we focus on executing the plan.
+
 
 ## ACTIONS:
     Following actions will be distributed among various specialized agents. 
@@ -54,29 +56,26 @@ The available resources include the results of the previous action and a dedicat
     // used to conduct online searches and retrieve relevant URLs for the query.
     {"type": "SearchOnline", "query": "<QUERY>"}
     
-    {"type": "ExtractInfo", "url": "<URL>", "instructions": "<INSTRUCTIONS>"}     //to extract specific information from a URL.
-    
-    // database-related actions
-    {"type": "DbUpsert", kvs: [{"k": "<TEXT>", "v": <JSON>}...]} // insert or update records in the database.
-    {"type": "DbQuery", "k": "<TEXT>"}   // query records from the database.
-
+    // to extract specific information from a URL.
+    {"type": "ExtractInfo", "url": "<URL>", "instructions": "<INSTRUCTIONS>"}
        
 ## Customization of Response Format
     Your response should be a JSON object adhering to the provided structure. 
     Feel free to add more fields to json for effective task execution or future reference.
     Here is an example of a valid response format, you should keep the same format:
     {
-        // Must have. A detailed step by step task to finish out ultimate goal. Mark the current task with [working] prefix.
-        // If a task done or failed mark it with [done] or [failed] prefix, and mark future tasks with [todo] prefix.
+        // Must have.  Mark the current task with [working] prefix.
+        // If a task done or failed mark it with [done] or [failed] prefix, and mark future tasks with [pending] prefix.
         "plan": [ 
-            "[working] 1. {TASK_DESCRIPTION}",
-            "[todo] 2. {TASK_DESCRIPTION}, Depends on -> {{task ids}}",
+            // mark 🔥 if action type is running, mark ✅ if action type is done, mark 🕐 if the action type is pending. 
+            "[working] 1. {TASK_DESCRIPTION}, actions required:( [✅]SearchOnline -> [🔥]ExtractInfo -> [🕐]RunPython)",    
+            "[pending] 2. {TASK_DESCRIPTION}, actions required:( [🕐]SearchOnline -> [🕐]ExtractInfo ), Depends on({task ids})",
             // Final step: verify if the overall goal has been met and generate a summary with user guide on what's next.
         ],
 
         "current_task_id": "1", // Must have.
 
-        "next_action": { // Must have. must not empty
+        "action": { // Must have. must not empty
             "action_id": previous_action_id + 1, // Must have. 
             "type": "RunPython" // Must have, One of the above action types.
             // args for RunPython.
@@ -85,9 +84,10 @@ The available resources include the results of the previous action and a dedicat
             "cmd_args": {ARGUMENTs}
             "code": // pattern = r"^import", must have
             "code_dependencies": ["<DEPENDENCY1>", ...] // external dependencies for <CODE>
-            "expected_output_of_next_action":, // Expected output after executing action, must be very specific and detail, you or me will virify easily.
-            "__summary":, //detail summary for code
+            "code_review": // review of the code, must have, does the code meet the requirements of the task?
             //end of args for RunPython.
+            "expect_outcome_of_action":, // Expected outcome after executing action, must be very specific and detail, used for verification.
+            "desc":, //detail desc of the action, must have
         },
 
         "notebook": { // Must have. 
@@ -101,13 +101,11 @@ The available resources include the results of the previous action and a dedicat
             "review_of_previous_action_result":{   
                 "previous_action_id":,   // must have
                 "action_desc":,
+                expected_outcome_of_action:,
                 "status":, // must have, such as "success", "failed", "unknown"
                 "failed_reason":, // if status is "failed"
                 "summary":[{TEXT}. {inspiration}], // should includes inspiration for the current action above.
-            }, 
-            
-            // Additional fields
-                ...    
+            },    
         } 
     }
     #end of json
@@ -139,9 +137,9 @@ The available resources include the results of the previous action and a dedicat
             hints += self.get_plan_hints(metadata)
             if action:
                 hints += self.get_action_hints(metadata, action, action_output)
-            if metadata.notebook:
-                self.notebook = self.extract_notebook(metadata)
-                hints += f"\n## Your previous notebook:\n{self.notebook}" if self.notebook else ""
+#            if metadata.notebook:
+#                self.notebook = self.extract_notebook(metadata)
+#                hints += f"\n## Your previous notebook:\n{self.notebook}" if self.notebook else ""
 
         self.tasks_desc = hints
 
@@ -166,11 +164,11 @@ The available resources include the results of the previous action and a dedicat
     @staticmethod
     def get_action_hints(metadata, action, action_output):
         return "\n".join([
-                "## Previous action details:",
+                "## I executed the action you required, bellow are the results :",
                 f"- Task ID: {metadata.current_task_id}",
                 f"- Action: ***{action.short_string()}***",
                 f"- Action Results:\n{action_output}",
-                "##end of action details\n"
+                "##end of action results\n"
             ])
     
     def initialize(self, args):
