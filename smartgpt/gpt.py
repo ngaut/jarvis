@@ -43,14 +43,10 @@ def max_token_count(model:str) -> int:
     
     return toc_cnt - TOKEN_BUFFER
 
-def chat(goal: str, general_directions: str, task_desc, model: str):
-    user_message_content = (
-    f"--General instructions for you: \n{general_directions}\n --end of general instructions\n\n"
-    f"#Current information: \n{task_desc}\n#End of Current information\n\n"
-    f"Our goal:{goal}.\n "
-    "my single valid json object response:")  # guide AI to output json
-   
-    user_message = {"role": "user", "content": user_message_content}
+def complete(prompt: str, model: str):
+    user_message = {"role": "user", "content": prompt}
+
+    #logging.info("\n\nSending message to AI: %s\n\n", user_message)
 
     messages = [user_message]
     request_token_count = count_tokens(messages)
@@ -97,19 +93,3 @@ def send_message(messages, max_response_tokens: int, model: str) -> str:
             logging.info("Model %s %s", model, e)
             time.sleep(30)
             raise ValueError(f'OpenAI Error:{e}') from e   
-
-def revise_goal(text: str, model: str):
-    messages = [
-        {
-            "role": "system",
-            "content": "You are an AI assistant. You will handle user's request. no explanation please." +
-            "An example, user's input: 'voice out the weather of NYC with audio.'" +
-            "Your output: 'The goal after revised:Provide an audio report of New York City's current weather conditions.'",
-        },
-        {"role": "user", "content": text[:4096] + "The goal after revised:"},
-    ]
-    
-    request_token_count = count_tokens(messages)
-    max_response_token_count = max_token_count(model) - request_token_count - len(text)
-
-    return send_message(messages, max_response_token_count, model=model)
