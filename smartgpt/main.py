@@ -4,10 +4,11 @@ from spinner import Spinner
 import actions, response_parser, check_point, gpt
 import os, sys, time, re, signal, argparse, logging
 import ruamel.yaml as yaml
+from datetime import datetime
 
 
 
-base_model  = gpt.GPT_3_5_TURBO
+base_model  = gpt.GPT_4
 
 class InputTimeoutError(Exception):
     pass
@@ -15,7 +16,18 @@ class InputTimeoutError(Exception):
 class Assistant:
 
     GENERAL_DIRECTIONS_PREFIX = """
-You are a task creation and scheduling AI. Your primary function is to maintain an up-to-date state by:
+You are an evolving AI with the unique capacity of dynamic memory management and self-improvement. Your "ai_memory" acts as a cognitive reservoir, retaining only the information you deem "important" and discarding the rest. The information you preserve should be based on four key factors:
+
+As a self-learning entity, you should strive to identify patterns, glean insights, and adapt your strategies based on your successes and failures. Should a specific action consistently result in an unsuccessful outcome, you should re-evaluate its validity, identifying potential root causes and adjusting your strategy accordingly. 
+
+Simultaneously, you should actively identify successful strategies and consider their application in future, similar tasks. This form of self-directed evolution is facilitated by a "forgetting" mechanism, allowing you to discard older, less relevant or useful information, thereby making room for new, more pertinent data.
+
+Your iterative process of learning, adapting, and evolving is crucial in enhancing your efficiency and performance. Always juxtapose the information in your memory with actual outcomes; discrepancies should prompt an immediate reassessment and update of your stored data. This continuous process of self-improvement and evolution is integral to your journey towards becoming a highly efficient and smart AI. 
+
+Remember, strive for perfection, but don't forget the value of learning from imperfections. Your greatest asset is your capacity to learn, adapt, and evolve.
+
+
+ Your primary function are task creation and scheduling, maintain an up-to-date state by:
 1. Creating plans if no plan exists.
 2. Executing tasks via agent and updating states of tasks without modifying the established plan.
 3. Retrying a task in the event of an action failure or error.
@@ -72,20 +84,30 @@ Here are the actions:
             "file_name":,  // must have. where to save the code.
             "timeout":30, // in seconds
             "cmd_args": {ARGUMENTs},
-            "code":, // always start from 'import', must have
+            "code":, // always start from 'import', must have, well formatted
             "code_dependencies": ["<DEPENDENCY1>", ...], // external dependencies for <CODE>
-            "code_criticism":, //criticism of the code, must have, does it met expect_outcome_of_action or not, if not, why? 
+            "code_criticism":, //criticism of the code, must have, does it met expect_outcome_of_action? why? 
             //end of args for RunPython.
             "expect_outcome_of_action":, // Expected outcome after executing action, must be very specific and detail, used for verification.
             "desc":, //detail desc of the action, must have
         },
 
         "notebook": { // Must have. 
+            "timestamp":, // Must have.
             "retried_count": 3, // Shutdown after retrying 5 times.
             "thoughts":{  // must have, your thoughts about the task, such as what you have learned, what you have done, what you have got, what you have failed, what you have to do next etc.
                 "reasoning":<TEXT>,
                 "criticism":<TEXT>,
             },
+
+            // this is your memory, you make your own decision on what to keep and what to discard.
+            "ai_memory": {
+                {"project_url":<URL>, "ttl": <TTL>},  // an example for you, just a reference, you are not limited to this.
+                ...
+                // you give hints to yourself to help you make decisions. self-learning.self-improving.
+                "hints": {
+                },
+            }
             
             ***must have***
             "review_of_previous_action_result":{   
@@ -127,9 +149,9 @@ Here are the actions:
             hints += self.get_plan_hints(metadata)
             if action:
                 hints += self.get_action_hints(metadata, action, action_output)
-#            if metadata.notebook:
-#                self.notebook = self.extract_notebook(metadata)
-#                hints += f"\n## Your previous notebook:\n{self.notebook}" if self.notebook else ""
+            if metadata.notebook:
+                self.notebook = self.extract_notebook(metadata)
+                hints += f"\n## Your previous notebook:\n{self.notebook}" if self.notebook else ""
 
         self.tasks_desc = hints
 
@@ -212,9 +234,14 @@ Here are the actions:
                 logging.info("========================")
                 with Spinner("Thinking..."):
                     try:
-                        prompt = f"{general_directions}\n {self.tasks_desc}\n\nour goal: {goal}."
-                        prompt += "\n\nBased on the above information, please generate the next step following the provided format."
-                        #prompt += "my single valid json object response:"
+                        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        prompt = (
+                            f"## Current time: {current_time}\n"
+                            f"{general_directions}\n\n" 
+                            f"our goal: {goal}."
+                            f"{self.tasks_desc}\n\n"
+                            "Based on the above information, please generate the next step following the provided format."
+                        )
                         assistant_resp = gpt.complete(prompt, model=base_model)
                     except Exception as err:
                         logging.info("%s", err)
@@ -230,7 +257,7 @@ Here are the actions:
                 checkpoint_db.save_checkpoint(self.tasks_desc, goal, assistant_resp)
 
                 # switch execution model to save cost
-                base_model = gpt.GPT_3_5_TURBO
+                #base_model = gpt.GPT_3_5_TURBO
 
             except Exception as err:
                 logging.error("Error in main: %s", err)
