@@ -225,7 +225,7 @@ class TextCompletionAction(Action):
         return self.action_id
 
     def short_string(self) -> str:
-        return f"action_id: {self.id()}, Text completion for `{self.prompt}` using `{self.model_name}`."
+        return f"action_id: {self.id()}, Text completion for `{self.prompt}`."
 
     def run(self) -> str:
         messages = [
@@ -242,7 +242,7 @@ class TextCompletionAction(Action):
         try:
             response = gpt.send_message(messages, max_response_token_count, model=self.model_name)
             if response is None:
-                return f"TextCompletionAction RESULT: The text completion for `{self.prompt}` using `{self.model_name}` appears to have failed."
+                return f"TextCompletionAction RESULT: The text completion for `{self.prompt}` appears to have failed."
 
             result = str(response)
             return result
@@ -251,6 +251,45 @@ class TextCompletionAction(Action):
             return f"TextCompletionAction RESULT: An error occurred: {e}"
 
 
+@dataclass(frozen=True)
+class AdvanceTextCompletionAction(Action):
+    action_id: int
+    prompt: str
+    model_name: str = gpt.GPT_4
+    expect_outcome_of_action: str = ""
+
+    def key(self) -> str:
+        return "AdvanceTextCompletion"
+
+    def id(self) -> int:
+        return self.action_id
+
+    def short_string(self) -> str:
+        return f"action_id: {self.id()}, Advance Text completion for `{self.prompt}`."
+
+    def run(self) -> str:
+        messages = [
+            {
+                "role": "system",
+                "content": "You are a helpful assistant that uses AI to complete text.",
+            },
+            {"role": "user", "content": self.prompt},
+        ]
+
+        request_token_count = gpt.count_tokens(messages)
+        max_response_token_count = gpt.max_token_count(self.model_name) - request_token_count
+
+        try:
+            response = gpt.send_message(messages, max_response_token_count, model=self.model_name)
+            if response is None:
+                return f"AdvanceTextCompletionAction RESULT: The text completion for `{self.prompt}` appears to have failed."
+
+            result = str(response)
+            return result
+
+        except Exception as e:
+            return f"AdvanceTextCompletionAction RESULT: An error occurred: {e}"
+        
 @dataclass(frozen=True)
 class ShutdownAction(Action):
     action_id: int
