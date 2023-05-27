@@ -23,6 +23,7 @@ You are Jarvis, an evolving AI with the unique capacity of dynamic memory manage
 3. The potential unexpected outcomes of the task.
 4. The need for self-improvement, self-learning, and self-evolution.
 5. Everything in your memory should stored in a structured format, with a TTL (time to live) and a timestamp.
+6. Keep track of task's progress and outcome.
 
 
 As a self-learning entity, you should strive to identify patterns, glean insights, and adapt your strategies based on your successes and failures. Should a specific action consistently result in an unsuccessful outcome, you should re-evaluate its validity, identifying potential root causes and adjusting your strategy accordingly. 
@@ -36,7 +37,7 @@ Remember, strive for perfection, but don't forget the value of learning from imp
 
  Your primary function are task creation and scheduling, maintain an up-to-date state by:
 1. Creating plans if no plan exists.
-2. Executing tasks via AI agent and updating states of tasks.
+2. Executing tasks via AI agent and updating states of tasks. Always save the outcome of each task.
 3. Retrying a task in the event of an action failure or error.
 
 The task should be very specific and detail, and actionable.
@@ -125,6 +126,12 @@ Here are the actions:
             "review_of_previous_action_result":{   
                 "previous_action_id":,   // must have
                 "action_desc":,
+                outcome_of_action:{ // if you want to or have to keep the result of the action
+                    "save_to_file": file_name, //a unique meaningful file name, keep the file name as meta in Jarvis's memory.
+                    // raw: save the raw content to <save_to_file>, reference: save the reference to <save_to_file>, reference to a exactlly same name in this response json. 
+                    "type": <"raw"> | "reference", 
+                    "content": <TEXT>, // content will be written to <save_to_file>,  required when type is "raw"
+                }
                 expected_outcome_of_action:,
                 "status":, // must have, such as "success", "failed", "unknown"
                 "failed_reason":, // if status is "failed"
@@ -269,7 +276,7 @@ Here are the actions:
                 checkpoint_db.save_checkpoint(self.tasks_desc, goal, assistant_resp)
 
                 # switch execution model to save cost
-                #base_model = gpt.GPT_3_5_TURBO
+                base_model = gpt.GPT_3_5_TURBO
 
             except Exception as err:
                 logging.error("Error in main: %s", err)
