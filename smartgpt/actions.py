@@ -75,7 +75,7 @@ class SearchOnlineAction:
 
     def run(self):
         try:
-            response = list(googlesearch.search(self.query, num=20, pause=1))
+            response = list(googlesearch.search(self.query, num=15, pause=1))
             if response is None:
                 return f"SearchOnlineAction RESULT: The online search for `{self.query}` appears to have failed."
 
@@ -179,7 +179,7 @@ class RunPythonAction(Action):
                 logging.info("Installing %s...", dependency)
                 os.system(f"pip install {dependency}")
         code = self.code
-        # write code to path and run
+        # write code to file and run
         with io.open(self.file_name, mode="w", encoding="utf-8") as file:
             file.write(code)
         with subprocess.Popen(
@@ -210,6 +210,45 @@ class RunPythonAction(Action):
                 process.kill()
                 output = f"RunPythonAction failed: The Python script at `{self.file_name} {self.cmd_args}` timed out after {self.timeout} seconds."
                 return output
+
+@dataclass(frozen=True)
+class TextCompletionAction(Action):
+    action_id: int
+    prompt: str
+    model_name: str = gpt.GPT_3_5_TURBO
+    expect_outcome_of_action: str = ""
+
+    def key(self) -> str:
+        return "TextCompletion"
+
+    def id(self) -> int:
+        return self.action_id
+
+    def short_string(self) -> str:
+        return f"action_id: {self.id()}, Text completion for `{self.prompt}` using `{self.model_name}`."
+
+    def run(self) -> str:
+        messages = [
+            {
+                "role": "system",
+                "content": "You are a helpful assistant that uses AI to complete text.",
+            },
+            {"role": "user", "content": self.prompt},
+        ]
+
+        request_token_count = gpt.count_tokens(messages)
+        max_response_token_count = gpt.max_token_count(self.model_name) - request_token_count
+
+        try:
+            response = gpt.send_message(messages, max_response_token_count, model=self.model_name)
+            if response is None:
+                return f"TextCompletionAction RESULT: The text completion for `{self.prompt}` using `{self.model_name}` appears to have failed."
+
+            result = str(response)
+            return result
+
+        except Exception as e:
+            return f"TextCompletionAction RESULT: An error occurred: {e}"
 
 
 @dataclass(frozen=True)
@@ -256,4 +295,5 @@ ACTION_CLASSES = _populate_action_classes([
     ShutdownAction,
     ExtractInfoAction,
     SearchOnlineAction,
+    TextCompletionAction,
 ])
