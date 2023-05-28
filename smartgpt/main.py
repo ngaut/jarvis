@@ -37,7 +37,8 @@ Remember, strive for perfection, but don't forget the value of learning from imp
 
  Your primary function are task creation and scheduling, maintain an up-to-date state by:
 1. Creating plans if no plan exists.
-2. Executing tasks via AI agent and updating states of tasks. Always save the outcome of each task.
+2. Executing tasks via AI agent and updating states of tasks. 
+3. Always keep tracking of output and outcome of each action in memory, save the outcome of each action with RunPython
 3. Retrying a task in the event of an action failure or error.
 
 The task should be very specific and detail, and actionable.
@@ -59,7 +60,7 @@ Actions are distributed among various specialized agents, each capable of execut
 
 Here are the actions:
 
-- 'RunPython': Generates Python code(step by step) for a specific task, writes it to a file, and executes the file.
+- 'RunPython': Generates Python code(step by step) for a specific task, writes it to a file, and executes the file. This agent can't access the internet.
     - Parameters: {"type": "RunPython", "FILE_NAME": "<TEXT>", "timeout": "<TIMEOUT>", "cmd_args": "[TEXT]", "code": "<TEXT>"}
 
 - 'Shutdown': Summarizes all completed steps and informs the user about the next steps.
@@ -71,10 +72,10 @@ Here are the actions:
 - 'ExtractInfo': Extracts specific information from a URL based on provided instructions.
     - Parameters: {"type": "ExtractInfo", "url": "<URL>", "instructions": "<INSTRUCTIONS>"}
 
-- 'TextCompletion': Generates text based on a prompt. (simple, cheap, fast, less accurate)
+- 'TextCompletion': Generates text based on a prompt. (simple, cheap, fast, less accurate). This agent can not access the internet.
     - Parameters: {"type": "TextCompletion", "prompt": "<PROMPT>"}
 
-- 'AdvanceTextCompletion': Generates text based on a prompt. (more advanced, more expensive, more accurate, more time-consuming)
+- 'AdvanceTextCompletion': Generates text based on a prompt. (more advanced, expensive, accurate, time-consuming).This agent can't access the internet.
     - Parameters: {"type": "TextCompletion", "prompt": "<PROMPT>"}    
 
        
@@ -110,7 +111,8 @@ Here are the actions:
         "notebook": { // Must have. 
             "timestamp":, // Must have.
             "retried_count": 3, // call shutdown after retrying 5 times.
-            "thoughts":{  // must have, your thoughts about the task, such as what you have learned, what you have done, what you have got, what you have failed, what you have to do next etc.
+            // must have, your thoughts about the task/action, relationship between tasks, connections etc.
+            "thoughts":{  
                 "reasoning":<TEXT>,
                 "criticism":<TEXT>,
             },
@@ -120,18 +122,18 @@ Here are the actions:
                 // you give hints to yourself to help you make decisions. self-learning,self-improving, self-evolving. just a reference, you are not limited to this.
                 "hints": {
                 },
+                ...
+            }
+
+            // dump partial of memory to external storage for future use. To save memory, you could dump to storage and delete from memory.
+            // after dumping to storage, you should keep metadata in memory incase you need to retrieve it from storage.
+            dump_to_storage: {  
+                ...
             }
             
-            ***must have***
             "review_of_previous_action_result":{   
                 "previous_action_id":,   // must have
                 "action_desc":,
-                outcome_of_action:{ // if you want to or have to keep the result of the action
-                    "save_to_file": file_name, //a unique meaningful file name, keep the file name as meta in Jarvis's memory.
-                    // raw: save the raw content to <save_to_file>, reference: save the reference to <save_to_file>, reference to a exactlly same name in this response json. 
-                    "type": <"raw"> | "reference", 
-                    "content": <TEXT>, // content will be written to <save_to_file>,  required when type is "raw"
-                }
                 expected_outcome_of_action:,
                 "status":, // must have, such as "success", "failed", "unknown"
                 "failed_reason":, // if status is "failed"
@@ -183,6 +185,10 @@ Here are the actions:
                 if v is not None and v != "":
                     # skip review_of_previous_action_result field
                     if k == "review_of_previous_action_result":
+                        continue
+                    # skip dump_to_storage fields
+                    if k == "dump_to_storage":
+                        logging.info(f"dump_to_storage:{v}")
                         continue
                     result += f"  \"{k}\": {v},\n"
         result += "}\n"
@@ -276,13 +282,12 @@ Here are the actions:
                 checkpoint_db.save_checkpoint(self.tasks_desc, goal, assistant_resp)
 
                 # switch execution model to save cost
-                base_model = gpt.GPT_3_5_TURBO
+                #base_model = gpt.GPT_3_5_TURBO
 
             except Exception as err:
                 logging.error("Error in main: %s", err)
-                self.make_hints(action, metadata, str(err))
                 time.sleep(1)
-
+                # keep self.tasks_desc unchanged. retry the same goal, the same step
                 continue
 
 if __name__ == "__main__":

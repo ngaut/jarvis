@@ -75,7 +75,7 @@ class SearchOnlineAction:
 
     def run(self):
         try:
-            response = list(googlesearch.search(self.query, num=15, pause=1))
+            response = list(googlesearch.search(self.query, num=15, stop=15, pause=1))
             if response is None:
                 return f"SearchOnlineAction RESULT: The online search for `{self.query}` appears to have failed."
 
@@ -145,8 +145,6 @@ class ExtractInfoAction(Action):
         text = "\n".join(chunk for chunk in chunks if chunk)
         return text
 
-# todo implement database related actions
-
 @dataclass(frozen=True)
 class RunPythonAction(Action):
     action_id: int
@@ -168,48 +166,72 @@ class RunPythonAction(Action):
         return f"action_id: {self.id()}, Run Python file `{self.file_name} {self.cmd_args}`, expect_outcome_of_action: `{self.expect_outcome_of_action}`."
 
     def run(self) -> str:
-        if self.file_name is None:
-            return f"RunPythonAction failed: The 'file_name' field argument can not be empty"
-        if self.code is None or self.code == "":
+        # Make sure filename and code aren't None
+        if not self.file_name:
+            return "RunPythonAction failed: The 'file_name' field argument can not be empty"
+        if not self.code:
             return "RunPythonAction failed: The 'code' argument can not be empty"
- 
-        # install dependencies
+        
+        # Install code dependencies
+        self._install_dependencies()
+
+        # Write code to file
+        self._write_code_to_file()
+
+        # Run the python script and fetch the output
+        output = self._run_script_and_fetch_output()
+        return output
+
+    def _install_dependencies(self):
         for dependency in self.code_dependencies:
             with Spinner(f"Installing {dependency}..."):
                 logging.info("Installing %s...", dependency)
                 os.system(f"pip install {dependency}")
-        code = self.code
-        # write code to file and run
+
+
+    def _write_code_to_file(self):
         with io.open(self.file_name, mode="w", encoding="utf-8") as file:
-            file.write(code)
+            file.write(self.code)
+
+
+    def _run_script_and_fetch_output(self):
         with subprocess.Popen(
-             f"python {self.file_name} {self.cmd_args}",
-            shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            universal_newlines=True,
+                f"python {self.file_name} {self.cmd_args}",
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                universal_newlines=True,
         ) as process:
             try:
                 exit_code = process.wait(timeout=self.timeout)  # Add the timeout argument
                 stdout_output = process.stdout.read() if process.stdout else ""
-                include_source = False
                 stderr_error = process.stderr.read() if process.stderr else ""
+
+                include_source = False
                 # Use regex to find if there are any possible errors in the output of script
                 if re.search(r"(?i)error|exception|fail|fatal", stdout_output + stderr_error):
                     include_source = True
 
-                output = f"\n`python {self.file_name} {self.cmd_args}` returned: \n#exit code {exit_code}\n"
-                if len(stdout_output) > 0:
-                    output += f"#stdout of process:\n{stdout_output}"
-                if len(stderr_error) > 0:
-                    output += f"#stderr of process:\n{stderr_error}"
-                if exit_code != 0 or include_source:
-                    output += f"\n\nPython script code:\n{code}"
+                output = self._construct_output(exit_code, stdout_output, stderr_error, include_source)
                 return output
+
             except subprocess.TimeoutExpired:
                 process.kill()
                 output = f"RunPythonAction failed: The Python script at `{self.file_name} {self.cmd_args}` timed out after {self.timeout} seconds."
                 return output
+
+
+    def _construct_output(self, exit_code, stdout_output, stderr_error, include_source):
+        output = f"\n`python {self.file_name} {self.cmd_args}` returned: \n#exit code {exit_code}\n"
+        if stdout_output:
+            output += f"#stdout of process:\n{stdout_output}"
+        if stderr_error:
+            output += f"#stderr of process:\n{stderr_error}"
+        if exit_code != 0 or include_source:
+            output += f"\n\nPython script code:\n{self.code}"
+
+        return output
+
 
 @dataclass(frozen=True)
 class TextCompletionAction(Action):
@@ -335,4 +357,6 @@ ACTION_CLASSES = _populate_action_classes([
     ExtractInfoAction,
     SearchOnlineAction,
     TextCompletionAction,
+    AdvanceTextCompletionAction,
+
 ])
