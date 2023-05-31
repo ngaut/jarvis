@@ -158,7 +158,7 @@ if __name__ == "__main__":
     args.verbose = args.verbose or assistant_config.get('verbose', False)
     args.continuous = args.continuous or assistant_config.get('continuous', False)
 
-    interpreter = JarvisVMInterpreter(instructions)
-    interpreter.run()
+    interpreter = JarvisVMInterpreter()
+    interpreter.run(instructions)
 
    # planner.gen_instructions(base_model)
