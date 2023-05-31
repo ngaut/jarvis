@@ -57,10 +57,10 @@ Your output must be in JSON format, as illustrated below:
       "seqnum": 1,
       "type": "SearchOnline",
       "args": {
-        "query": "Weather in San Francisco"
+        "query": "temperature in San Francisco"
       },
       "SetResultRegister": {
-        "key": "UrlList",
+        "kvs": [{"key": "UrlList", "value": "$FILL_LATER"}],
         "__constraint__": "key must be 'UrlList', result must be a list of URLs"
       }
     },
@@ -71,17 +71,18 @@ Your output must be in JSON format, as illustrated below:
         "urls": {
           "GetResultRegister": "UrlList"
         },
-        "instructions": "Find the current temperature in San Francisco"
+        "instructions": "Extract the current temperature in San Francisco from the following content, and return me a json with the format: {'San Francisco':[{'key':'temperature', 'value': 'temperature_value'}, {'key': 'date', 'value': 'date_value'}]}"
       },
       "SetResultRegister": {
-        "key": "WeatherInfo"
+        "kvs": [{"key": "temperature", "value": "$FILL_LATER"}, {"key": "date", "value": "$FILL_LATER"}],
+        "__constraint__": "key name must match with generated python code below"
       }
     },
     {
       "seqnum": 3,
       "type": "If",
       "args": {
-        "GetResultRegister": "WeatherInfo",
+        "GetResultRegister": "temperature",
         "condition": "'Current temperature in San Francisco' found"
       },
       "then": {
@@ -89,10 +90,10 @@ Your output must be in JSON format, as illustrated below:
         "type": "RunPython",
         "args": {
           "file_name": "generate_report.py",
-          "code": "import datetime\nimport os\n\ntemp = os.environ.get('WeatherInfo')\ndate = datetime.datetime.now().strftime(\"%Y-%m-%d %H:%M:%S\")\nprint(f\"Weather report as of {date}: \\nTemperature in San Francisco: {temp}\")"
+          "code": "import datetime\nimport os\n\ntemp = os.environ.get('temperature')\ndate = os.environ.get('date')\nprint(f\"Weather report as of {date}: \nTemperature in San Francisco: {temp}\")"
         },
         "SetResultRegister": {
-          "key": "WeatherReport"
+          "kvs": [{"key": "WeatherReport", "value": "$FILL_LATER(output of generate_report.py)"}]
         }
       },
       "else": {
@@ -105,8 +106,6 @@ Your output must be in JSON format, as illustrated below:
     }
   ]
 }
-
-
 
 """
 

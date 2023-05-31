@@ -199,6 +199,5 @@ if __name__ == "__main__":
 
     interpreter = JarvisVMInterpreter()
     interpreter.run(instructions)
-    interpreter.summary()  
 
    # planner.gen_instructions(base_model)
