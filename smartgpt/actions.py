@@ -109,21 +109,11 @@ class ExtractInfoAction(Action):
         with Spinner("Reading website..."):
             html = self.get_html(self.url)
         text = self.extract_text(html)
-        logging.info("RESULT: The webpage at %s was read successfully.", self.url)
-        user_message_content = f"{self.instructions}\n\n```\n{text[:3000]}\n```"
-        messages = [
-            {
-                "role": "system",
-                "content": "You are a helpful assistant. You will be given instructions to extract some information from the contents of a website. Do your best to follow the instructions and extract the info.",
-            },
-            {"role": "user", "content": user_message_content},
-        ]
-        request_token_count = gpt.count_tokens(messages)
-        max_response_token_count = gpt.max_token_count(gpt.GPT_3_5_TURBO) - request_token_count
+        user_message_content = f"{self.instructions}\n\n```{text}```"
+    
         with Spinner("Extracting info..."):
-            extracted_info = gpt.send_message(messages, max_response_token_count, model=gpt.GPT_3_5_TURBO)
-        result = f"The info extracted:{extracted_info}"
-        return result
+            extracted_info = gpt.complete(user_message_content, model=gpt.GPT_3_5_TURBO)
+        return extracted_info
 
     def get_html(self, url: str) -> str:
         options = ChromeOptions()
@@ -349,13 +339,3 @@ def _populate_action_classes(action_classes):
         result[action_instance.key()] = action_class
 
     return result       
-
-ACTION_CLASSES = _populate_action_classes([
-    RunPythonAction,
-    ShutdownAction,
-    ExtractInfoAction,
-    SearchOnlineAction,
-    TextCompletionAction,
-    AdvancedTextCompletionAction,
-
-])

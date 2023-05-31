@@ -47,61 +47,66 @@ Each instruction possesses a sequence number, or "seqnum", indicating its positi
 
 Your output must be in JSON format, as illustrated below:
 {
-  "description": "Acquire the current weather data for Tokyo, convert this data into synthesized speech resembling Obama's voice using a text-to-speech system, and then shut down.",
+  "description": "Acquire the current weather data for San Francisco, convert this data into synthesized speech resembling Obama's voice using a text-to-speech system, and then shut down.",
   "PC": 1,
   "env": {},
-  "TaskList":["Task 1...", "Task 2...",...],
+  "TaskList": ["Task 1...", "Task 2...", "..."],
   "ResultRegister": {},
   "instructions": [
     {
       "seqnum": 1,
       "type": "SearchOnline",
-      "query": "Current weather in Tokyo",
-      "SetResultRegister": {
-        "key": "SearchResults",
-        "value": ""
+      "args": {
+        "query": "Weather in San Francisco"
       },
-      "desc": "Initiate an online search for the current weather in Tokyo",
-      "next": 2
+      "SetResultRegister": {
+        "key": "UrlList",
+        "__constraint__": "key must be 'UrlList', result must be a list of URLs"
+      }
     },
     {
       "seqnum": 2,
       "type": "ExtractInfo",
-      "GetResultRegister": "SearchResults",
-      "SetResultRegister": {
-        "key": "WeatherInfo",
-        "value": ""
+      "args": {
+        "urls": {
+          "GetResultRegister": "UrlList"
+        },
+        "instructions": "Find the current temperature in San Francisco"
       },
-      "instructions": "Isolate crucial weather details for Tokyo",
-      "desc": "Process the search results to extract key weather information",
-      "next": 3
+      "SetResultRegister": {
+        "key": "WeatherInfo"
+      }
     },
     {
       "seqnum": 3,
       "type": "If",
-      "GetResultRegister": "WeatherInfo",
-      "condition": "'Weather information' found",
+      "args": {
+        "GetResultRegister": "WeatherInfo",
+        "condition": "'Current temperature in San Francisco' found"
+      },
       "then": {
         "seqnum": 4,
         "type": "RunPython",
-        "GetResultRegister": "WeatherInfo",
-        "SetResultRegister": {
-          "key": "SynthesizedSpeech",
-          "value": "ResultOfSpeechSynthesis"
+        "args": {
+          "file_name": "generate_report.py",
+          "code": "import datetime\nimport os\n\ntemp = os.environ.get('WeatherInfo')\ndate = datetime.datetime.now().strftime(\"%Y-%m-%d %H:%M:%S\")\nprint(f\"Weather report as of {date}: \\nTemperature in San Francisco: {temp}\")"
         },
-        "code": "import pyttsx3\n\ndef synthesize_speech(voice, text):\n    engine = pyttsx3.init()\n    engine.setProperty('voice', voice)\n    engine.save_to_file(text, 'output.mp3')\n    engine.runAndWait()\n\nsynthesize_speech('english+f5', GetResultRegister['WeatherInfo'])",
-        "desc": "If conditions are met, use Obama-like voice for text-to-speech synthesis",
-        "next": 5
+        "SetResultRegister": {
+          "key": "WeatherReport"
+        }
       },
       "else": {
         "seqnum": 5,
         "type": "Shutdown",
-        "desc": "If weather data cannot be obtained, cease all operations"
-      },
-      "desc": "Check if Tokyo's weather data extraction was successful"
+        "args": {
+          "summary": "Weather report could not be generated as we couldn't find the weather information for San Francisco."
+        }
+      }
     }
   ]
 }
+
+
 
 """
 
