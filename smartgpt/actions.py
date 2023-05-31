@@ -15,7 +15,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from webdriver_manager.chrome import ChromeDriverManager
-import sqlite3
 
 
 @dataclass(frozen=True)
@@ -274,20 +273,20 @@ class TextCompletionAction(Action):
 
 
 @dataclass(frozen=True)
-class AdvanceTextCompletionAction(Action):
+class AdvancedTextCompletionAction(Action):
     action_id: int
     prompt: str
-    model_name: str = gpt.GPT_4
+    model_name: str = gpt.GPT_3_5_TURBO
     expect_outcome_of_action: str = ""
 
     def key(self) -> str:
-        return "AdvanceTextCompletion"
+        return "AdvancedTextCompletion"
 
     def id(self) -> int:
         return self.action_id
 
     def short_string(self) -> str:
-        return f"action_id: {self.id()}, Advance Text completion for `{self.prompt}`."
+        return f"action_id: {self.id()}, Advanced Text completion for `{self.prompt}`."
 
     def run(self) -> str:
         messages = [
@@ -304,13 +303,13 @@ class AdvanceTextCompletionAction(Action):
         try:
             response = gpt.send_message(messages, max_response_token_count, model=self.model_name)
             if response is None:
-                return f"AdvanceTextCompletionAction RESULT: The text completion for `{self.prompt}` appears to have failed."
+                return f"AdvancedTextCompletion RESULT: The text completion for `{self.prompt}` appears to have failed."
 
             result = str(response)
             return result
 
         except Exception as e:
-            return f"AdvanceTextCompletionAction RESULT: An error occurred: {e}"
+            return f"AdvancedTextCompletion RESULT: An error occurred: {e}"
         
 @dataclass(frozen=True)
 class ShutdownAction(Action):
@@ -357,6 +356,6 @@ ACTION_CLASSES = _populate_action_classes([
     ExtractInfoAction,
     SearchOnlineAction,
     TextCompletionAction,
-    AdvanceTextCompletionAction,
+    AdvancedTextCompletionAction,
 
 ])
