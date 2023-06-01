@@ -4,10 +4,11 @@ from spinner import Spinner
 import gpt
 import actions
 
-import os, sys, time, re, signal, argparse, logging
+import os, sys, time, re, signal, argparse, logging, pprint
 import ruamel.yaml as yaml
 from datetime import datetime
 import planner
+
 
 base_model  = gpt.GPT_3_5_TURBO
 
@@ -22,6 +23,9 @@ class ResultRegister:
 
     def set(self, key, value):
         self.register[key] = value
+    
+    def __str__(self):
+        return pprint.pformat(self.register)         
 
 class Instruction:
     def __init__(self, instruction, act, result_register):
@@ -37,7 +41,7 @@ class Instruction:
             print(f"Unknown action type: {action_type}")
             return
 
-        logging.info(f"instruction: %s\n", self.instruction)
+        logging.info(f"execute instruction: %s\n", self.instruction)
         action_id = self.instruction.get("seqnum")
 
         # set os env for python action
@@ -67,14 +71,18 @@ class Instruction:
 
         result = action.run()
 
+        logging.info(f"result: {result}\n")
+
         # Store result in result register if specified
         set_result_register = self.instruction.get("SetResultRegister", None)
         if set_result_register is not None:
-            for kv in set_result_register["kvs"]:
-                if kv["value"] == "$FILL_LATER":
-                    kv["value"] = result
-                self.result_register.set(kv["key"], kv["value"])
-        logging.info(f"current result_register: {set_result_register}\n")
+            kvs = set_result_register.get("kvs", [])
+            if len(kvs) > 0:
+                for kv in set_result_register["kvs"]:
+                    if kv["value"] == "$FILL_LATER":
+                        kv["value"] = result
+                    self.result_register.set(kv["key"], kv["value"])
+        #logging.info(f"current result_register: {self.result_register}\n")
 
 
 
@@ -86,7 +94,8 @@ class JarvisVMInterpreter:
             "SearchOnline": actions.SearchOnlineAction,
             "ExtractInfo": actions.ExtractInfoAction,
             "RunPython": actions.RunPythonAction,
-            "TextCompletion": actions.TextCompletionAction
+            "TextCompletion": actions.TextCompletionAction,
+            "Shutdown": actions.ShutdownAction,
         }
 
     def run(self, instructions):
@@ -105,7 +114,7 @@ class JarvisVMInterpreter:
         condition = instruction.instruction.get("args", {}).get("condition", None)
         prompt = f'Does the text "{condition_text}" meet the condition "{condition}"? Please respond in the following JSON format: \n{{"result": "true/false", "reasoning": "your reasoning"}}.'
 
-        evaluation_result = TextCompletionAction(0, prompt).run()
+        evaluation_result = actions.TextCompletionAction(0, prompt).run()
 
         try:
             result_json = json.loads(evaluation_result)
@@ -149,6 +158,9 @@ if __name__ == "__main__":
     args.verbose = args.verbose or assistant_config.get('verbose', False)
     args.continuous = args.continuous or assistant_config.get('continuous', False)
 
+    os.makedirs("workspace", exist_ok=True)
+    os.chdir("workspace")
+
     plan = planner.gen_instructions(base_model)
     # parse the data between left and right brackets
     start = plan.find('{')
@@ -157,7 +169,6 @@ if __name__ == "__main__":
         logging.info(f"invalid json:%s\n", plan)
         exit(1)
     plan = json.loads(plan[start:end+1])
-    logging.info(f"plan: %s\n", plan)
     instructions = plan["instructions"]
     interpreter = JarvisVMInterpreter()
     interpreter.run(instructions)
