@@ -17,10 +17,11 @@ def gen_instructions(model: str):
         prompt = (
             f"## Current time: {current_time}\n"
             f"our goal: {goal}."
-            "your json response:{"
+            "your json response:```json"
         )
-        resp = gpt.complete_with_system_message(prompt, model=base_model)
+        resp = gpt.complete_with_system_message(prompt, model=model)
         logging.info("Response from AI: %s", resp)
+        return resp
 
     except Exception as err:
         logging.error("Error in main: %s", err)

@@ -2,7 +2,7 @@ from typing import Optional
 from dotenv import load_dotenv
 from spinner import Spinner
 import gpt
-from actions import SearchOnlineAction, ExtractInfoAction, RunPythonAction, TextCompletionAction
+import actions
 
 import os, sys, time, re, signal, argparse, logging
 import ruamel.yaml as yaml
@@ -24,15 +24,15 @@ class ResultRegister:
         self.register[key] = value
 
 class Instruction:
-    def __init__(self, instruction, actions, result_register):
+    def __init__(self, instruction, act, result_register):
         self.instruction = instruction
-        self.actions = actions
+        self.act = act
         self.result_register = result_register
 
     def execute(self):
         action_type = self.instruction.get("type")
 
-        action_class = self.actions.get(action_type)
+        action_class = self.act.get(action_type)
         if action_class is None:
             print(f"Unknown action type: {action_type}")
             return
@@ -44,10 +44,9 @@ class Instruction:
         if action_type == "RunPython":
             # set os env with the result register
             for key, value in self.result_register.register.items():
-                logging.info(f"Set os env: {key} = {value}\n")
                 os.environ[key] = value
 
-         # patch ExtractInfoAction
+        # patch ExtractInfoAction
         if action_type == "ExtractInfo":
             key = self.instruction["args"]["urls"]["GetResultRegister"]
             urls = self.result_register.get(key)
@@ -56,12 +55,18 @@ class Instruction:
             url = urls[0].strip()
             url = url[1:-1]
             logging.info(f"ExtractInfoAction: url: {url}\n")
-            action = action_class(action_id, url=url, instructions=self.instruction["args"]["instructions"])
-        else:
-            action = action_class(action_id, **self.instruction.get("args", {}))
+            self.instruction["args"]["url"] = url  # update the url in the arguments
+
+        # Use from_dict to create the action object
+        action_data = {"type": action_type, "action_id": action_id}
+        action_data.update(self.instruction.get("args", {}))
+        action = actions.Action.from_dict(action_data)
+        if action is None:
+            print(f"Failed to create action from data: {action_data}")
+            return
 
         result = action.run()
-        
+
         # Store result in result register if specified
         set_result_register = self.instruction.get("SetResultRegister", None)
         if set_result_register is not None:
@@ -72,15 +77,16 @@ class Instruction:
         logging.info(f"current result_register: {set_result_register}\n")
 
 
+
 class JarvisVMInterpreter:
     def __init__(self):
         self.result_register = ResultRegister()
         self.pc = 0
         self.actions = {
-            "SearchOnline": SearchOnlineAction,
-            "ExtractInfo": ExtractInfoAction,
-            "RunPython": RunPythonAction,
-            "TextCompletion": TextCompletionAction
+            "SearchOnline": actions.SearchOnlineAction,
+            "ExtractInfo": actions.ExtractInfoAction,
+            "RunPython": actions.RunPythonAction,
+            "TextCompletion": actions.TextCompletionAction
         }
 
     def run(self, instructions):
@@ -118,60 +124,6 @@ class JarvisVMInterpreter:
         else:
             self.pc = instruction.instruction["else"]["seqnum"]
 
-instructions = [
-    {
-        "seqnum": 1,
-        "type": "SearchOnline",
-        "args": {
-            "query": "temperature in San Francisco"
-        },
-        "SetResultRegister": {
-            "kvs":[{"key": "UrlList", "value": "$FILL_LATER"}],
-            "__constraint__": "key must be 'UrlList', result must be a list of URLs"
-        }
-    },
-    {
-        "seqnum": 2,
-        "type": "ExtractInfo",
-        "args": {
-            "urls": {
-                "GetResultRegister": "UrlList"
-            },
-            "instructions": "Extrace the current temperature in San Francisco from the following content, and return me a json with the format: {'San Francisco':[{'key':'temperature', 'value': 'temperature_value'}, {'key': 'date', 'value': 'date_value'}]}"
-        },
-        "SetResultRegister": {
-            "kvs":[{"key": "temperature", "value": "$FILL_LATER"}, {"key": "date", "value": "FILL_LATER"}],
-            "__constraint__": "key name must match with generated python code bellow"
-        }
-    },
-    {
-        "seqnum": 3,
-        "type": "If",
-        "args": {
-            "GetResultRegister": "temperature",
-            "condition": "'Current temperature in San Francisco' found"
-        },
-        "then": {
-            "seqnum": 4,
-            "type": "RunPython",
-            "args": {
-                "file_name": "generate_report.py",
-                "code": "import datetime\nimport os\n\ntemp = os.environ.get('temperature')\ndate = os.environ.get('date')\nprint(f\"Weather report as of {date}: \nTemperature in San Francisco: {temp}\")"
-            },
-            "SetResultRegister": {
-                "kvs":[{"key": "WeatherReport", "value": "$FILL_LATER(output of generate_report.py)"}]
-            }
-        },
-        "else": {
-            "seqnum": 5,
-            "type": "Shutdown",
-            "args": {
-                "summary": "Weather report could not be generated as we couldn't find the weather information for San Francisco."
-            }
-        }
-    }
-]
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -197,7 +149,16 @@ if __name__ == "__main__":
     args.verbose = args.verbose or assistant_config.get('verbose', False)
     args.continuous = args.continuous or assistant_config.get('continuous', False)
 
+    plan = planner.gen_instructions(base_model)
+    # parse the data between left and right brackets
+    start = plan.find('{')
+    end = plan.rfind('}')
+    if end < start:
+        logging.info(f"invlid json:%s\n", plan)
+        exit(1)
+    plan = plan[start+1:end]
+    instructions = json.loads(plan)["instructions"]
     interpreter = JarvisVMInterpreter()
     interpreter.run(instructions)
 
-   # planner.gen_instructions(base_model)
+    

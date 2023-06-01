@@ -229,6 +229,7 @@ class TextCompletionAction(Action):
     model_name: str = gpt.GPT_3_5_TURBO
     expect_outcome_of_action: str = ""
 
+
     def key(self) -> str:
         return "TextCompletion"
 
@@ -261,45 +262,6 @@ class TextCompletionAction(Action):
         except Exception as e:
             return f"TextCompletionAction RESULT: An error occurred: {e}"
 
-
-@dataclass(frozen=True)
-class AdvancedTextCompletionAction(Action):
-    action_id: int
-    prompt: str
-    model_name: str = gpt.GPT_3_5_TURBO
-    expect_outcome_of_action: str = ""
-
-    def key(self) -> str:
-        return "AdvancedTextCompletion"
-
-    def id(self) -> int:
-        return self.action_id
-
-    def short_string(self) -> str:
-        return f"action_id: {self.id()}, Advanced Text completion for `{self.prompt}`."
-
-    def run(self) -> str:
-        messages = [
-            {
-                "role": "system",
-                "content": "You are a helpful assistant that uses AI to complete text.",
-            },
-            {"role": "user", "content": self.prompt},
-        ]
-
-        request_token_count = gpt.count_tokens(messages)
-        max_response_token_count = gpt.max_token_count(self.model_name) - request_token_count
-
-        try:
-            response = gpt.send_message(messages, max_response_token_count, model=self.model_name)
-            if response is None:
-                return f"AdvancedTextCompletion RESULT: The text completion for `{self.prompt}` appears to have failed."
-
-            result = str(response)
-            return result
-
-        except Exception as e:
-            return f"AdvancedTextCompletion RESULT: An error occurred: {e}"
         
 @dataclass(frozen=True)
 class ShutdownAction(Action):
@@ -339,3 +301,12 @@ def _populate_action_classes(action_classes):
         result[action_instance.key()] = action_class
 
     return result       
+
+
+ACTION_CLASSES = _populate_action_classes([
+    RunPythonAction,
+    ShutdownAction,
+    ExtractInfoAction,
+    SearchOnlineAction,
+    TextCompletionAction,
+])
