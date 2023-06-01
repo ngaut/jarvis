@@ -137,7 +137,7 @@ class ExtractInfoAction(Action):
 @dataclass(frozen=True)
 class RunPythonAction(Action):
     action_id: int
-    file_name: str
+    file_name: str = "tmp.py"
     timeout: int  = 30 # in seconds
     code:str = ""
     code_dependencies: list = field(default_factory=list)

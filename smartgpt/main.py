@@ -154,10 +154,11 @@ if __name__ == "__main__":
     start = plan.find('{')
     end = plan.rfind('}')
     if end < start:
-        logging.info(f"invlid json:%s\n", plan)
+        logging.info(f"invalid json:%s\n", plan)
         exit(1)
-    plan = plan[start+1:end]
-    instructions = json.loads(plan)["instructions"]
+    plan = json.loads(plan[start:end+1])
+    logging.info(f"plan: %s\n", plan)
+    instructions = plan["instructions"]
     interpreter = JarvisVMInterpreter()
     interpreter.run(instructions)
 
