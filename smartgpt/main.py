@@ -44,11 +44,6 @@ class Instruction:
         logging.info(f"execute instruction: %s\n", self.instruction)
         action_id = self.instruction.get("seqnum")
 
-        # set os env for python action
-        if action_type == "RunPython":
-            # set os env with the result register
-            for key, value in self.result_register.register.items():
-                os.environ[key] = value
 
         # patch ExtractInfoAction
         if action_type == "ExtractInfo":
