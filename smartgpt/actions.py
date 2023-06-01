@@ -278,8 +278,7 @@ class ShutdownAction(Action):
         return f"action_id: {self.id()}, Shutdown:{self.summary}"
 
     def run(self) -> str:
-        # This action is treated specially, so this can remain unimplemented.
-        raise NotImplementedError
+        exit(0)
 
 # Helper function to populate the ACTION_CLASSES dictionary
 def _populate_action_classes(action_classes):
