@@ -53,11 +53,23 @@ class Instruction:
                 # replace jarvisvm.get('...') in prompt with value
                 args["prompt"] = prompt.replace(f"jarvisvm.get('{key}')", value, 1)
 
+        # patch Shutdown summary
+        if action_type == "Shutdown":
+            # use regex to extract key from result:{jarvisvm.get('key')}
+            pattern = re.compile(r"jarvisvm.get\('(\w+)'\)")
+            summary = args["summary"]
+            matches = pattern.findall(summary)
+            for match in matches:
+                key = match
+                value = jarvisvm.get(key)
+                #logging.info(f"Get '{key}' = '{value}'\n")
+                # replace jarvisvm.get('...') in prompt with value
+                args["summary"] = summary.replace(f"jarvisvm.get('{key}')", value, 1)
+
 
         # Use from_dict to create the action object
         action_data = {"type": action_type, "action_id": action_id}
         action_data.update(args)
-        logging.info(f"execute instruction: %s\n", action_data)
 
         action = actions.Action.from_dict(action_data)
         if action is None:
@@ -70,14 +82,14 @@ class Instruction:
 
         if action_type != "RunPython":
             # use regex to extract key and value from result:{jarvisvm.set('key', '<TEXT>')}
-            pattern = re.compile(r"jarvisvm.set\('(\w+)', '(.*)'\)")
+            pattern = re.compile(r'jarvisvm.set\((["\'])(.*?)\1, (["\'])(.*?)\3\)')
             matches = pattern.findall(result)
 
             for match in matches:
-                key = match[0]
-                value = match[1]
+                key = match[1]
+                value = match[3]
                 jarvisvm.set(key, value)
-                logging.info(f"Set '{key}' = '{value}'\n")
+                #logging.info(f"Set '{key}' = '{value}'\n")
 
         
 class JarvisVMInterpreter:

@@ -86,7 +86,7 @@ Your output must be in JSON format, as illustrated below:
       "type": "ExtractInfo",
       "args": {
         "url": "{jarvisvm.get('search_results')}",  
-        "instructions": "Extract the current temperature in San Francisco from the following content. use the format: {jarvisvm.set('temperature', '<TEXT>'), {jarvisvm.set('date', '<TEXT>')}End",
+        "instructions": "Extract the current temperature in San Francisco from the following content. use the format: Start{jarvisvm.set('temperature', '<TEXT>'), {jarvisvm.set('date', '<TEXT>')}End",
         "__constraints__": "must handle escape characters correctly"
       }
     },
@@ -101,7 +101,7 @@ Your output must be in JSON format, as illustrated below:
           "seqnum": 4,
           "type": "TextCompletion",
           "args": {
-            "prompt": "Today's temperature in San Francisco is {jarvisvm.get('temperature')}. It's a good day for outdoor activities. What else should we recommend to the users? use the format: {jarvisvm.set('Notes', '<TEXT>')}End"
+            "prompt": "Today's temperature in San Francisco is {jarvisvm.get('temperature')}. It's a good day for outdoor activities. What else should we recommend to the users? use the format: Start{jarvisvm.set('Notes', '<TEXT>')}End"
           }
         }
       ],
@@ -110,7 +110,7 @@ Your output must be in JSON format, as illustrated below:
           "seqnum": 5,
           "type": "TextCompletion",
           "args": {
-            "prompt": "Today's temperature in San Francisco is {jarvisvm.get('temperature')} which below 25 degrees. What indoor activities should we recommend to the users? use the format: {jarvisvm.set('Notes', '<TEXT>')}End"
+            "prompt": "Today's temperature in San Francisco is {jarvisvm.get('temperature')} which below 25 degrees. What indoor activities should we recommend to the users? use the format: Start{jarvisvm.set('Notes', '<TEXT>')}End"
           }
         }
       ]
@@ -121,7 +121,7 @@ Your output must be in JSON format, as illustrated below:
       "args": {
         "file_name": "generate_report.py",
         "code": "import jarvisvm\\nimport datetime\\ntemp = jarvisvm.get('temperature')\\ndate = jarvisvm.get('date')\\nnotes = jarvisvm.get('Notes')\\njarvisvm.set('WeatherReport', f\\\"Weather report as of {date}: \\nTemperature in San Francisco: {temp}\\nNotes: {notes}\\\")",
-        "__constraints__": "must import jarvisvm, must handle escape characters correctly. refer correct values from jarvisvm."
+        "__constraints__": "must import jarvisvm, must handle escape characters correctly. refer correct values from jarvisvm. Do not use f-strings."
       }
     },
     {
@@ -129,6 +129,7 @@ Your output must be in JSON format, as illustrated below:
       "type": "Shutdown",
       "args": {
         "summary": "{jarvisvm.get('WeatherReport')}"
+        "__constraints__": "make sure the name that refered from jarvisvm is stored by previous instructions."
       }
     }
   ]
