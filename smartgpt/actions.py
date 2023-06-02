@@ -2,7 +2,7 @@
 from dataclasses import dataclass, field
 
 import io, subprocess, os, inspect, json, logging, time, re
-import gpt
+import gpt, jarvisvm
 from spinner import Spinner
 from typing import Union,List, Dict
 from abc import ABC
@@ -79,6 +79,7 @@ class SearchOnlineAction:
                 return f"SearchOnlineAction RESULT: The online search for `{self.query}` appears to have failed."
 
             result = str(response)
+            jarvisvm.set("urls", result)
             return result
         except HTTPError as http_err:
             if http_err.code == 429:
