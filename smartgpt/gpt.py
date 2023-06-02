@@ -67,9 +67,10 @@ you can only generate instructions that run on JarvisVM.
 
 Your output must be in JSON format, as illustrated below:
 {
-  "description": "Acquire the current weather data for San Francisco and provide suggestions based on temperature",
+  "goal": "Acquire the current weather data for San Francisco and provide suggestions based on temperature",
   "PC": 1,
   "TaskList": ["Task 1...", "Task 2...", "..."],
+  "thoughts": <Relationships between tasks, input and output, reasoning>,
   "instructions": [
     {
       "seqnum": 1,

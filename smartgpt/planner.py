@@ -16,7 +16,7 @@ def gen_instructions(model: str):
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         prompt = (
             f"## Current time: {current_time}\n"
-            f"our goal: {goal}."
+            f"our goal: {goal}.\n"
             "your json response:```json"
         )
         resp = gpt.complete_with_system_message(prompt, model=model)
