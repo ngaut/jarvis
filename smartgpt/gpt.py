@@ -99,7 +99,7 @@ Your output must be in JSON format, as illustrated below:
           "seqnum": 4,
           "type": "TextCompletion",
           "args": {
-            "prompt": "Today's temperature in San Francisco is over 25 degrees. It's a good day for outdoor activities. What else should we recommend to the users? use the format: {jarvisvm.set('Notes', '<TEXT>')}"
+            "prompt": "Today's temperature in San Francisco is over 25 degrees. It's a good day for outdoor activities. What else should we recommend to the users? use the format: {jarvisvm.set('Notes', '<TEXT>')}End"
           }
         }
       ],

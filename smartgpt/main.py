@@ -39,6 +39,21 @@ class Instruction:
             logging.info(f"ExtractInfoAction: url: {url}\n")
             args["url"] = url  # update the url in the arguments
 
+        # patch prompt by replacing jarvisvm.get('key') with value using regex
+        if action_type == "TextCompletion":
+            # use regex to extract key from result:{jarvisvm.get('key')}
+            pattern = re.compile(r"jarvisvm.get\('(\w+)'\)")
+            prompt = args["prompt"]
+            matches = pattern.findall(prompt)
+            for match in matches:
+                key = match[0]
+                # Assuming jarvisvm is an object with a `get` method
+                value = jarvisvm.get(key)
+                logging.info(f"Get '{key}' = '{value}'\n")
+                # replace jarvisvm.get('...') in prompt with value
+                args["prompt"] = prompt.replace(f"jarvisvm.get('{key}')", value)
+
+
         # Use from_dict to create the action object
         action_data = {"type": action_type, "action_id": action_id}
         action_data.update(args)
@@ -54,7 +69,7 @@ class Instruction:
         logging.info(f"result: {result}\n")
 
         if action_type != "RunPython":
-            # use regex to extrace key and value from result:{jarvisvm.set('benefits', '<TEXT>')}
+            # use regex to extract key and value from result:{jarvisvm.set('key', '<TEXT>')}
             pattern = re.compile(r"jarvisvm.set\('(\w+)', '(.*)'\)")
             matches = pattern.findall(result)
 
@@ -64,6 +79,10 @@ class Instruction:
                 # Assuming jarvisvm is an object with a `set` method
                 jarvisvm.set(key, value)
                 logging.info(f"Set '{key}' = '{value}'\n")
+
+        
+
+
 
 
 class JarvisVMInterpreter:
