@@ -99,7 +99,7 @@ Your output must be in JSON format, as illustrated below:
           "seqnum": 4,
           "type": "TextCompletion",
           "args": {
-            "prompt": "Today's temperature in San Francisco is over 25 degrees. It's a good day for outdoor activities. What else should we recommend to the users? use the format: {jarvisvm.set('Notes', '<TEXT>')}End"
+            "prompt": "Today's temperature in San Francisco is {jarvisvm.get('temperature')}. It's a good day for outdoor activities. What else should we recommend to the users? use the format: {jarvisvm.set('Notes', '<TEXT>')}End"
           }
         }
       ],
@@ -108,7 +108,7 @@ Your output must be in JSON format, as illustrated below:
           "seqnum": 5,
           "type": "TextCompletion",
           "args": {
-            "prompt": "Today's temperature in San Francisco is below 25 degrees. What indoor activities should we recommend to the users? use the format: {jarvisvm.set('Notes', '<TEXT>')}"
+            "prompt": "Today's temperature in San Francisco is {jarvisvm.get('temperature')} which below 25 degrees. What indoor activities should we recommend to the users? use the format: {jarvisvm.set('Notes', '<TEXT>')}End"
           }
         }
       ]
@@ -152,16 +152,27 @@ def max_token_count(model:str) -> int:
     
     return toc_cnt - TOKEN_BUFFER
 
+
+def truncate_prompt(prompt: str, max_tokens: int) -> str:
+    tokens = count_tokens(prompt)
+    if tokens > max_tokens:
+        # Truncate the tokens
+        prompt = prompt[:max_tokens]
+    return prompt
+
+
 def complete(prompt: str, model: str):
+    # Truncate the prompt if it's too long
+    prompt = truncate_prompt(prompt, max_token_count(model))
+
     user_message = {"role": "user", "content": prompt}
-
-    #logging.info("\n\nSending message to AI: %s\n\n", user_message)
-
     messages = [user_message]
     request_token_count = count_tokens(messages)
     available_response_tokens = max_token_count(model) - request_token_count
+
     resp = send_message(messages, available_response_tokens, model)
     return resp
+
 
 def complete_with_system_message(prompt: str, model: str):
     system_message = {"role": "system", "content": GENERATE_TASKS_INSTRUCTIONS_PREFIX}
@@ -172,16 +183,21 @@ def complete_with_system_message(prompt: str, model: str):
     resp = send_message(messages, available_response_tokens, model)
     return resp
 
-def count_tokens(messages) -> int:
+def count_tokens(input):
     token_count = 0
-    for message in messages:
-        token_count += TOKENS_PER_MESSAGE
-        for key, value in message.items():
-            token_count += len(ENCODING.encode(value))
-            if key == "name":
-                token_count += TOKENS_PER_NAME
-    token_count += 3
+    if isinstance(input, str):
+        token_count += len(ENCODING.encode(input))
+    else:
+        for message in input:
+            token_count += TOKENS_PER_MESSAGE
+            for key, value in message.items():
+                token_count += len(ENCODING.encode(value))
+                if key == "name":
+                    token_count += TOKENS_PER_NAME
+        token_count += 3
     return token_count
+
+
 
 def send_message(messages, max_response_tokens: int, model: str) -> str:
     if max_response_tokens < 0:
