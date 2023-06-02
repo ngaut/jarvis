@@ -19,6 +19,7 @@ class Instruction:
         self.act = act
 
     def execute(self):
+        logging.info(f"instruction: {self.instruction}\n")
         action_type = self.instruction.get("type")
 
         action_class = self.act.get(action_type)
@@ -46,11 +47,11 @@ class Instruction:
             prompt = args["prompt"]
             matches = pattern.findall(prompt)
             for match in matches:
-                key = match[0]
+                key = match
                 value = jarvisvm.get(key)
                 logging.info(f"Get '{key}' = '{value}'\n")
                 # replace jarvisvm.get('...') in prompt with value
-                args["prompt"] = prompt.replace(f"jarvisvm.get('{key}')", value)
+                args["prompt"] = prompt.replace(f"jarvisvm.get('{key}')", value, 1)
 
 
         # Use from_dict to create the action object
@@ -97,14 +98,22 @@ class JarvisVMInterpreter:
             if action_type == "If":
                 self.conditional(instruction)
             else:
-                result = instruction.execute()
+                instruction.execute()
             self.pc += 1
 
     def conditional(self, instruction):
-        condition_text = jarvisvm.get(instruction.instruction.get("args", {}).get("GetResultRegister", None))
         condition = instruction.instruction.get("args", {}).get("condition", None)
-        prompt = f'Does the text "{condition_text}" meet the condition "{condition}"? Please respond in the following JSON format: \n{{"result": "true/false", "reasoning": "your reasoning"}}.'
+        prompt = f'Is that true?: "{condition}"? Please respond in the following JSON format: \n{{"result": "true/false", "reasoning": "your reasoning"}}.'
 
+        # patch prompt by replacing jarvisvm.get('key') with value using regex
+        # use regex to extract key from result:{jarvisvm.get('key')}    
+        pattern = re.compile(r"jarvisvm.get\('(\w+)'\)")
+        matches = pattern.findall(prompt)
+        for match in matches:
+            key = match
+            value = jarvisvm.get(key)
+            # replace jarvisvm.get('...') in prompt with value
+            prompt = prompt.replace(f"jarvisvm.get('{key}')", value, 1)
         evaluation_result = actions.TextCompletionAction(0, prompt).run()
 
         try:
@@ -119,10 +128,13 @@ class JarvisVMInterpreter:
         print(f"Condition evaluated to {condition}. Reasoning: {reasoning}")
 
         if condition:
-            instruction = Instruction(instruction.instruction["then"], self.actions)
-            result = instruction.execute()
+            # instruction.instruction["then"] is a list of instructions
+            self.run(instruction.instruction["then"])
         else:
-            self.pc = instruction.instruction["else"]["seqnum"]
+            instrs = instruction.instruction["else"]
+            if instrs is not None:
+                # maybe use pc to jump is a better idea.
+                self.run(instrs)
 
 
 
