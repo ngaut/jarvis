@@ -47,7 +47,6 @@ class Instruction:
             matches = pattern.findall(prompt)
             for match in matches:
                 key = match[0]
-                # Assuming jarvisvm is an object with a `get` method
                 value = jarvisvm.get(key)
                 logging.info(f"Get '{key}' = '{value}'\n")
                 # replace jarvisvm.get('...') in prompt with value
@@ -76,15 +75,10 @@ class Instruction:
             for match in matches:
                 key = match[0]
                 value = match[1]
-                # Assuming jarvisvm is an object with a `set` method
                 jarvisvm.set(key, value)
                 logging.info(f"Set '{key}' = '{value}'\n")
 
         
-
-
-
-
 class JarvisVMInterpreter:
     def __init__(self):
         self.pc = 0
