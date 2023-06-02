@@ -1,16 +1,22 @@
 
 
-runtime_env = {}
-
+import os
 
 def get(key):
-    global runtime_env
-    return runtime_env.get(key)
+    # read the whole file
+    with open(key, 'r') as f:
+        value = f.read()
+    return value
 
 def set(key, value):
-    global runtime_env
-    runtime_env[key] = value
+    with open(key, 'w') as f:
+        f.write(value)
 
 def all():
-    global runtime_env
-    return runtime_env
+    # construct a dictionary
+    dict = {}
+    for filename in os.listdir():
+        with open(filename, 'r') as f:
+            value = f.read()
+        dict[filename] = value
+    return dict
