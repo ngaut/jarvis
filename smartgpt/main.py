@@ -80,16 +80,25 @@ class Instruction:
 
         logging.info(f"result: {result}\n")
 
+        import ast
+
         if action_type != "RunPython":
-            # use regex to extract key and value from result:{jarvisvm.set('key', '<TEXT>')}
-            pattern = re.compile(r'jarvisvm.set\((["\'])(.*?)\1, (["\'])(.*?)\3\)')
+            # use regex to extract key and value from result:{jarvisvm.set('key', '<TEXT>') or jarvisvm.set('key', ['<TEXT1>', '<TEXT2>',...])}
+            pattern = re.compile(r"jarvisvm.set\('([^']*)', (.*?)\)")
             matches = pattern.findall(result)
 
             for match in matches:
-                key = match[1]
-                value = match[3]
+                key = match[0]
+                value_str = match[1].strip()
+                try:
+                    # Try to parse the value as a Python literal (array, string, etc.)
+                    value = ast.literal_eval(value_str)
+                except (ValueError, SyntaxError):
+                    # If it fails, the value is a string
+                    value = value_str.strip("'\"")
                 jarvisvm.set(key, value)
                 #logging.info(f"Set '{key}' = '{value}'\n")
+
 
         
 class JarvisVMInterpreter:

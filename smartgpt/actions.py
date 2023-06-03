@@ -80,6 +80,7 @@ class SearchOnlineAction:
 
             result = str(response)
             jarvisvm.set("urls", result)
+            jarvisvm.set("search_results", result)
             return result
         except HTTPError as http_err:
             if http_err.code == 429:
