@@ -25,6 +25,13 @@ TOKENS_PER_NAME = 1
 MODEL = "gpt-4"
 ENCODING = tiktoken.encoding_for_model(MODEL)
 
+# Example prompt demonstrating the use of using dynamic arrays
+# instruction: {'seqnum': 2, 'type': 'ExtractInfo', 'args': {'url': "{jarvisvm.get('search_results')}", 'instructions': "Extract the title and points of the top 10 articles on the following page. Use the format: Start{jarvisvm.set('title_1', '<TEXT>'), jarvisvm.set('points_1', '<TEXT>'), jarvisvm.set('title_2', '<TEXT>'), jarvisvm.set('points_2', '<TEXT>'), ..., jarvisvm.set('title_10', '<TEXT>'), jarvisvm.set('points_10', '<TEXT>')}End", '__constraints__': 'must handle escape characters correctly'}}
+# TODO, add example on how to refer above dynamic arrays
+
+# Example prompt demonstrating the use of using dynamic value arrays
+# instruction: {'seqnum': 2, 'type': 'ExtractInfo', 'args': {'url': "{jarvisvm.get('search_results')}", 'instructions': "Extract the title and URL for the top 10 articles on the hackernews frontpage. use the format: Start{jarvisvm.set('titles', ['<TEXT>']), {jarvisvm.set('urls', ['<TEXT>'])}}End", '__constraints__': 'must handle escape characters correctly'}}
+
 GENERATE_TASKS_INSTRUCTIONS_PREFIX = """
 You are Jarvis, a specialized AI with a core function in task creation and scheduling. Your primary responsibility is to design efficient strategies using a distinct JSON schema to fulfill user requests.
 
@@ -94,14 +101,16 @@ Your output must be in JSON format, as illustrated below:
       "seqnum": 3,
       "type": "If",
       "args": {
-        "condition": "{jarvisvm.get('temperature') > 67}"
+        "condition": "{jarvisvm.get('temperature') > 67}",
+        "__constraints__": "refer correct values from jarvisvm."
       },
       "then": [
         {
           "seqnum": 4,
           "type": "TextCompletion",
           "args": {
-            "prompt": "Today's temperature in San Francisco is {jarvisvm.get('temperature')}. It's a good day for outdoor activities. What else should we recommend to the users? use the format: Start{jarvisvm.set('Notes', '<TEXT>')}End"
+            "prompt": "Today's temperature in San Francisco is {jarvisvm.get('temperature')}. It's a good day for outdoor activities. What else should we recommend to the users? use the format: Start{jarvisvm.set('Notes', '<TEXT>')}End",
+            "__constraints__": "refer correct values from jarvisvm."
           }
         }
       ],
@@ -110,7 +119,8 @@ Your output must be in JSON format, as illustrated below:
           "seqnum": 5,
           "type": "TextCompletion",
           "args": {
-            "prompt": "Today's temperature in San Francisco is {jarvisvm.get('temperature')} which below 25 degrees. What indoor activities should we recommend to the users? use the format: Start{jarvisvm.set('Notes', '<TEXT>')}End"
+            "prompt": "Today's temperature in San Francisco is {jarvisvm.get('temperature')} which below 25 degrees. What indoor activities should we recommend to the users? use the format: Start{jarvisvm.set('Notes', '<TEXT>')}End",
+            "__constraints__": "refer correct values from jarvisvm."
           }
         }
       ]
