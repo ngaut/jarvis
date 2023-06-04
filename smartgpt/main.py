@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from spinner import Spinner
 import gpt, jarvisvm
 import actions
+import ast
 
 import os, sys, time, re, signal, argparse, logging, pprint
 import ruamel.yaml as yaml
@@ -10,8 +11,7 @@ from datetime import datetime
 import planner
 import json
 
-base_model  = gpt.GPT_3_5_TURBO
-
+base_model  = gpt.GPT_4
 
 class Instruction:
     def __init__(self, instruction, act):
@@ -19,7 +19,6 @@ class Instruction:
         self.act = act
 
     def execute(self):
-        logging.info(f"instruction: {self.instruction}\n")
         action_type = self.instruction.get("type")
 
         action_class = self.act.get(action_type)
@@ -30,44 +29,14 @@ class Instruction:
         action_id = self.instruction.get("seqnum")
         args = self.instruction.get("args", {})
 
-        # patch ExtractInfoAction
         if action_type == "ExtractInfo":
             urls = jarvisvm.get("urls")
-            # extract urls, remove '[' and ']' from the string
-            urls = urls[1:-1].split(',')
-            url = urls[0].strip()
-            url = url[1:-1]
-            logging.info(f"ExtractInfoAction: url: {url}\n")
-            args["url"] = url  # update the url in the arguments
+            url = self.parse_url(urls)
+            args["url"] = url
 
-        # patch prompt by replacing jarvisvm.get('key') with value using regex
-        if action_type == "TextCompletion":
-            # use regex to extract key from result:{jarvisvm.get('key')}
-            pattern = re.compile(r"jarvisvm.get\('(\w+)'\)")
-            prompt = args["prompt"]
-            matches = pattern.findall(prompt)
-            for match in matches:
-                key = match
-                value = jarvisvm.get(key)
-                logging.info(f"Get '{key}' = '{value}'\n")
-                # replace jarvisvm.get('...') in prompt with value
-                args["prompt"] = prompt.replace(f"jarvisvm.get('{key}')", value, 1)
+        if action_type in ["TextCompletion", "Shutdown"]:
+            args = self.handle_jarvisvm_methods(args, action_type)
 
-        # patch Shutdown summary
-        if action_type == "Shutdown":
-            # use regex to extract key from result:{jarvisvm.get('key')}
-            pattern = re.compile(r"jarvisvm.get\('(\w+)'\)")
-            summary = args["summary"]
-            matches = pattern.findall(summary)
-            for match in matches:
-                key = match
-                value = jarvisvm.get(key)
-                #logging.info(f"Get '{key}' = '{value}'\n")
-                # replace jarvisvm.get('...') in prompt with value
-                args["summary"] = summary.replace(f"jarvisvm.get('{key}')", value, 1)
-
-
-        # Use from_dict to create the action object
         action_data = {"type": action_type, "action_id": action_id}
         action_data.update(args)
 
@@ -76,28 +45,49 @@ class Instruction:
             print(f"Failed to create action from data: {action_data}")
             return
 
+        logging.info(f"Running action: {action}\n")
         result = action.run()
-
-        logging.info(f"result: {result}\n")
-
-        import ast
+        logging.info(f"\nresult: {result}\n")
 
         if action_type != "RunPython":
-            # use regex to extract key and value from result:{jarvisvm.set('key', '<TEXT>') or jarvisvm.set('key', ['<TEXT1>', '<TEXT2>',...])}
-            pattern = re.compile(r"jarvisvm.set\('([^']*)', (.*?)\)")
-            matches = pattern.findall(result)
+            self.update_jarvisvm_values(result)
 
-            for match in matches:
-                key = match[0]
-                value_str = match[1].strip()
-                try:
-                    # Try to parse the value as a Python literal (array, string, etc.)
-                    value = ast.literal_eval(value_str)
-                except (ValueError, SyntaxError):
-                    # If it fails, the value is a string
-                    value = value_str.strip("'\"")
-                jarvisvm.set(key, value)
-                #logging.info(f"Set '{key}' = '{value}'\n")
+    def parse_url(self, urls):
+        if len(urls) > 0:
+            return urls[0]
+
+    def handle_jarvisvm_methods(self, args, action_type):
+        target_arg = "request" if action_type == "TextCompletion" else "summary"
+        text = args[target_arg]
+        args[target_arg] = self.modify_request_with_value(text)
+        return args
+
+    
+
+    def modify_request_with_value(self, text):
+        pattern = re.compile(r"\{\{(.*?)\}\}")
+        matches = pattern.findall(text)
+        logging.info(f"\nmatches: {matches}, text:{text}\n")
+        for match in matches:
+            if 'jarvisvm.' in match and "jarvisvm.set" not in match:
+                evaluated = eval("import jarvisvm\n" + match)
+                text = text.replace(f"{{{match}}}", str(evaluated), 1)
+        
+        return text
+
+
+    def update_jarvisvm_values(self, result):
+        pattern = re.compile(r"jarvisvm.set\('([^']*)', (.*?)\)")
+        matches = pattern.findall(result)
+
+        for match in matches:
+            key = match[0]
+            value_str = match[1].strip()
+            try:
+                value = ast.literal_eval(value_str)
+            except (ValueError, SyntaxError):
+                value = value_str.strip("'\"")
+            jarvisvm.set(key, value)
 
 
         
@@ -124,18 +114,18 @@ class JarvisVMInterpreter:
 
     def conditional(self, instruction):
         condition = instruction.instruction.get("args", {}).get("condition", None)
-        prompt = f'Is that true?: "{condition}"? Please respond in the following JSON format: \n{{"result": "true/false", "reasoning": "your reasoning"}}.'
+        request = f'Is that true?: "{condition}"? Please respond in the following JSON format: \n{{"result": "true/false", "reasoning": "your reasoning"}}.'
 
-        # patch prompt by replacing jarvisvm.get('key') with value using regex
+        # patch request by replacing jarvisvm.get('key') with value using regex
         # use regex to extract key from result:{jarvisvm.get('key')}    
         pattern = re.compile(r"jarvisvm.get\('(\w+)'\)")
-        matches = pattern.findall(prompt)
+        matches = pattern.findall(request)
         for match in matches:
             key = match
             value = jarvisvm.get(key)
-            # replace jarvisvm.get('...') in prompt with value
-            prompt = prompt.replace(f"jarvisvm.get('{key}')", value, 1)
-        evaluation_result = actions.TextCompletionAction(0, prompt).run()
+            # replace jarvisvm.get('...') in request with value
+            request = request.replace(f"jarvisvm.get('{key}')", value, 1)
+        evaluation_result = actions.TextCompletionAction(0, request).run()
 
         try:
             result_json = json.loads(evaluation_result)
@@ -186,7 +176,8 @@ if __name__ == "__main__":
     os.makedirs("workspace", exist_ok=True)
     os.chdir("workspace")
 
-    plan = planner.gen_instructions(base_model)
+    plan = planner.gen_instructions(base_model)    
+    
     # parse the data between left and right brackets
     start = plan.find('{')
     end = plan.rfind('}')
@@ -194,8 +185,12 @@ if __name__ == "__main__":
         logging.info(f"invalid json:%s\n", plan)
         exit(1)
     plan = json.loads(plan[start:end+1])
-    instructions = plan["instructions"]
+    # save the plan to a file
+    with open("plan.json", "w") as f:
+        json.dump(plan, f, indent=2)
+
+    instruction = plan["instructions"]
     interpreter = JarvisVMInterpreter()
-    interpreter.run(instructions)
+    interpreter.run(instruction)
 
     

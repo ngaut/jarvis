@@ -81,6 +81,7 @@ class SearchOnlineAction:
             result = str(response)
             jarvisvm.set("urls", result)
             jarvisvm.set("search_results", result)
+            jarvisvm.set("search_results.seqnum1", result)
             return result
         except HTTPError as http_err:
             if http_err.code == 429:
@@ -94,7 +95,7 @@ class SearchOnlineAction:
 class ExtractInfoAction(Action):
     action_id: int
     url: str
-    instructions: str
+    instruction: str
     expect_outcome_of_action: str = ""
 
 
@@ -105,13 +106,13 @@ class ExtractInfoAction(Action):
         return self.action_id
     
     def short_string(self) -> str:
-        return f"action_id: {self.id()}, Extract info from `{self.url}`, with instructions:<{self.instructions}>, expect_outcome_of_action: `{self.expect_outcome_of_action}`."
+        return f"action_id: {self.id()}, Extract info from `{self.url}`, with instructions:<{self.instruction}>, expect_outcome_of_action: `{self.expect_outcome_of_action}`."
 
     def run(self) -> str:
         with Spinner("Reading website..."):
             html = self.get_html(self.url)
         text = self.extract_text(html)
-        user_message_content = f"{self.instructions}\n\n```{text}```"
+        user_message_content = f"{self.instruction}\n\n```{text}```"
     
         with Spinner("Extracting info..."):
             extracted_info = gpt.complete(user_message_content, model=gpt.GPT_3_5_TURBO)
@@ -176,12 +177,14 @@ class RunPythonAction(Action):
     def _install_dependencies(self):
         for dependency in self.code_dependencies:
             with Spinner(f"Installing {dependency}..."):
-                logging.info("Installing %s...", dependency)
-                os.system(f"pip install {dependency}")
+                if dependency != "jarvisvm":
+                    logging.info("Installing %s...", dependency)
+                    os.system(f"pip install {dependency}")
 
 
     def _write_code_to_file(self):
         with io.open(self.file_name, mode="w", encoding="utf-8") as file:
+            file.write("import jarvisvm\n")
             file.write(self.code)
 
 
@@ -227,7 +230,7 @@ class RunPythonAction(Action):
 @dataclass(frozen=True)
 class TextCompletionAction(Action):
     action_id: int
-    prompt: str
+    request: str
     model_name: str = gpt.GPT_3_5_TURBO
     expect_outcome_of_action: str = ""
 
@@ -239,7 +242,7 @@ class TextCompletionAction(Action):
         return self.action_id
 
     def short_string(self) -> str:
-        return f"action_id: {self.id()}, Text completion for `{self.prompt}`."
+        return f"action_id: {self.id()}, Text completion for `{self.request}`."
 
     def run(self) -> str:
         messages = [
@@ -247,7 +250,7 @@ class TextCompletionAction(Action):
                 "role": "system",
                 "content": "You are a helpful assistant that uses AI to complete text.",
             },
-            {"role": "user", "content": self.prompt},
+            {"role": "user", "content": self.request},
         ]
 
         request_token_count = gpt.count_tokens(messages)
@@ -256,7 +259,7 @@ class TextCompletionAction(Action):
         try:
             response = gpt.send_message(messages, max_response_token_count, model=self.model_name)
             if response is None:
-                return f"TextCompletionAction RESULT: The text completion for `{self.prompt}` appears to have failed."
+                return f"TextCompletionAction RESULT: The text completion for `{self.request}` appears to have failed."
 
             result = str(response)
             return result
