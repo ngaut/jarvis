@@ -70,7 +70,8 @@ class Instruction:
         logging.info(f"\nmatches: {matches}, text:{text}\n")
         for match in matches:
             if 'jarvisvm.' in match and "jarvisvm.set" not in match:
-                evaluated = eval("import jarvisvm\n" + match)
+                evaluated = eval(match)
+                logging.info(f"\nevaluated: {evaluated}, code:{match}\n")
                 text = text.replace(f"{{{match}}}", str(evaluated), 1)
         
         return text
