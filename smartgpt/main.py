@@ -66,7 +66,7 @@ class Instruction:
 
         logging.info(f"Running action: {action}\n")
         result = action.run()
-        logging.info(f"\nresult: {result}\n")
+        logging.info(f"\nresult of {action_type}: {result}\n")
 
         if action_type != "RunPython":
             self.update_jarvisvm_values(result)

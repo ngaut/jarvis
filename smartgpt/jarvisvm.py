@@ -36,6 +36,23 @@ def get(key):
         logging.fatal(f"get, An error occurred: {e}")
 
 
+def get_values(key):
+    try:
+        cur.execute("SELECT value FROM kv_store WHERE jarvis_key=%s", (key,))
+        value = cur.fetchone()
+        logging.debug(f"get, key: {key}, value: {value}")
+        if value is None or value[0] is None:
+            return None
+        else:
+            # Convert the value back to a list if it's a string representation of a list
+            try:
+                value = eval(value[0])
+            except (ValueError, SyntaxError, TypeError):
+                pass  # value is not a string representation of a list, so leave it as is
+            return value
+    except Exception as e:
+        logging.fatal(f"get, An error occurred: {e}")
+
 
 
 def set(jarvis_key, value):
