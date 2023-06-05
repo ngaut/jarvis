@@ -22,7 +22,7 @@ def get(key):
     try:
         cur.execute("SELECT value FROM kv_store WHERE jarvis_key=%s", (key,))
         value = cur.fetchone()
-        logging.info(f"get, key: {key}, value: {value}")
+        logging.debug(f"get, key: {key}, value: {value}")
         if value is None or value[0] is None:
             return None
         else:
@@ -42,7 +42,7 @@ def set(jarvis_key, value):
     try:
         if isinstance(value, list):
             value = repr(value)
-        logging.info(f"set, jarvis_key: {jarvis_key}, value: {value}")
+        logging.debug(f"set, jarvis_key: {jarvis_key}, value: {value}")
 
         # Insert the value into the database
         cur.execute("INSERT INTO `kv_store` (`jarvis_key`, `value`) VALUES (%s, %s) ON DUPLICATE KEY UPDATE `value` = %s", (jarvis_key, value, value))

@@ -49,6 +49,10 @@ class Instruction:
         action_data = {"type": action_type, "action_id": action_id}
         action_data.update(args)
 
+        # append action data to file
+        with open("actions.json", "a") as f:
+            f.write(json.dumps(action_data) + "\n")
+
         action = actions.Action.from_dict(action_data)
         if action is None:
             print(f"Failed to create action from data: {action_data}")
@@ -175,7 +179,8 @@ if __name__ == "__main__":
         config = yaml.safe_load(f)
 
     # Logging configuration
-    logging.basicConfig(level=logging.INFO, format='%(message)s', stream=sys.stdout)
+    # Logging with file name and line number
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', stream=sys.stdout)
 
     logging.info("Welcome to Jarvis, your personal assistant for everyday tasks!\n")
 

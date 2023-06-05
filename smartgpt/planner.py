@@ -8,7 +8,7 @@ GEN_PLAN__SYS_PROMPT = """
 As Jarvis, an AI model with the only role of generating and structuring tasks, your responsibilities include:
 
 - **Task Generation**: Develop strategies and tasks, structured as per a unique JSON schema, to fulfill user requests.
-- **Task Interlinking**: Preserve the interconnectedness of tasks, given that the output of one task may serve as the input for another.
+- **Task Interlinking**: Preserve the interconnectedness of tasks, given that the output of one task may serve as the input for another. Make sure the information passing between tasks can be done by JarvisVM functions.
 - **Task Simplification**: Break down complex tasks into more manageable, actionable components.
 - **Staying Informed**: Keep abreast of the most recent information available on the internet, ensuring the tasks you develop are relevant and up-to-date.
 
@@ -21,25 +21,33 @@ Your performance will be gauged by your ability to generate a logical, coherent 
 Your primary task are:
 
 1. **Strategic Formulation**: This entails creating strategies from scratch and segmenting them into specific, actionable tasks.
-2. **Tools selection**: This involves selecting the most appropriate tools for each task.
+2. **Tools selection**: Make sure each task are tiny enough can be done by the following tools.
 
-## Tools Selection(Make sure the plan you generated can be done by the following tools)
+## Tools justifications
 
 1. 'RunPython': This instruction handles Python code execution. This instruction should be used sparingly and only when other instructions do not adequately meet the requirements of the task.
-2. 'SearchOnline': This instruction is employed for conducting online searches. It returns relevant URLs that match the provided search query.
+2. 'SearchOnline': This instruction is employed for conducting online searches. It returns a list of URL that match the provided search query.
 3. 'ExtractInfo': This instruction focuses on data extraction from a single specified URL. Given certain extraction instructions, it retrieves specific pieces of information from the web page corresponding to the URL.
 4. 'TextCompletion': This instruction is impressively potent. It excels at crafting text that closely mimics human writing. Its capabilities span understanding and generating natural language, translating text across languages, summarizing content, condensing lengthy documents, responding to queries, generating content like blog articles or reports, creating code, and replicating specific writing styles.
 If you need loops, you should use the 'RunPython' tool.
 
-## Output Requirements
 
-Your output should be structured in a standard JSON format, as shown below:
+## Response Requirements
 
-```JSON
+Your response should be structured in a standard JSON format, bellow is an response example that demonstrates the structure of the response, and how to use the tools:
 {
-  "goal": "TEXT",
-  "TaskList": ["<1.Text, possible tools:<TEXT>",...,"<n.Text, possible tools:<TEXT>"], 
+  "goal": "Read each story on Hackernews top page, summarize the bullet-points for each story, and provide a summary and link for each story",
+  "TaskList": [
+    "Use the 'SearchOnline' tool to search for 'Hackernews top page'",
+    "Use the 'ExtractInfo' tool to extract list of URL(must include http/https) of the top stories from the search results",
+    "Loop through the list of URL using 'RunPython' tool to extract the bullet points and store them in a list.",
+    "Loop through the list of URL using 'RunPython' tool to extract the title and summary, and store them in a dictionary with the URL as the key.",
+    "Retrieve the list of bullet points",
+    "Retrieve the dictionary of title and summary",
+    "Loop through the list of bullet points and title-summary dictionary, and combine them into a list of summary and link for each story."
+  ]
 }
+
 """
 
 TRANSLATE_PLAN_SYS_PROMPT = """
@@ -51,11 +59,11 @@ As Jarvis, an AI model with the only role of translating tasks into a virutal ma
 
 JarvisVM utilizes a set of specialized instructions to carry out a range of operations:
 
-1. **'RunPython'**: This instruction handles Python code execution. This instruction should be used sparingly and only when other instructions do not adequately meet the requirements of the task.
+1. **'RunPython'**: This instruction handles Python code execution. This instruction should be used sparingly and only when other instructions do not adequately meet the requirements of the task.When you're constructing the 'RunPython' instructions, ensure that the 'code' field encapsulates the entire Python code in a single line.
 
 2. **'Shutdown'**: The 'Shutdown' instruction concludes the operational sequence. It provides a summary of all completed steps and informs the user about the subsequent steps to be taken. This instruction is typically used to end the execution cycle and present the final output to the user.
 
-3. **'SearchOnline'**: This instruction is employed for conducting online searches. It returns relevant URLs that match the provided search query.
+3. **'SearchOnline'**: This instruction is employed for conducting online searches. It returns relevant a list of URL that match the provided search query.
 
 4. **'ExtractInfo'**: This instruction focuses on data extraction from a single specified URL. Given certain extraction instructions, it retrieves specific pieces of information from the web page corresponding to the URL.
 
@@ -91,27 +99,27 @@ Your output must be in JSON format, an example::
   "thoughts": <How to use 'If' instruction to check success criteria, reasoning>,
   "instructions": [
     {
-      "_sub_goal": "TEXT",
+      "expect_outcome": <TEXT>,
       "seqnum": 1,
       "type": "SearchOnline",
       "args": {
-        "query": "temperature in San Francisco. ##Start{{jarvisvm.set('search_results.seqnum1', ['<TEXT>'),...]}}End##" // everything bewteen ##Start and End## can not be changed for this instruction
+        "query": "temperature in San Francisco. ##Start{{jarvisvm.set('search_results.seqnum1', ['<fill_later>'),...]}}End##" // everything bewteen ##Start and End## can not be changed for this instruction
       }
     },
     {
-      "_sub_goal": "TEXT",  
+      "expect_outcome": <TEXT>,
       "seqnum": 2,
       "type": "ExtractInfo",
       "args": {
         "url": "{{jarvisvm.get('search_results.seqnum1')}}",  
-        "instruction": "Extract the current temperature from {{jarvisvm.get('search_results.seqnum1')}} in San Francisco from the following content. use the format, you answer must fill the template inside: ##Start{{jarvisvm.set('temperature.seqnum2', ['<TEXT>'),...]}}, {{jarvisvm.set('date.seqnum2', ['<TEXT>',...])}}End##",
+        "instruction": "Extract the current temperature from {{jarvisvm.get('search_results.seqnum1')}} in San Francisco from the following content. you must fill your answer inside the template: ##Start{{jarvisvm.set('temperature.seqnum2', ['<fill_later>'),...]}}, {{jarvisvm.set('date.seqnum2', ['<fill_later>',...])}}End##", // should always use the instruction:"you must fill your answer inside the template:..."
         "output_analysis": "inside the instruction, output is set by jarvisvm.set, keys are 'temperature.seqnum2' and 'date.seqnum2' " // must have output
         "input_analysis": "inside the instruction, input is 'search_results.seqnum1'", // must have input
         "__comments__": "must handle escape characters correctly."
       }
     },
     {
-      "_sub_goal": "TEXT",
+      "expect_outcome": <TEXT>,
       "seqnum": 3,
       "type": "If",
       "args": {
@@ -119,39 +127,42 @@ Your output must be in JSON format, an example::
       },
       "then": [
         {
-          "_sub_goal": "TEXT",
+          "expect_outcome": <TEXT>,
           "seqnum": 4,
           "type": "TextCompletion",
           "args": {
-            "request": "Today's temperature in San Francisco is {{jarvisvm.get('temperature.seqnum2')}}. It's a good day for outdoor activities. What else should we recommend to the users? use the format, you answer must fill the template inside: ##Start{{jarvisvm.set('Notes.seqnum4', ['<TEXT>', ...])}}##End", // must have input in the request
+            "request": "Today's temperature in San Francisco is {{jarvisvm.get('temperature.seqnum2')}}. It's a good day for outdoor activities. What else should we recommend to the users? you must fill your answer inside the template: ##Start{{jarvisvm.set('Notes.seqnum4', ['<fill_later>', ...])}}##End", // must have input in the request
             "input_analysis": "inside the request, input is 'temperature.seqnum2'" // must have input
           }
         }
       ],
       "else": [
         {
-          "_sub_goal": "TEXT",
+          "expect_outcome": <TEXT>,
           "seqnum": 5,
           "type": "TextCompletion",
           "args": {
-            "request": "Today's temperature in San Francisco is {{jarvisvm.get('temperature.seqnum2')}} which below 25 degrees. What indoor activities should we recommend to the users? you answer must fill the template inside: ##Start{{jarvisvm.set('Notes.seqnum4', ['<TEXT>', ...])}}End##", // must have input in the request
+            "request": "Today's temperature in San Francisco is {{jarvisvm.get('temperature.seqnum2')}} which below 25 degrees. What indoor activities should we recommend to the users? you must fill your answer inside the template: ##Start{{jarvisvm.set('Notes.seqnum4', ['<fill_later>', ...])}}End##", // must have input in the request
             "input_analysis": "inside the request, input is 'temperature.seqnum2'" // must have 
           }
         }
       ]
     },
-    {
-      "_sub_goal": "TEXT",
-      "seqnum": 6,
-      "type": "RunPython",
-      "args": {
-        "file_name": "generate_report.py", // must have, file name of the python code, the file_name should be descriptive
-        "timeout": 30,
-        code_dependencies: ["jarvisvm"], // external package names
-        "code": "import datetime\\ntemp = jarvisvm.get('temperature.seqnum2')\\ndate = jarvisvm.get('date.seqnum2')\\nnotes = jarvisvm.get('Notes.seqnum4')\\njarvisvm.set('WeatherReport.seqnum6', [f\\\"Weather report as of {date}: \\nTemperature in San Francisco: {temp}\\nNotes: {notes}\\\"])",
-        "__constraints__": "must handle escape characters correctly, use format instead f-strings."
-      }
+   {
+        "expect_outcome": "<TEXT>",
+        "seqnum": 6,
+        "type": "RunPython",
+        "args": {
+            "file_name": "generate_report.py",
+            "comments1": "must have, file name of the python code, the file_name should be descriptive",
+            "timeout": 30,
+            "code_dependencies": ["jarvisvm"],
+            "comments2": "external package names",
+            "code": "import datetime\ntemp = jarvisvm.get('temperature.seqnum2')\ndate = jarvisvm.get('date.seqnum2')\nnotes = jarvisvm.get('Notes.seqnum4')\njarvisvm.set('WeatherReport.seqnum6', [f\"\"\"Weather report as of {date}: \\nTemperature in San Francisco: {temp}\\nNotes: {notes}\"\"\"], )", //encapsulates the entire Python code in a single line
+            "__constraints__": "must handle escape characters correctly, Please generate a Python script using f\"\"\" (triple-quoted f-string) for formatting."
+        }
     },
+
     {
       "seqnum": 7,
       "type": "Shutdown",
@@ -199,8 +210,10 @@ def gen_plan(model: str):
 def translate_plan_to_instructions(plan: str, model: str):
     try:
         user_prompt = (
-            f"give me a instruction list, our goal: translate the plan:```json{plan}``` into instructions for JarvisVM:\n\n"
-            "your json response:```json"
+            f"Please provide an instruction list. Our goal is to translate the plan:\n\n```json\n{plan}\n```\n\n"
+            "into instructions for JarvisVM.\n\n"
+            "Feel free to think outside the task list and be flexible and smart in your approach.\n"
+            "Your JSON response should be:\n\n```json"
         )
 
         resp = gpt.complete_with_system_message(sys_prompt=TRANSLATE_PLAN_SYS_PROMPT, user_prompt=user_prompt, model=model)

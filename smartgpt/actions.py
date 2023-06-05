@@ -61,7 +61,7 @@ class Action(ABC):
 class SearchOnlineAction:
     action_id: int
     query: str
-    expect_outcome_of_action: str = ""
+    expect_outcome: str = ""
     
     def key(self):
         return "SearchOnline"
@@ -70,7 +70,7 @@ class SearchOnlineAction:
         return self.action_id
     
     def short_string(self):
-        return f"action_id: {self.id()}, Search online for `{self.query}`, expect_outcome_of_action: `{self.expect_outcome_of_action}`."
+        return f"action_id: {self.id()}, Search online for `{self.query}`, expect_outcome: `{self.expect_outcome}`."
 
     def run(self):
         try:
@@ -96,7 +96,7 @@ class ExtractInfoAction(Action):
     action_id: int
     url: str
     instruction: str
-    expect_outcome_of_action: str = ""
+    expect_outcome: str = ""
 
 
     def key(self) -> str:
@@ -106,7 +106,7 @@ class ExtractInfoAction(Action):
         return self.action_id
     
     def short_string(self) -> str:
-        return f"action_id: {self.id()}, Extract info from `{self.url}`, with instructions:<{self.instruction}>, expect_outcome_of_action: `{self.expect_outcome_of_action}`."
+        return f"action_id: {self.id()}, Extract info from `{self.url}`, with instructions:<{self.instruction}>, expect_outcome: `{self.expect_outcome}`."
 
     def run(self) -> str:
         with Spinner("Reading website..."):
@@ -145,7 +145,7 @@ class RunPythonAction(Action):
     code:str = ""
     code_dependencies: list = field(default_factory=list)
     cmd_args: str = ""
-    expect_outcome_of_action: str = ""
+    expect_outcome: str = ""
     
 
     def key(self) -> str:
@@ -155,7 +155,7 @@ class RunPythonAction(Action):
         return self.action_id
     
     def short_string(self) -> str:
-        return f"action_id: {self.id()}, Run Python file `{self.file_name} {self.cmd_args}`, expect_outcome_of_action: `{self.expect_outcome_of_action}`."
+        return f"action_id: {self.id()}, Run Python file `{self.file_name} {self.cmd_args}`, expect_outcome: `{self.expect_outcome}`."
 
     def run(self) -> str:
         # Make sure filename and code aren't None
@@ -232,7 +232,7 @@ class TextCompletionAction(Action):
     action_id: int
     request: str
     model_name: str = gpt.GPT_3_5_TURBO
-    expect_outcome_of_action: str = ""
+    expect_outcome: str = ""
 
 
     def key(self) -> str:
