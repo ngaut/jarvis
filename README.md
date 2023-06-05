@@ -1,8 +1,5 @@
-# jarvis: A simple autonomous GPT-4 runner
+# jarvis: A virtual machine designed for AI
 
-[![](https://dcbadge.vercel.app/api/server/98KeRysd?style=flat)](https://discord.gg/98KeRysd)
-[![Twitter Follow](https://img.shields.io/twitter/follow/rokstrnisa?style=social)](https://twitter.com/intent/follow?screen_name=rokstrnisa)
-## A virtual machine designed for AI
 
 ## Setup
 
