@@ -13,12 +13,5 @@
         "./jarvis"
     ],
     "sqltools.useNodeRuntime": true,
-    "sqltools.connections": [
-        {
-            "previewLimit": 50,
-            "driver": "SQLite",
-            "name": "jarvis",
-            "database": "${workspaceFolder:jarvis}/database.db"
-        }
-    ]
+    "sqltools.connections": []
 }

@@ -42,6 +42,10 @@ class Instruction:
             if urls:
                 url = self.parse_url(urls)
                 args["url"] = url
+                
+        if action_type == "RunPython":
+            # if file_name is empty, use the default file
+            args["file_name"] = args.get("file_name", "tmp.py")
 
         if action_type in ["TextCompletion", "Shutdown"]:
             args = self.handle_jarvisvm_methods(args, action_type)
@@ -192,39 +196,39 @@ if __name__ == "__main__":
     os.makedirs("workspace", exist_ok=True)
     os.chdir("workspace")
 
-    # If a JSON file path is provided, load the plan from the JSON file, otherwise generate a new plan
+    # If a JSON file path is provided, load the plan_with_instrs from the JSON file, otherwise generate a new plan_with_instrs
     if args.json:
-        # Load the plan from the JSON file
+        # Load the plan_with_instrs from the JSON file
         with open(args.json, 'r') as f:
-            plan = json.load(f)
+            plan_with_instrs = json.load(f)
     else:
         # Generate a new plan
-        plan = planner.gen_instructions(base_model)
+        plan_with_instrs = planner.gen_instructions(base_model)
 
         # parse the data between left and right brackets
-        start = plan.find('{')
-        end = plan.rfind('}')
+        start = plan_with_instrs.find('{')
+        end = plan_with_instrs.rfind('}')
         if end < start:
-            logging.info(f"invalid json:%s\n", plan)
+            logging.info(f"invalid json:%s\n", plan_with_instrs)
             exit(1)
-        plan = json.loads(plan[start:end+1])
+        plan_with_instrs = json.loads(plan_with_instrs[start:end+1])
     
         # save the plan to a file
-        with open('plan.json', "w") as f:
-            json.dump(plan, f, indent=2)
+        with open('plan_with_instrs.json', "w") as f:
+            json.dump(plan_with_instrs, f, indent=2)
 
     # Find the starting sequence number
     start_seq = args.startseq
 
     # Make sure start_seq is within bounds
-    if start_seq < 0 or start_seq >= len(plan["instructions"]):
+    if start_seq < 0 or start_seq >= len(plan_with_instrs["instructions"]):
         print(f"Invalid start sequence number: {start_seq}")
         exit(1)
 
     # Run the instructions starting from start_seq
     interpreter = JarvisVMInterpreter()
-    logging.info(f"Running instructions from  {plan['instructions'][start_seq]}\n")
-    interpreter.run(plan["instructions"][start_seq:])
+    logging.info(f"Running instructions from  {plan_with_instrs['instructions'][start_seq]}\n")
+    interpreter.run(plan_with_instrs["instructions"][start_seq:])
 
 
 

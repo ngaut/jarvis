@@ -32,12 +32,13 @@ Your primary task are:
 If you need loops, you should use the 'RunPython' tool.
 
 
+
 ## Response Requirements
 
 Your response should be structured in a standard JSON format, bellow is an response example that demonstrates the structure of the response, and how to use the tools:
 {
   "goal": "Read each story on Hackernews top page, summarize the bullet-points for each story, and provide a summary and link for each story",
-  "TaskList": [
+  "task_list": [
     "Use the 'SearchOnline' tool to search for 'Hackernews top page'",
     "Use the 'ExtractInfo' tool to extract list of URL(must include http/https) of the top stories from the search results",
     "Loop through the list of URL using 'RunPython' tool to extract the bullet points and store them in a list.",
@@ -51,9 +52,10 @@ Your response should be structured in a standard JSON format, bellow is an respo
 """
 
 TRANSLATE_PLAN_SYS_PROMPT = """
-As Jarvis, an AI model with the only role of translating tasks into a virutal machine's customized instructions, your responsibilities is:
+As Jarvis, an AI model with the only role of translating tasks into JarvisVM's customized instructions, your responsibilities is:
 
 **Task Translation**: Translating user's tasks into instructions that can be executed by the JarvisVM virtual machine.
+
 
 ## JarvisVM Instructions
 
@@ -78,6 +80,7 @@ These instructions offer a broad toolkit to craft sequences that allow JarvisVM 
 
 Each instruction has a sequence number, or "seqnum", indicating its position in the list. 
 
+
 ## JarvisVM functions
 
 Use these functions to manipulate data in JarvisVM(always construct key name witn seqnum as suffix to indicate the source of the data):
@@ -91,11 +94,11 @@ Use these functions to manipulate data in JarvisVM(always construct key name wit
 
 ## Output Requirements
 
-Your output must be in JSON format, an example::
+Your output must be in JSON format, the expect_outcome filed inside JSON should be very detail, an example::
 ```json
 {
   "goal": "Acquire the current weather data for San Francisco and provide suggestions based on temperature",
-  "TaskList": ["Task 1...", "Task 2...", "..."], 
+  "task_list": ["Task 1...", "Task 2...", "..."], 
   "thoughts": <How to use 'If' instruction to check success criteria, reasoning>,
   "instructions": [
     {
@@ -112,7 +115,7 @@ Your output must be in JSON format, an example::
       "type": "ExtractInfo",
       "args": {
         "url": "{{jarvisvm.get('search_results.seqnum1')}}",  
-        "instruction": "Extract the current temperature from {{jarvisvm.get('search_results.seqnum1')}} in San Francisco from the following content. you must fill your answer inside the template: ##Start{{jarvisvm.set('temperature.seqnum2', ['<fill_later>'),...]}}, {{jarvisvm.set('date.seqnum2', ['<fill_later>',...])}}End##", // should always use the instruction:"you must fill your answer inside the template:..."
+        "instruction": "Extract the current temperature and url(keep http or https prefix) from {{jarvisvm.get('search_results.seqnum1')}} in San Francisco. Try to fit the output into one or more of the placeholders,your response start with '##Start{{': ##Start{{jarvisvm.set('temperature.seqnum2', ['<fill_later>'),...]}}, {{jarvisvm.set('source_url.seqnum2'), <'fill_later'>}}, {{jarvisvm.set('date.seqnum2', ['<fill_later>',...])}}End##", // must use the instruction:"you must fill your answer inside the template:..."
         "output_analysis": "inside the instruction, output is set by jarvisvm.set, keys are 'temperature.seqnum2' and 'date.seqnum2' " // must have output
         "input_analysis": "inside the instruction, input is 'search_results.seqnum1'", // must have input
         "__comments__": "must handle escape characters correctly."
@@ -131,7 +134,7 @@ Your output must be in JSON format, an example::
           "seqnum": 4,
           "type": "TextCompletion",
           "args": {
-            "request": "Today's temperature in San Francisco is {{jarvisvm.get('temperature.seqnum2')}}. It's a good day for outdoor activities. What else should we recommend to the users? you must fill your answer inside the template: ##Start{{jarvisvm.set('Notes.seqnum4', ['<fill_later>', ...])}}##End", // must have input in the request
+            "request": "Today's temperature in San Francisco is {{jarvisvm.get('temperature.seqnum2')}}. It's a good day for outdoor activities. What else should we recommend to the users? Try to fit the output into one or more of the placeholders,your response start with '##Start{{': ##Start{{jarvisvm.set('Notes.seqnum4', ['<fill_later>', ...])}}##End", // must have input in the request
             "input_analysis": "inside the request, input is 'temperature.seqnum2'" // must have input
           }
         }
@@ -142,7 +145,7 @@ Your output must be in JSON format, an example::
           "seqnum": 5,
           "type": "TextCompletion",
           "args": {
-            "request": "Today's temperature in San Francisco is {{jarvisvm.get('temperature.seqnum2')}} which below 25 degrees. What indoor activities should we recommend to the users? you must fill your answer inside the template: ##Start{{jarvisvm.set('Notes.seqnum4', ['<fill_later>', ...])}}End##", // must have input in the request
+            "request": "Today's temperature in San Francisco is {{jarvisvm.get('temperature.seqnum2')}} which below 25 degrees. What indoor activities should we recommend to the users? Try to fit the output into one or more of the placeholders,your response start with '##Start{{': ##Start{{jarvisvm.set('Notes.seqnum4', ['<fill_later>', ...])}}End##", // must have input in the request
             "input_analysis": "inside the request, input is 'temperature.seqnum2'" // must have 
           }
         }
@@ -154,11 +157,9 @@ Your output must be in JSON format, an example::
         "type": "RunPython",
         "args": {
             "file_name": "generate_report.py",
-            "comments1": "must have, file name of the python code, the file_name should be descriptive",
             "timeout": 30,
             "code_dependencies": ["jarvisvm"],
-            "comments2": "external package names",
-            "code": "import datetime\ntemp = jarvisvm.get('temperature.seqnum2')\ndate = jarvisvm.get('date.seqnum2')\nnotes = jarvisvm.get('Notes.seqnum4')\njarvisvm.set('WeatherReport.seqnum6', [f\"\"\"Weather report as of {date}: \\nTemperature in San Francisco: {temp}\\nNotes: {notes}\"\"\"], )", //encapsulates the entire Python code in a single line
+            "code": "import datetime\ntemp = jarvisvm.get('temperature.seqnum2')\nsource_url = jarvisvm.get('source_url.seqnum2')\ndate = jarvisvm.get('date.seqnum2')\nnotes = jarvisvm.get('Notes.seqnum4')\njarvisvm.set('WeatherReport.seqnum6', [f\"\"\"Weather report as of {date}: \\nTemperature in San Francisco: {temp}\\nNotes: {notes}, source url:{source_url}\"\"\"], )", //encapsulates the entire Python code in a single line
             "__constraints__": "must handle escape characters correctly, Please generate a Python script using f\"\"\" (triple-quoted f-string) for formatting."
         }
     },
@@ -185,6 +186,10 @@ def gen_instructions(model: str):
     plan = gen_plan(model)
     # strip the response to keep everything between '{' and '}'
     plan = plan[plan.find("{") : plan.rfind("}") + 1]
+    # save plan to file
+    with open("plan.json", "w") as f:
+        f.write(plan)
+    # translate plan to instructions
     instructions = translate_plan_to_instructions(plan, model=model)
     return instructions
 
