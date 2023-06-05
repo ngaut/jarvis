@@ -42,10 +42,12 @@ class Instruction:
             if urls:
                 url = self.parse_url(urls)
                 args["url"] = url
-                
+
         if action_type == "RunPython":
             # if file_name is empty, use the default file
-            args["file_name"] = args.get("file_name", "tmp.py")
+            file_name = args.get("file_name")
+            if file_name is None or file_name == "":
+                args["file_name"] = f"tmp_{action_id}.py"
 
         if action_type in ["TextCompletion", "Shutdown"]:
             args = self.handle_jarvisvm_methods(args, action_type)

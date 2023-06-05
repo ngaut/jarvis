@@ -85,10 +85,10 @@ Each instruction has a sequence number, or "seqnum", indicating its position in 
 
 Use these functions to manipulate data in JarvisVM(always construct key name witn seqnum as suffix to indicate the source of the data):
 
-- jarvisvm.get('key_name'): returns the value:string of the specified key
+- jarvisvm.get('key_name'): returns the a list of value:string of the specified key
 - jarvisvm.set('key_name', ['value'...]): sets a list of values to the specified key
-- jarvisvm.list_values_with_key_prefix('prefix'): returns a list of values with the specified prefix
-- jarvisvm.list_keys_with_prefix('prefix'): returns a list of keys with the specified prefix
+- jarvisvm.list_values_with_key_prefix('prefix'): returns a list of list of value:string with the specified prefix
+- jarvisvm.list_keys_with_prefix('prefix'): returns a list of key:string with the specified prefix
 - jarvisvm.text_completion(prompt:str) -> str: returns the text completion of the prompt. This function is only available for 'RunPython' instruction.
 
 
