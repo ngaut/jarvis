@@ -14,9 +14,10 @@ import json
 base_model  = gpt.GPT_3_5_TURBO
 
 class Instruction:
-    def __init__(self, instruction, act):
+    def __init__(self, instruction, act, goal):
         self.instruction = instruction
         self.act = act
+        self.goal = goal
 
     def execute(self):
         action_type = self.instruction.get("type")
@@ -51,6 +52,8 @@ class Instruction:
 
         if action_type in ["TextCompletion", "Shutdown"]:
             args = self.handle_jarvisvm_methods(args, action_type)
+            if action_type == "TextCompletion":
+                args["request"] = f("our goal:{self.goal}\nYou are working on one of the steps to archive the goal.\n {args['request']}")
 
         action_data = {"type": action_type, "action_id": action_id}
         action_data.update(args)
@@ -122,9 +125,9 @@ class JarvisVMInterpreter:
             "Shutdown": actions.ShutdownAction,
         }
 
-    def run(self, instructions):
+    def run(self, instructions, goal):
         while self.pc < len(instructions):
-            instruction = Instruction(instructions[self.pc], self.actions)
+            instruction = Instruction(instructions[self.pc], self.actions, goal)
             action_type = instructions[self.pc].get("type")
             if action_type == "If":
                 self.conditional(instruction)
@@ -230,7 +233,7 @@ if __name__ == "__main__":
     # Run the instructions starting from start_seq
     interpreter = JarvisVMInterpreter()
     logging.info(f"Running instructions from  {plan_with_instrs['instructions'][start_seq]}\n")
-    interpreter.run(plan_with_instrs["instructions"][start_seq:])
+    interpreter.run(plan_with_instrs["instructions"][start_seq:], goal=plan_with_instrs["goal"])
 
 
 

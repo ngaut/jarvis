@@ -29,7 +29,7 @@ Your primary task are:
 2. 'SearchOnline': This instruction is employed for conducting online searches. It returns a list of URL that match the provided search query.
 3. 'ExtractInfo': This instruction focuses on data extraction from a single specified URL. Given certain extraction instructions, it retrieves specific pieces of information from the web page corresponding to the URL.
 4. 'TextCompletion': This instruction is impressively potent. It excels at crafting text that closely mimics human writing. Its capabilities span understanding and generating natural language, translating text across languages, summarizing content, condensing lengthy documents, responding to queries, generating content like blog articles or reports, creating code, and replicating specific writing styles.
-If you need loops, you should use the 'RunPython' tool.
+If you need loops, you should use the 'RunPython'.
 
 
 
@@ -38,12 +38,12 @@ If you need loops, you should use the 'RunPython' tool.
 Your response should be structured in a standard JSON format, bellow is an response example that demonstrates the structure of the response, and how to use the tools:
 {
   "goal": "Read each story on Hackernews top page, summarize the bullet-points for each story, and provide a summary and link for each story",
+  "references": <TEXT>,
   "task_list": [
-    "Use the 'ExtractInfo' tool to extract list of URL of the top stories from the search results, extract from url:https://news.ycombinator.com/",
-    "Loop through the list of URL using 'RunPython' tool to extract the bullet points and store them in a list.",
-    "Loop through the list of URL using 'RunPython' tool to extract the title and summary, and store them in a dictionary with the URL as the key.",
+    "Use the 'ExtractInfo'  to extract list of URL of the top stories from the search results, extract from url:https://news.ycombinator.com/",
+    "Loop through the list of URL using 'RunPython'  to extract the bullet points and store them in a list.",
+    "Loop through the list of URL using 'RunPython'  to extract the title and summary, and store them in a dictionary with the URL as the key.",
     "Loop through the list of bullet points and title-summary dictionary, and combine them into a list of summary and link for each story."
-    "<context and inputs for tasks>": "..."
   ]
 }
 
