@@ -11,7 +11,7 @@ from datetime import datetime
 import planner
 import json
 
-base_model  = gpt.GPT_4
+base_model  = gpt.GPT_3_5_TURBO
 
 class Instruction:
     def __init__(self, instruction, act):
@@ -29,10 +29,19 @@ class Instruction:
         action_id = self.instruction.get("seqnum")
         args = self.instruction.get("args", {})
 
+        if action_type == "SearchOnline":
+            # empty everything between ##Start and ##End
+            start = args["query"].find("##Start")
+            end = args["query"].find("##End")
+            if start != -1 and end != -1:
+                args["query"] = args["query"][:start] + args["query"][end+len("##End"):]
+            args["query"] = self.modify_request_with_value(args["query"])
+
         if action_type == "ExtractInfo":
             urls = jarvisvm.get("urls")
-            url = self.parse_url(urls)
-            args["url"] = url
+            if urls:
+                url = self.parse_url(urls)
+                args["url"] = url
 
         if action_type in ["TextCompletion", "Shutdown"]:
             args = self.handle_jarvisvm_methods(args, action_type)
@@ -62,12 +71,10 @@ class Instruction:
         args[target_arg] = self.modify_request_with_value(text)
         return args
 
-    
-
     def modify_request_with_value(self, text):
         pattern = re.compile(r"\{\{(.*?)\}\}")
         matches = pattern.findall(text)
-        logging.info(f"\nmatches: {matches}, text:{text}\n")
+        logging.info(f"\nmodify request, matches: {matches}, text:{text}\n")
         for match in matches:
             if 'jarvisvm.' in match and "jarvisvm.set" not in match:
                 evaluated = eval(match)
@@ -81,6 +88,7 @@ class Instruction:
         pattern = re.compile(r"jarvisvm.set\('([^']*)', (.*?)\)")
         matches = pattern.findall(result)
 
+        logging.info(f"\nupdate_jarvisvm_values, matches: {matches}, result:{result}\n")
         for match in matches:
             key = match[0]
             value_str = match[1].strip()
@@ -89,6 +97,7 @@ class Instruction:
             except (ValueError, SyntaxError):
                 value = value_str.strip("'\"")
             jarvisvm.set(key, value)
+            logging.info(f"\njarvisvm.set('{key}', {value})\n")
 
 
         
@@ -153,9 +162,11 @@ class JarvisVMInterpreter:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str, default='config.yaml', help='Path to the configuration file')
-    parser.add_argument('--timeout', type=int, default=1, help='Timeout for user input')  
-    parser.add_argument('--continuous', action='store_true', help='Continuous mode')  # Add this line
+    parser.add_argument('--timeout', type=int, default=1, help='Timeout for user input')
+    parser.add_argument('--continuous', action='store_true', help='Continuous mode')
     parser.add_argument('--verbose', action='store_true', help='Verbose mode')
+    parser.add_argument('--json', type=str, help='Path to the JSON file to execute plan from')
+    parser.add_argument('--startseq', type=int, default=0, help='Starting sequence number')
 
     args = parser.parse_args()
 
@@ -163,12 +174,11 @@ if __name__ == "__main__":
     with open(args.config, 'r') as f:
         config = yaml.safe_load(f)
 
- 
     # Logging configuration
     logging.basicConfig(level=logging.INFO, format='%(message)s', stream=sys.stdout)
 
     logging.info("Welcome to Jarvis, your personal assistant for everyday tasks!\n")
-   
+
     assistant_config = config.get('assistant', {})
     args.timeout = args.timeout or assistant_config.get('timeout', 30)
     args.verbose = args.verbose or assistant_config.get('verbose', False)
@@ -177,21 +187,41 @@ if __name__ == "__main__":
     os.makedirs("workspace", exist_ok=True)
     os.chdir("workspace")
 
-    plan = planner.gen_instructions(base_model)    
-    
-    # parse the data between left and right brackets
-    start = plan.find('{')
-    end = plan.rfind('}')
-    if end < start:
-        logging.info(f"invalid json:%s\n", plan)
-        exit(1)
-    plan = json.loads(plan[start:end+1])
-    # save the plan to a file
-    with open("plan.json", "w") as f:
-        json.dump(plan, f, indent=2)
+    # If a JSON file path is provided, load the plan from the JSON file, otherwise generate a new plan
+    if args.json:
+        # Load the plan from the JSON file
+        with open(args.json, 'r') as f:
+            plan = json.load(f)
+    else:
+        # Generate a new plan
+        plan = planner.gen_instructions(base_model)
 
-    instruction = plan["instructions"]
+        # parse the data between left and right brackets
+        start = plan.find('{')
+        end = plan.rfind('}')
+        if end < start:
+            logging.info(f"invalid json:%s\n", plan)
+            exit(1)
+        plan = json.loads(plan[start:end+1])
+    
+        # save the plan to a file
+        with open('plan.json', "w") as f:
+            json.dump(plan, f, indent=2)
+
+    # Find the starting sequence number
+    start_seq = args.startseq
+
+    # Make sure start_seq is within bounds
+    if start_seq < 0 or start_seq >= len(plan["instructions"]):
+        print(f"Invalid start sequence number: {start_seq}")
+        exit(1)
+
+    # Run the instructions starting from start_seq
     interpreter = JarvisVMInterpreter()
-    interpreter.run(instruction)
+    logging.info(f"Running instructions from  {plan['instructions'][start_seq]}\n")
+    interpreter.run(plan["instructions"][start_seq:])
+
+
+
 
     
