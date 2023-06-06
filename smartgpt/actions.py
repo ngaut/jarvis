@@ -230,7 +230,7 @@ class RunPythonAction(Action):
 @dataclass(frozen=True)
 class TextCompletionAction(Action):
     action_id: int
-    request: str
+    prompt: str
     model_name: str = gpt.GPT_3_5_TURBO
     expect_outcome: str = ""
 
@@ -242,7 +242,7 @@ class TextCompletionAction(Action):
         return self.action_id
 
     def short_string(self) -> str:
-        return f"action_id: {self.id()}, Text completion for `{self.request}`."
+        return f"action_id: {self.id()}, Text completion for `{self.prompt}`."
 
     def run(self) -> str:
         messages = [
@@ -250,7 +250,7 @@ class TextCompletionAction(Action):
                 "role": "system",
                 "content": "You are a helpful assistant that uses AI to complete text.",
             },
-            {"role": "user", "content": self.request},
+            {"role": "user", "content": self.prompt},
         ]
 
         request_token_count = gpt.count_tokens(messages)
@@ -259,7 +259,7 @@ class TextCompletionAction(Action):
         try:
             response = gpt.send_message(messages, max_response_token_count, model=self.model_name)
             if response is None:
-                return f"TextCompletionAction RESULT: The text completion for `{self.request}` appears to have failed."
+                return f"TextCompletionAction RESULT: The text completion for `{self.prompt}` appears to have failed."
 
             result = str(response)
             return result

@@ -145,8 +145,8 @@ Your output must be in JSON format, include fields:goal, instructions,thoughts. 
           "seqnum": 4,
           "type": "TextCompletion",
           "args": {
-            "request": "Today's temperature in San Francisco is {{jarvisvm.get('temperature.seqnum2')}}. It's a good day for outdoor activities. What else should we recommend to the users? Try to fit the output into one or more of the placeholders,your response start with '##Start{{': ##Start{{jarvisvm.set('Notes.seqnum4', '<fill_later>')}}##End", // must have input in the request
-            "input_analysis": "inside the request, input is 'temperature.seqnum2'" // must have input
+            "prompt": "Today's temperature in San Francisco is {{jarvisvm.get('temperature.seqnum2')}}. It's a good day for outdoor activities. What else should we recommend to the users? Try to fit the output into one or more of the placeholders,your response start with '##Start{{': ##Start{{jarvisvm.set('Notes.seqnum4', '<fill_later>')}}##End", // must have input in the prompt
+            "input_analysis": "inside the prompt, input is 'temperature.seqnum2'" // must have input
           }
         }
       ],
@@ -156,8 +156,8 @@ Your output must be in JSON format, include fields:goal, instructions,thoughts. 
           "seqnum": 5,
           "type": "TextCompletion",
           "args": {
-            "request": "Today's temperature in San Francisco is {{jarvisvm.get('temperature.seqnum2')}} which below 25 degrees. What indoor activities should we recommend to the users? Try to fit the output into one or more of the placeholders,your response start with '##Start{{': ##Start{{jarvisvm.set('Notes.seqnum4', '<fill_later>')}}End##", // must have input in the request
-            "input_analysis": "inside the request, input is 'temperature.seqnum2'" // must have 
+            "prompt": "Today's temperature in San Francisco is {{jarvisvm.get('temperature.seqnum2')}} which below 25 degrees. What indoor activities should we recommend to the users? Try to fit the output into one or more of the placeholders,your response start with '##Start{{': ##Start{{jarvisvm.set('Notes.seqnum4', '<fill_later>')}}End##", // must have input in the prompt
+            "input_analysis": "inside the prompt, input is 'temperature.seqnum2'" // must have 
           }
         }
       ]

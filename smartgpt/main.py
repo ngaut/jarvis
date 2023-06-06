@@ -36,7 +36,7 @@ class Instruction:
             end = args["query"].find("##End")
             if start != -1 and end != -1:
                 args["query"] = args["query"][:start] + args["query"][end+len("##End"):]
-            args["query"] = self.modify_request_with_value(args["query"])
+            args["query"] = self.modify_prompt_with_value(args["query"])
 
         if action_type == "ExtractInfo":
             urls = jarvisvm.get("urls")
@@ -53,7 +53,7 @@ class Instruction:
         if action_type in ["TextCompletion", "Shutdown"]:
             args = self.handle_jarvisvm_methods(args, action_type)
             if action_type == "TextCompletion":
-                args["request"] = f"our goal:{self.goal}\nYou are working on one of the steps to archive the goal.\n {args['request']}"
+                args["prompt"] = f"our goal:{self.goal}\nYou are working on one of the steps to archive the goal.\n {args['prompt']}"
 
         action_data = {"type": action_type, "action_id": action_id}
         action_data.update(args)
@@ -79,15 +79,15 @@ class Instruction:
             return urls[0]
 
     def handle_jarvisvm_methods(self, args, action_type):
-        target_arg = "request" if action_type == "TextCompletion" else "summary"
+        target_arg = "prompt" if action_type == "TextCompletion" else "summary"
         text = args[target_arg]
-        args[target_arg] = self.modify_request_with_value(text)
+        args[target_arg] = self.modify_prompt_with_value(text)
         return args
 
-    def modify_request_with_value(self, text):
+    def modify_prompt_with_value(self, text):
         pattern = re.compile(r"\{\{(.*?)\}\}")
         matches = pattern.findall(text)
-        logging.info(f"\nmodify request, matches: {matches}, text:{text}\n")
+        logging.info(f"\nmodify prompt, matches: {matches}, text:{text}\n")
         for match in matches:
             if 'jarvisvm.' in match and "jarvisvm.set" not in match:
                 evaluated = eval(match)
@@ -137,18 +137,18 @@ class JarvisVMInterpreter:
 
     def conditional(self, instruction):
         condition = instruction.instruction.get("args", {}).get("condition", None)
-        request = f'Is that true?: "{condition}"? Please respond in the following JSON format: \n{{"result": "true/false", "reasoning": "your reasoning"}}.'
+        prompt = f'Is that true?: "{condition}"? Please respond in the following JSON format: \n{{"result": "true/false", "reasoning": "your reasoning"}}.'
 
-        # patch request by replacing jarvisvm.get('key') with value using regex
+        # patch prompt by replacing jarvisvm.get('key') with value using regex
         # use regex to extract key from result:{jarvisvm.get('key')}    
         pattern = re.compile(r"jarvisvm.get\('(\w+)'\)")
-        matches = pattern.findall(request)
+        matches = pattern.findall(prompt)
         for match in matches:
             key = match
             value = jarvisvm.get(key)
-            # replace jarvisvm.get('...') in request with value
-            request = request.replace(f"jarvisvm.get('{key}')", value, 1)
-        evaluation_result = actions.TextCompletionAction(0, request).run()
+            # replace jarvisvm.get('...') in prompt with value
+            prompt = prompt.replace(f"jarvisvm.get('{key}')", value, 1)
+        evaluation_result = actions.TextCompletionAction(0, prompt).run()
 
         try:
             result_json = json.loads(evaluation_result)
