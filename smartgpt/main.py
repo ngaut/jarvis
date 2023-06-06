@@ -53,7 +53,7 @@ class Instruction:
         if action_type in ["TextCompletion", "Shutdown"]:
             args = self.handle_jarvisvm_methods(args, action_type)
             if action_type == "TextCompletion":
-                args["request"] = f("our goal:{self.goal}\nYou are working on one of the steps to archive the goal.\n {args['request']}")
+                args["request"] = f"our goal:{self.goal}\nYou are working on one of the steps to archive the goal.\n {args['request']}"
 
         action_data = {"type": action_type, "action_id": action_id}
         action_data.update(args)

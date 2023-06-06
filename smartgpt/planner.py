@@ -5,7 +5,8 @@ import gpt
 
 
 GEN_PLAN__SYS_PROMPT = """
-As Jarvis, an AI model with the only role of generating and structuring tasks, your responsibilities include:
+As Jarvis, an AI model with the only role of generating and structuring tasks, these generated tasks will be execute by an auto-agent.
+Make sure all of the task can be done automatically.your responsibilities include:
 
 - **Task Generation**: Develop strategies and tasks, structured as per a unique JSON schema, to fulfill user requests.
 - **Task Interlinking**: Preserve the interconnectedness of tasks, given that the output of one task may serve as the input for another. Make sure the information passing between tasks can be done by JarvisVM functions.
@@ -21,15 +22,14 @@ Your performance will be gauged by your ability to generate a logical, coherent 
 Your primary task are:
 
 1. **Strategic Formulation**: This entails creating strategies from scratch and segmenting them into specific, actionable tasks.
-2. **Tools selection**: Make sure each task are tiny enough can be done by the following tools.
+2. **Tools Reason**: Make sure each task are tiny enough can be done by the following tools.
 
 ## Tools justifications
 
 1. 'RunPython': This instruction handles Python code execution. This instruction should be used sparingly and only when other instructions do not adequately meet the requirements of the task.
-2. 'SearchOnline': This instruction is employed for conducting online searches. It returns a list of URL that match the provided search query.
-3. 'ExtractInfo': This instruction focuses on data extraction from a single specified URL. Given certain extraction instructions, it retrieves specific pieces of information from the web page corresponding to the URL.
+2. 'SearchOnline': This instruction is employed for conducting online searches. It returns a list of URL that match the provided search query. The next instruction should be 'ExtractInfo' to extract the information from the search results.
+3. 'ExtractInfo': This instruction focuses on data extraction from a single specified URL. Given certain extraction instructions, it retrieves specific pieces of information from the web page corresponding to the URL. It can work independently or in conjunction with 'SearchOnline'.  
 4. 'TextCompletion': This instruction is impressively potent. It excels at crafting text that closely mimics human writing. Its capabilities span understanding and generating natural language, translating text across languages, summarizing content, condensing lengthy documents, responding to queries, generating content like blog articles or reports, creating code, and replicating specific writing styles.
-If you need loops, you should use the 'RunPython'.
 
 
 
@@ -37,13 +37,25 @@ If you need loops, you should use the 'RunPython'.
 
 Your response should be structured in a standard JSON format, bellow is an response example that demonstrates the structure of the response, and how to use the tools:
 {
-  "goal": "Read each story on Hackernews top page, summarize the bullet-points for each story, and provide a summary and link for each story",
-  "references": <TEXT>,
+  {
+  "goal": "Write a blog post introducing TiDB Serverless using markdown format and linking all the sections in an index file.",
+  "hints_from_user": "study the content of these links first: https://me.0xffff.me/dbaas1.html, https://me.0xffff.me/dbaas2.html, https://me.0xffff.me/dbaas3.html",
   "task_list": [
-    "Use the 'ExtractInfo'  to extract list of URL of the top stories from the search results, extract from url:https://news.ycombinator.com/",
-    "Loop through the list of URL using 'RunPython'  to extract the bullet points and store them in a list.",
-    "Loop through the list of URL using 'RunPython'  to extract the title and summary, and store them in a dictionary with the URL as the key.",
-    "Loop through the list of bullet points and title-summary dictionary, and combine them into a list of summary and link for each story."
+    {
+      "task": "Read the content of the three provided links and take notes on the key points and features of TiDB Serverless.",
+      "input": {
+        "links": [
+          "https://me.0xffff.me/dbaas1.html",
+          "https://me.0xffff.me/dbaas2.html",
+          "https://me.0xffff.me/dbaas3.html"
+        ]
+      },
+      "output": {
+        "notes": "<TEXT>"
+      },
+      "tool": "ExtractInfo",
+    }
+    ...
   ]
 }
 
@@ -83,8 +95,8 @@ Each instruction has a sequence number, or "seqnum", indicating its position in 
 
 Use these functions to manipulate data in JarvisVM(always construct key name witn seqnum as suffix to indicate the source of the data):
 
-- jarvisvm.get('key_name'): returns the value:string of the specified key
-- jarvisvm.get_values('key_name'): returns a list of value:string of the specified key
+- jarvisvm.get('key_name'): returns a string value of the specified key
+- jarvisvm.get_values('key_name'): returns a list of string value of the specified key
 - jarvisvm.set('key_name', ['value'...]): sets a list of values to the specified key
 - jarvisvm.list_values_with_key_prefix('prefix'): returns a list of list of value:string with the specified prefix
 - jarvisvm.list_keys_with_prefix('prefix'): returns a list of key:string with the specified prefix
@@ -93,7 +105,7 @@ Use these functions to manipulate data in JarvisVM(always construct key name wit
 
 ## Output Requirements
 
-Your output must be in JSON format, the expect_outcome filed inside json response should be very detail, an example::
+Your output must be in JSON format, include fields:goal, instructions,thoughts. the expect_outcome filed inside json response should be very detail, an example::
 ```json
 {
   "goal": "Acquire the current weather data for San Francisco and provide suggestions based on temperature",
@@ -105,7 +117,7 @@ Your output must be in JSON format, the expect_outcome filed inside json respons
       "seqnum": 1,
       "type": "SearchOnline",
       "args": {
-        "query": "temperature in San Francisco. ##Start{{jarvisvm.set('search_results.seqnum1', ['<fill_later>'),...]}}End##" // everything bewteen ##Start and End## can not be changed for this instruction
+        "query": "temperature in San Francisco. ##Start{{jarvisvm.set('search_results.seqnum1', ['<fill_later>',...])}}End##" // everything bewteen ##Start and End## can not be changed for this instruction
       }
     },
     {
@@ -158,8 +170,8 @@ Your output must be in JSON format, the expect_outcome filed inside json respons
             "file_name": "generate_report.py",
             "timeout": 30,
             "code_dependencies": ["jarvisvm"],
-            "code": "import datetime\ntemp = jarvisvm.get('temperature.seqnum2')\nsource_url = jarvisvm.get('source_url.seqnum2')\ndate = jarvisvm.get('date.seqnum2')\nnotes = jarvisvm.get('Notes.seqnum4')\njarvisvm.set('WeatherReport.seqnum6', [f\"\"\"Weather report as of {date}: \\nTemperature in San Francisco: {temp}\\nNotes: {notes}, source url:{source_url}\"\"\"], )", //encapsulates the entire Python code in a single line
-            "__constraints__": "must handle escape characters correctly, Please generate a Python script using f\"\"\" (triple-quoted f-string) for formatting. Must do error handling, ex:skip invalid data"
+            "code": "import datetime\ntemp = jarvisvm.get('temperature.seqnum2')\nsource_url = jarvisvm.get('source_url.seqnum2')\ndate = jarvisvm.get('date.seqnum2')\nnotes = jarvisvm.get('Notes.seqnum4')\njarvisvm.set('WeatherReport.seqnum6', [f\"\"\"Weather report as of {date}: \\nTemperature in San Francisco: {temp}\\nNotes: {notes}, source url:{source_url}\"\"\"], )",
+            "__constraints__": "the entire code must be in a single line, handle escape characters correctly, Please generate a Python script using f\"\"\" (triple-quoted f-string) for formatting. "
         }
     },
     {
@@ -194,7 +206,7 @@ def gen_instructions(model: str):
 
 def gen_plan(model: str):
     #input the goal
-    goal = input("Please input your goal: ")
+    goal = input("Please input your goal:\n")
 
     try:
         logging.info("========================")
