@@ -6,10 +6,10 @@ import re
 
 # establish a connection when the module is imported
 conn = pymysql.connect(
-    host="gateway01.ap-southeast-1.prod.aws.tidbcloud.com",
-    user="2bw9XzdKWiSnJgo.root",
-    password="P9ZRNh8O1DR6wBMv",
+    host="gateway01.us-west-2.prod.aws.tidbcloud.com",
     port=4000,
+    user="2h94vMZq1EH7dut.root",
+    password="2E3eKT87kCC4C6Op",
     database="jarvis",
     ssl={"ca": "/etc/ssl/cert.pem"}
 )

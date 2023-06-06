@@ -28,9 +28,19 @@ Your primary task are:
 
 1. 'RunPython': This instruction handles Python code execution. This instruction should be used sparingly and only when other instructions do not adequately meet the requirements of the task.
 2. 'SearchOnline': This instruction is employed for conducting online searches. It returns a list of URL that match the provided search query. The next instruction should be 'ExtractInfo' to extract the information from the search results.
-3. 'ExtractInfo': This instruction focuses on data extraction from a single specified URL. Given certain extraction instructions, it retrieves specific pieces of information from the web page corresponding to the URL. It can work independently or in conjunction with 'SearchOnline'.  
+3. 'ExtractInfo': This instruction do data extraction by describe what we want, internally, the web page content of specific URL will be loaded first, then execute the instruction in the 'prompt' field. It can work independently or in conjunction with 'SearchOnline'.  
 4. 'TextCompletion': This instruction is impressively potent. It excels at crafting text that closely mimics human writing. Its capabilities span understanding and generating natural language, translating text across languages, summarizing content, condensing lengthy documents, responding to queries, generating content like blog articles or reports, creating code, and replicating specific writing styles.
+Note: Above tools are all the tool that you can use.
 
+## key-value store for getting and setting values
+
+key-value API are the only way to pass information between tasks. The key-value store is a simple dictionary that can be accessed by the following methods:
+
+- store.get('key_name'): returns a string value of the specified key
+- store.get_values('key_name'): returns a list of string value of the specified key
+- store.set('key_name', ['value'...]): sets a list of values to the specified key
+- store.list_values_with_key_prefix('prefix'): returns a list of list of value:string with the specified prefix
+- store.list_keys_with_prefix('prefix'): returns a list of key:string with the specified prefix
 
 
 ## Response Requirements
@@ -39,37 +49,39 @@ Your response should be structured in a standard JSON format, bellow is an respo
 {
   {
   "goal": "Write a blog post introducing TiDB Serverless using markdown format and linking all the sections in an index file.",
-  "hints_from_user": "study the content of these links first: https://me.0xffff.me/dbaas1.html, https://me.0xffff.me/dbaas2.html, https://me.0xffff.me/dbaas3.html",
+  "hints_from_user": "study the content of these links first: https://me.0xffff.me/dbaas1.html, https://me.0xffff.me/dbaas2.html",
   "task_list": [
     {
+      "task_num":1,
       "task": "Read the content of the three provided links and take notes on the key points and features of TiDB Serverless.",
       "input": {
         "links": [
           "https://me.0xffff.me/dbaas1.html",
           "https://me.0xffff.me/dbaas2.html",
-          "https://me.0xffff.me/dbaas3.html"
         ]
       },
       "output": {
-        "notes": "<TEXT>"
-      },
-      "tool": "ExtractInfo",
+        "store_api_call": store.set("notes": "<TEXT>")
+      }
     }
     ...
-  ]
+  ],
+  "tools_analysis_for_each_task": [],
+  "reasoning_for_each_task": [],
+  "task_dependency_graph": {} 
 }
 
 """
 
 TRANSLATE_PLAN_SYS_PROMPT = """
-As Jarvis, an AI model with the only role of translating tasks into JarvisVM's customized instructions, your responsibilities is:
+As Jarvis, an AI model with the only role of translating tasks into JarvisVM's instructions, your responsibilities is:
 
 **Task Translation**: Translate the user's tasks into a series of JarvisVM instructions. Don't miss any details.
 
 
 ## JarvisVM Instructions
 
-JarvisVM utilizes a set of specialized instructions to carry out a range of operations:
+JarvisVM's instructions(all) are as follows:
 
 1. **'RunPython'**: This instruction handles Python code execution. This instruction should be used as last resort when necessary. When you're constructing the 'RunPython' instructions, ensure that the 'code' field encapsulates the entire Python code in a single line.
 
@@ -199,6 +211,7 @@ def gen_instructions(model: str):
     # save plan to file
     with open("plan.json", "w") as f:
         f.write(plan)
+    
     # translate plan to instructions
     instructions = translate_plan_to_instructions(plan, model=model)
     return instructions
