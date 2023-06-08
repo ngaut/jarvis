@@ -39,7 +39,7 @@ class Instruction:
             args["query"] = self.modify_prompt_with_value(args["query"])
 
         if action_type == "ExtractInfo":
-            urls = jarvisvm.get("urls")
+            urls = jarvisvm.get_json("urls")
             if urls:
                 url = self.parse_url(urls)
                 args["url"] = url
@@ -89,7 +89,7 @@ class Instruction:
         matches = pattern.findall(text)
         logging.info(f"\nmodify prompt, matches: {matches}, text:{text}\n")
         for match in matches:
-            if 'jarvisvm.' in match and "jarvisvm.set" not in match:
+            if 'jarvisvm.' in match and "jarvisvm.set_json" not in match:
                 evaluated = eval(match)
                 logging.info(f"\nevaluated: {evaluated}, code:{match}\n")
                 text = text.replace(f"{{{match}}}", str(evaluated), 1)
@@ -98,7 +98,7 @@ class Instruction:
 
 
     def update_jarvisvm_values(self, result):
-        pattern = re.compile(r"jarvisvm.set\('([^']*)', (.*?)\)")
+        pattern = re.compile(r"jarvisvm.set_json\('([^']*)', (.*?)\)")
         matches = pattern.findall(result)
 
         logging.info(f"\nupdate_jarvisvm_values, matches: {matches}, result:{result}\n")
@@ -109,8 +109,8 @@ class Instruction:
                 value = ast.literal_eval(value_str)
             except (ValueError, SyntaxError):
                 value = value_str.strip("'\"")
-            jarvisvm.set(key, value)
-            logging.info(f"\njarvisvm.set('{key}', {value})\n")
+            jarvisvm.set_json(key, value)
+            logging.info(f"\njarvisvm.set_json('{key}', {value})\n")
 
 
         
@@ -139,15 +139,15 @@ class JarvisVMInterpreter:
         condition = instruction.instruction.get("args", {}).get("condition", None)
         prompt = f'Is that true?: "{condition}"? Please respond in the following JSON format: \n{{"result": "true/false", "reasoning": "your reasoning"}}.'
 
-        # patch prompt by replacing jarvisvm.get('key') with value using regex
-        # use regex to extract key from result:{jarvisvm.get('key')}    
-        pattern = re.compile(r"jarvisvm.get\('(\w+)'\)")
+        # patch prompt by replacing jarvisvm.get_json('key') with value using regex
+        # use regex to extract key from result:{jarvisvm.get_json('key')}    
+        pattern = re.compile(r"jarvisvm.get_json\('(\w+)'\)")
         matches = pattern.findall(prompt)
         for match in matches:
             key = match
-            value = jarvisvm.get(key)
-            # replace jarvisvm.get('...') in prompt with value
-            prompt = prompt.replace(f"jarvisvm.get('{key}')", value, 1)
+            value = jarvisvm.get_json(key)
+            # replace jarvisvm.get_json('...') in prompt with value
+            prompt = prompt.replace(f"jarvisvm.get_json('{key}')", value, 1)
         evaluation_result = actions.TextCompletionAction(0, prompt).run()
 
         try:
@@ -170,6 +170,19 @@ class JarvisVMInterpreter:
                 # maybe use pc to jump is a better idea.
                 self.run(instrs)
 
+
+def gen_instructions(model: str, replan: bool = False):
+    if replan:
+        plan = planner.gen_plan(model)
+        # strip the response to keep everything between '{' and '}'
+        plan = plan[plan.find("{") : plan.rfind("}") + 1]
+        # save plan to file
+        with open("plan.json", "w") as f:
+            f.write(plan)
+
+    # translate plan to instructions
+    instructions = planner.translate_plan_to_instructions(json.load(open("plan.json")), model=model)
+    return instructions
 
 
 if __name__ == "__main__":
@@ -208,7 +221,7 @@ if __name__ == "__main__":
             plan_with_instrs = json.load(f)
     else:
         # Generate a new plan
-        plan_with_instrs = planner.gen_instructions(base_model)
+        plan_with_instrs = gen_instructions(base_model, replan=True)
 
         # parse the data between left and right brackets
         start = plan_with_instrs.find('{')
@@ -233,7 +246,7 @@ if __name__ == "__main__":
     # Run the instructions starting from start_seq
     interpreter = JarvisVMInterpreter()
     logging.info(f"Running instructions from  {plan_with_instrs['instructions'][start_seq]}\n")
-    interpreter.run(plan_with_instrs["instructions"][start_seq:], goal=plan_with_instrs["goal"])
+    #interpreter.run(plan_with_instrs["instructions"][start_seq:], goal=plan_with_instrs["goal"])
 
 
 

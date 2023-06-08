@@ -74,14 +74,14 @@ class SearchOnlineAction:
 
     def run(self):
         try:
-            response = list(googlesearch.search(self.query, num=15, stop=15, pause=1))
+            response = list(googlesearch.search(self.query, sleep_interval=5, num_results=15))
             if response is None:
                 return f"SearchOnlineAction RESULT: The online search for `{self.query}` appears to have failed."
 
             result = str(response)
-            jarvisvm.set("urls", result)
-            jarvisvm.set("search_results", result)
-            jarvisvm.set("search_results.seqnum1", result)
+            jarvisvm.set_json("urls", result)
+            jarvisvm.set_json("search_results", result)
+            jarvisvm.set_json("search_results.seqnum1", result)
             return result
         except HTTPError as http_err:
             if http_err.code == 429:
