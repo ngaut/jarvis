@@ -30,19 +30,29 @@ class Instruction:
         action_id = self.instruction.get("seqnum")
         args = self.instruction.get("args", {})
 
-        if action_type == "SearchOnline":
-            # empty everything between ##Start and ##End
-            start = args["query"].find("##Start")
-            end = args["query"].find("##End")
-            if start != -1 and end != -1:
-                args["query"] = args["query"][:start] + args["query"][end+len("##End"):]
-            args["query"] = self.modify_prompt_with_value(args["query"])
 
         if action_type == "ExtractInfo":
+            # decode json string
             urls = jarvisvm.get_json("urls")
             if urls:
-                url = self.parse_url(urls)
-                args["url"] = url
+                logging.info(f"\nurls before eval: {urls}\n")
+
+                try:
+                    # strip the outer quotes
+                    urls = urls[1:-1]
+                    # parse urls as list of string, to get the first url
+                    urls = eval(urls)
+                except Exception as e:
+                    logging.fatal(f"Error while parsing urls: {e}")
+                    return
+
+            logging.info(f"\nurls after eval: {urls}\n")
+
+            url = urls[0]
+            args["url"] = url
+            logging.info(f"\nurl: {url}\n")
+
+
 
         if action_type == "RunPython":
             # if file_name is empty, use the default file
@@ -74,9 +84,6 @@ class Instruction:
         if action_type != "RunPython":
             self.update_jarvisvm_values(result)
 
-    def parse_url(self, urls):
-        if len(urls) > 0:
-            return urls[0]
 
     def handle_jarvisvm_methods(self, args, action_type):
         target_arg = "prompt" if action_type == "TextCompletion" else "summary"
@@ -173,6 +180,7 @@ class JarvisVMInterpreter:
 
 def gen_instructions(model: str, replan: bool = False):
     if replan:
+        logging.info("Replanning...")
         plan = planner.gen_plan(model)
         # strip the response to keep everything between '{' and '}'
         plan = plan[plan.find("{") : plan.rfind("}") + 1]
@@ -181,7 +189,18 @@ def gen_instructions(model: str, replan: bool = False):
             f.write(plan)
 
     # translate plan to instructions
-    instructions = planner.translate_plan_to_instructions(json.load(open("plan.json")), model=model)
+    logging.info("Translating plan to instructions...")
+    args = json.load(open("plan.json"))
+    # remove reasoning_for_each_task from args
+    args.pop("reasoning_for_each_task", None)
+    args.pop("tools_analysis_for_each_task", None)
+    args.pop("task_dependency_graph", None)
+    # filter fields for each task in args['task_list'], only keep fields in the set ['task_num', 'task', 'input', 'output']
+    for task in args["task_list"]:
+        task = {k: v for k, v in task.items() if k in ["task_num", "task", "input", "output"]}
+
+    logging.info(f"args: {args}")
+    instructions = planner.translate_plan_to_instructions(args, model=model)
     return instructions
 
 
@@ -200,9 +219,14 @@ if __name__ == "__main__":
     with open(args.config, 'r') as f:
         config = yaml.safe_load(f)
 
-    # Logging configuration
-    # Logging with file name and line number
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', stream=sys.stdout)
+
+    # Logging file name and line number
+       
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s',
+        stream=sys.stdout
+    )
 
     logging.info("Welcome to Jarvis, your personal assistant for everyday tasks!\n")
 
@@ -246,7 +270,7 @@ if __name__ == "__main__":
     # Run the instructions starting from start_seq
     interpreter = JarvisVMInterpreter()
     logging.info(f"Running instructions from  {plan_with_instrs['instructions'][start_seq]}\n")
-    #interpreter.run(plan_with_instrs["instructions"][start_seq:], goal=plan_with_instrs["goal"])
+    interpreter.run(plan_with_instrs["instructions"][start_seq:], goal=plan_with_instrs["goal"])
 
 
 
