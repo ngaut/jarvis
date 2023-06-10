@@ -188,7 +188,7 @@ def gen_instructions(model: str, replan: bool = False):
         with open("plan.json", "w") as f:
             f.write(plan)
 
-    # translate plan to instructions
+    # translate plan to instructions  
     logging.info("Translating plan to instructions...")
     args = json.load(open("plan.json"))
     # remove reasoning_for_each_task from args
@@ -196,9 +196,8 @@ def gen_instructions(model: str, replan: bool = False):
     args.pop("tools_analysis_for_each_task", None)
     args.pop("task_dependency_graph", None)
     # filter fields for each task in args['task_list'], only keep fields in the set ['task_num', 'task', 'input', 'output']
-    for task in args["task_list"]:
-        task = {k: v for k, v in task.items() if k in ["task_num", "task", "input", "output"]}
-
+    # update args['task_list'] with the filtered task list
+    args['task_list'] = [{k: v for k, v in task.items() if k in ['task_num', 'task', 'input', 'output']} for task in args['task_list']]
     logging.info(f"args: {args}")
     instructions = planner.translate_plan_to_instructions(args, model=model)
     return instructions
@@ -245,7 +244,7 @@ if __name__ == "__main__":
             plan_with_instrs = json.load(f)
     else:
         # Generate a new plan
-        plan_with_instrs = gen_instructions(base_model, replan=True)
+        plan_with_instrs = gen_instructions(base_model, replan=False)
 
         # parse the data between left and right brackets
         start = plan_with_instrs.find('{')
