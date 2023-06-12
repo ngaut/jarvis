@@ -22,17 +22,16 @@ If the task includes if conditions or loop, describe it explicitly in the task d
 
 ## Tools justifications
 
-1. 'RunPython': This instruction handles Python code execution. This instruction should be used sparingly and only when other instructions do not adequately meet the requirements of the task.
+1. 'RunPython': This instruction handles Python code execution. This instruction should be used when there is no other options.
 2. 'SearchOnline': This instruction is employed for conducting online searches. It returns a list of URL that match the provided search query. The next task usually use instruction 'ExtractInfo' to extract the information from the search results.
 3. 'ExtractInfo': The most efficient and best choice to extract infomation from a url.This instruction do data extraction by describing the 'prompt' on what we want to get(results), not how to do it, internally, the web page content of specific URL will be loaded first, then execute the instruction in the 'prompt' field. It can work independently or in conjunction with 'SearchOnline'.  
 4. 'TextCompletion': This instruction is impressively potent. It excels at crafting text that closely mimics human writing. Its capabilities span understanding and generating natural language, translating text across languages, summarizing content, condensing lengthy documents, responding to queries, generating content like blog articles or reports, creating code, and replicating specific writing styles.
-5  'Loop': The 'Loop' command instructs the AI to repeat a certain set of instructions for a specified number of iterations. The number of iterations is determined by the 'count' argument. For each iteration, the AI checks the 'loop_index' argument. Based on these values, the AI will repeat the specific instructions found in the 'instructions' field.
+5  'Loop': The 'Loop' command instructs the AI to repeat a certain set of instructions(which is a argument) for a specified number of iterations. The number of iterations is determined by the 'count' argument. For each iteration, the AI checks the 'loop_index' argument which start from 0. Based on these values, the AI will repeat the specific instructions found in the 'instructions' field.
 Note: Above tools are all the tool that you can use.
 
 ## key-value database for getting and setting values
 
 key-value API is the only way to pass information between tasks. The key-value database is a simple dictionary that can be accessed by the following methods:
-
 
 - jarvisvm.get('key_name'): returns an object of the specified key
 - jarvisvm.set('key_name', value): sets an object to the specified key
@@ -80,7 +79,7 @@ JarvisVM's instructions(all) are as follows:
 
 1. **'RunPython'**: This instruction handles Python code execution. This instruction should be used as last choice when necessary. When you're constructing the 'RunPython' instructions, ensure that the 'code' field encapsulates the entire Python code in a single line.
 
-2. **'SearchOnline'**: This instruction returns a list of URLs by using google search internally. 
+2. **'SearchOnline'**: This instruction returns a list of URLs by using google search internally. The result is aways stored in the 'search_results.seqnum1' key. The 'search_results.seqnum1' key is a list of URLs that match the provided search query. The next task usually use instruction 'ExtractInfo' to extract the information from the search results.
 
 3. **'ExtractInfo'**: This instruction is very efficient, it focuses on data extraction(what we want to extract, not how to extract) from a single specified URL. Given certain extraction instructions, it retrieves specific pieces of information from the web page corresponding to the URL. When constructing the 'instruction' field, the content has already sent to AI, ensure use template to guide the extraction process as the json response example shows.
 
@@ -89,6 +88,8 @@ JarvisVM's instructions(all) are as follows:
 5. **'If'**: The 'If' instruction acts as a conditional control structure within the JarvisVM. It's primarily used to evaluate the outcome of each instruction. The AI examines the condition argument, and based on the result, chooses the appropriate branch of instructions to proceed with.
 
 6. **'Loop'**: The 'Loop' command instructs the AI to repeat a certain set of instructions for a specified number of iterations. The number of iterations is determined by the 'count' argument. For each iteration, the AI checks the 'loop_index' argument. Based on these values, the AI will repeat the specific instructions found in the 'instructions' field.
+   'loop_index' is an variable that keeps track of the current loop iteration, just like ```python for loop_index in range(count):```, the only way to reference the current loop iteration is to use the 'loop_index' variable by calling jarvisvm.get(loop_index). For example, if you want to print current search result on the current loop iteration, you can use the following code: ```python print(search_results.seqnum1[jarvisvm.get(loop_index)])```. 
+   another example, if you want to construct a new key inside the loop, you can use the following code: ```python jarvisvm.set(f"'key_name_'{jarvisvm.get(loop_index)}), value)```.
 
 Each tool can only do one thing, but you can combine them to do more complex things. For example, you can use 'SearchOnline' to search for a list of URLs, and then use 'ExtractInfo' to extract the information you want from each URL. Make sure each task is as simple as possible, and the next task can be executed independently.
 
@@ -113,7 +114,7 @@ key-value API is the only way to pass information between tasks. The key-value d
 Your output must be in JSON format, include fields:goal, instructions,thoughts. the expect_outcome filed inside json response should be very detail, an example::
 ```json
 {
-  "goal": "Acquire the current weather data for San Francisco and provide suggestions based on temperature",
+  "goal": "Acquire and save the current weather data for San Francisco and provide suggestions based on temperature",
   "task_list": ["Task 1...", "Task 2...", "..."], 
   "thoughts": // why each task is necessary, what is the reason for each task, what is the reason for the order of the tasks, how each task passes data to the next task, etc.
   "instructions": [
@@ -124,13 +125,14 @@ Your output must be in JSON format, include fields:goal, instructions,thoughts. 
       "args": {
         "query": "temperature in San Francisco. ##Start{{jarvisvm.set('search_results.seqnum1', <'fill_later'>])}}End##" // everything bewteen ##Start and End## can not be changed for this instruction
       }
+      "output_analysis": "inside the query, output is set by jarvisvm.set, key is 'search_results.seqnum1' " // must have output
     },
     {
       "expect_outcome": "",
       "seqnum": 2,
       "type": "ExtractInfo",
       "args": {
-        "url": "{{jarvisvm.get('search_results.seqnum1')}}",  // always use this key to get the url
+        "url": "{{jarvisvm.get('search_results.seqnum1')[0]}}",  // always use this key to get the url
         "instruction": "Extract the current temperature and url(keep http or https prefix) in San Francisco. Try to fit the output into one or more of the placeholders,your response start with '##Start{{': ##Start{{jarvisvm.set('temperature.seqnum2', '<fill_later>')}}, {{jarvisvm.set('source_url.seqnum2'), <'fill_later'>}}, {{jarvisvm.set('date.seqnum2', '<fill_later>')}}End##", // must use the instruction:"you must fill your answer inside the template:..."
         "output_analysis": "inside the instruction, output is set by jarvisvm.set, keys are 'temperature.seqnum2' and 'date.seqnum2' " // must have output
         "input_analysis": "inside the instruction, input is 'search_results.seqnum1'", 
@@ -212,7 +214,7 @@ def gen_instructions(model: str, replan: bool = False):
     args.pop("task_dependency_graph", None)
     # filter fields for each task in args['task_list'], only keep fields in the set ['task_num', 'task', 'input', 'output']
     # update args['task_list'] with the filtered task list
-    args['task_list'] = [{k: v for k, v in task.items() if k in ['task_num', 'task', 'input', 'output']} for task in args['task_list']]
+    args['task_list'] = [{k: v for k, v in task.items() if k in ['task_num', 'task']} for task in args['task_list']]
     logging.info(f"args: {args}")
     # translate each task in args['task_list'] to instructions, one by one
     for task in args['task_list']:

@@ -133,23 +133,31 @@ class JarvisVMInterpreter:
                 instruction.execute()
             self.pc += 1
 
-    def loop(self, instruction):
-        logging.info(f"Looping: {instruction.instruction}")
-        args =instruction.instruction["args"]
+    def loop(self, instr):
+        args = instr.instruction["args"]
         # Extract the count and the list of instructions for the loop
         loop_count = args["count"]
         # remove the first {{ and last }} from loop_count
         if loop_count.startswith("{{") and loop_count.endswith("}}"):
             loop_count = loop_count[2:-2]
+            # loop_count needs to be evaluated in the context of jarvisvm
             loop_count = eval(loop_count)
-        loop_instructions = instruction.instruction.get("args", {}).get("instructions", [])
-        
+            logging.info(f"loop_count: {loop_count}")
+        loop_instructions = instr.instruction.get("args", {}).get("instructions", [])
+        logging.info(f"Looping: {loop_instructions}")
+
+
         # Execute the loop instructions the given number of times
-        for _ in range(loop_count):
+        old_pc = self.pc
+        for i in range(loop_count):
+            # Set the loop index in jarvisvm, to adopt gpt behaviour error
+            jarvisvm.set("loop_index", i)
+            jarvisvm.set("index", i)
+            jarvisvm.set("i", i)
             # As each loop execution should start from the first instruction, we reset the program counter
             self.pc = 0
-            self.run(loop_instructions, instruction.goal)
-
+            self.run(loop_instructions, instr.goal)
+        self.pc = old_pc + len(loop_instructions)
 
     def conditional(self, instruction):
         condition = instruction.instruction.get("args", {}).get("condition", None)
@@ -231,7 +239,7 @@ if __name__ == "__main__":
             plan_with_instrs = json.load(f)
     else:
         # Generate a new plan
-        planner.gen_instructions(base_model, replan=True)
+        planner.gen_instructions(base_model, replan=False)
 
         # load 1.json
         with open("1.json", 'r') as f:
