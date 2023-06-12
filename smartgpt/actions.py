@@ -74,15 +74,14 @@ class SearchOnlineAction:
 
     def run(self):
         try:
-            response = list(googlesearch.search(self.query, sleep_interval=5, num_results=15))
+            response = list(googlesearch.search(self.query, num_results=15))
             if response is None:
                 return f"SearchOnlineAction RESULT: The online search for `{self.query}` appears to have failed."
 
             result = str(response)
-            json_str = json.dumps(result)
-            jarvisvm.set_json("urls", json_str)
-            jarvisvm.set_json("search_results", json_str)
-            jarvisvm.set_json("search_results.seqnum1", json_str)
+            jarvisvm.set("urls", result)
+            jarvisvm.set("search_results", result)
+            jarvisvm.set("search_results.seqnum1", result)
             return result
         except HTTPError as http_err:
             if http_err.code == 429:
@@ -96,7 +95,7 @@ class SearchOnlineAction:
 class ExtractInfoAction(Action):
     action_id: int
     url: str
-    prompt: str
+    instruction: str
     expect_outcome: str = ""
 
 
@@ -107,12 +106,13 @@ class ExtractInfoAction(Action):
         return self.action_id
     
     def short_string(self) -> str:
-        return f"action_id: {self.id()}, Extract info from `{self.url}`, with instructions:<{self.prompt}>, expect_outcome: `{self.expect_outcome}`."
+        return f"action_id: {self.id()}, Extract info from `{self.url}`, with instructions:<{self.instruction}>, expect_outcome: `{self.expect_outcome}`."
 
     def run(self) -> str:
-        html = self.get_html(self.url)
+        with Spinner("Reading website..."):
+            html = self.get_html(self.url)
         text = self.extract_text(html)
-        user_message_content = f"{self.prompt}\n\n```{text}```"
+        user_message_content = f"{self.instruction}\n\n```{text}```"
     
         with Spinner("Extracting info..."):
             extracted_info = gpt.complete(user_message_content, model=gpt.GPT_3_5_TURBO)

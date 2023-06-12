@@ -30,29 +30,19 @@ class Instruction:
         action_id = self.instruction.get("seqnum")
         args = self.instruction.get("args", {})
 
+        if action_type == "SearchOnline":
+            # empty everything between ##Start and ##End
+            start = args["query"].find("##Start")
+            end = args["query"].find("##End")
+            if start != -1 and end != -1:
+                args["query"] = args["query"][:start] + args["query"][end+len("##End"):]
+            args["query"] = self.modify_prompt_with_value(args["query"])
 
         if action_type == "ExtractInfo":
-            # decode json string
-            urls = jarvisvm.get_json("urls")
+            urls = jarvisvm.get("urls")
             if urls:
-                logging.info(f"\nurls before eval: {urls}\n")
-
-                try:
-                    # strip the outer quotes
-                    urls = urls[1:-1]
-                    # parse urls as list of string, to get the first url
-                    urls = eval(urls)
-                except Exception as e:
-                    logging.fatal(f"Error while parsing urls: {e}")
-                    return
-
-            logging.info(f"\nurls after eval: {urls}\n")
-
-            url = urls[0]
-            args["url"] = url
-            logging.info(f"\nurl: {url}\n")
-
-
+                url = self.parse_url(urls)
+                args["url"] = url
 
         if action_type == "RunPython":
             # if file_name is empty, use the default file
@@ -84,6 +74,9 @@ class Instruction:
         if action_type != "RunPython":
             self.update_jarvisvm_values(result)
 
+    def parse_url(self, urls):
+        if len(urls) > 0:
+            return urls[0]
 
     def handle_jarvisvm_methods(self, args, action_type):
         target_arg = "prompt" if action_type == "TextCompletion" else "summary"
@@ -96,7 +89,7 @@ class Instruction:
         matches = pattern.findall(text)
         logging.info(f"\nmodify prompt, matches: {matches}, text:{text}\n")
         for match in matches:
-            if 'jarvisvm.' in match and "jarvisvm.set_json" not in match:
+            if 'jarvisvm.' in match and "jarvisvm.set" not in match:
                 evaluated = eval(match)
                 logging.info(f"\nevaluated: {evaluated}, code:{match}\n")
                 text = text.replace(f"{{{match}}}", str(evaluated), 1)
@@ -105,7 +98,7 @@ class Instruction:
 
 
     def update_jarvisvm_values(self, result):
-        pattern = re.compile(r"jarvisvm.set_json\('([^']*)', (.*?)\)")
+        pattern = re.compile(r"jarvisvm.set\('([^']*)', (.*?)\)")
         matches = pattern.findall(result)
 
         logging.info(f"\nupdate_jarvisvm_values, matches: {matches}, result:{result}\n")
@@ -116,8 +109,8 @@ class Instruction:
                 value = ast.literal_eval(value_str)
             except (ValueError, SyntaxError):
                 value = value_str.strip("'\"")
-            jarvisvm.set_json(key, value)
-            logging.info(f"\njarvisvm.set_json('{key}', {value})\n")
+            jarvisvm.set(key, value)
+            logging.info(f"\njarvisvm.set('{key}', {value})\n")
 
 
         
@@ -132,29 +125,48 @@ class JarvisVMInterpreter:
             "Shutdown": actions.ShutdownAction,
         }
 
-    def run(self, instructions, goal):
-        while self.pc < len(instructions):
-            instruction = Instruction(instructions[self.pc], self.actions, goal)
-            action_type = instructions[self.pc].get("type")
+    def run(self, instrs, goal):
+        while self.pc < len(instrs):
+            instruction = Instruction(instrs[self.pc], self.actions, goal)
+            action_type = instrs[self.pc].get("type")
             if action_type == "If":
                 self.conditional(instruction)
+            elif action_type == "Loop":
+                self.loop(instruction)
             else:
                 instruction.execute()
             self.pc += 1
+
+    def loop(self, instruction):
+        args = instruction.get["args"]
+        # Extract the count and the list of instructions for the loop
+        loop_count = args["count"]
+        # remove the first {{ and last }} from loop_count
+        if loop_count.startswith("{{") and loop_count.endswith("}}"):
+            loop_count = loop_count[2:-2]
+            loop_count = eval(loop_count)
+        loop_instructions = instruction.instruction.get("args", {}).get("instructions", [])
+        
+        # Execute the loop instructions the given number of times
+        for _ in range(loop_count):
+            # As each loop execution should start from the first instruction, we reset the program counter
+            self.pc = 0
+            self.run(loop_instructions, instruction.goal)
+
 
     def conditional(self, instruction):
         condition = instruction.instruction.get("args", {}).get("condition", None)
         prompt = f'Is that true?: "{condition}"? Please respond in the following JSON format: \n{{"result": "true/false", "reasoning": "your reasoning"}}.'
 
-        # patch prompt by replacing jarvisvm.get_json('key') with value using regex
-        # use regex to extract key from result:{jarvisvm.get_json('key')}    
-        pattern = re.compile(r"jarvisvm.get_json\('(\w+)'\)")
+        # patch prompt by replacing jarvisvm.get('key') with value using regex
+        # use regex to extract key from result:{jarvisvm.get('key')}    
+        pattern = re.compile(r"jarvisvm.get\('(\w+)'\)")
         matches = pattern.findall(prompt)
         for match in matches:
             key = match
-            value = jarvisvm.get_json(key)
-            # replace jarvisvm.get_json('...') in prompt with value
-            prompt = prompt.replace(f"jarvisvm.get_json('{key}')", value, 1)
+            value = jarvisvm.get(key)
+            # replace jarvisvm.get('...') in prompt with value
+            prompt = prompt.replace(f"jarvisvm.get('{key}')", value, 1)
         evaluation_result = actions.TextCompletionAction(0, prompt).run()
 
         try:
@@ -176,6 +188,7 @@ class JarvisVMInterpreter:
             if instrs is not None:
                 # maybe use pc to jump is a better idea.
                 self.run(instrs)
+
 
 
 def gen_instructions(model: str, replan: bool = False):
@@ -244,7 +257,7 @@ if __name__ == "__main__":
             plan_with_instrs = json.load(f)
     else:
         # Generate a new plan
-        plan_with_instrs = gen_instructions(base_model, replan=False)
+        plan_with_instrs = gen_instructions(base_model, replan=True)
 
         # parse the data between left and right brackets
         start = plan_with_instrs.find('{')
@@ -270,6 +283,7 @@ if __name__ == "__main__":
     interpreter = JarvisVMInterpreter()
     logging.info(f"Running instructions from  {plan_with_instrs['instructions'][start_seq]}\n")
     interpreter.run(plan_with_instrs["instructions"][start_seq:], goal=plan_with_instrs["goal"])
+
 
 
 

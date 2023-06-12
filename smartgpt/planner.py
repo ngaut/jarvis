@@ -16,24 +16,26 @@ Make sure all of the task can be done automatically.your responsibilities includ
 Remember, your objective is to generate tasks, not to execute them. The task execution will be carried out by others, based on your generated task list.
 
 Your performance will be gauged by your ability to generate a logical, coherent sequence of tasks that incorporate the most recent information and maintain the necessary interlinkages.
-If the task includes if conditions or loop, describe it explicitly in the beginning of the task description to make it easier for the auto-agent to execute.
+If the task includes if conditions or loop, describe it explicitly in the task description to make it easier for the auto-agent to execute.
 
 
 ## Tools justifications
 
-1. 'RunPython': This instruction handles Python code execution. This instruction should be used as last choice when other valid instruction can't handle the task. 
-2. 'SearchOnline': This instruction is employed for conducting online searches. It returns a list of URL that match the provided search query. The next instruction should be 'ExtractInfo' to extract the information from the search results.The returned url(output) is always stored with key 'search_results.seqnum1' in the key-value store.
-3. 'ExtractInfo': This instruction do data extraction by describe what we want, internally, the web page content of specific URL will be loaded first, then execute the instruction in the 'prompt' field. It can work independently or in conjunction with 'SearchOnline'.  
-4. 'TextCompletion': This instruction excels at understanding and generating natural language, translating text across languages, summarizing content, extract information, responding to queries, generating content like blog articles or reports, creating code, and replicating specific writing styles.
-Constraints: Each task is only allowed to use one of the above tools. Do not generate task that require multiple tools to execute. If a task you generate requires multiple tools to execute, it will be considered incomplete.
+1. 'RunPython': This instruction handles Python code execution. This instruction should be used sparingly and only when other instructions do not adequately meet the requirements of the task.
+2. 'SearchOnline': This instruction is employed for conducting online searches. It returns a list of URL that match the provided search query. The next task usually use instruction 'ExtractInfo' to extract the information from the search results.
+3. 'ExtractInfo': This instruction do data extraction by describing the 'prompt' on what we want to get(results), not how to do it, internally, the web page content of specific URL will be loaded first, then execute the instruction in the 'prompt' field. It can work independently or in conjunction with 'SearchOnline'.  
+4. 'TextCompletion': This instruction is impressively potent. It excels at crafting text that closely mimics human writing. Its capabilities span understanding and generating natural language, translating text across languages, summarizing content, condensing lengthy documents, responding to queries, generating content like blog articles or reports, creating code, and replicating specific writing styles.
+5  'Loop': The 'Loop' instruction is used to repeat a set of instructions a specified number of times. The AI examines the 'count' argument, and based on the result, repeats the instructions argument within the 'instructions' field that many times.
+Note: Above tools are all the tool that you can use.
 
 ## key-value store for getting and setting values
 
 key-value API are the only way to pass information between tasks. The key-value store is a simple dictionary that can be accessed by the following methods:
 
-- store.get_json('key_name'): returns a string represented JSON of the specified key
-- store.set_json('key_name', <JSON>): sets a list of values to the specified key
-- store.list_json_with_key_prefix('prefix'): returns a list of string represented JSON with the specified prefix
+- store.get('key_name'): returns a string value of the specified key
+- store.get_values('key_name'): returns a list of string value of the specified key
+- store.set('key_name', ['value'...]): sets a list of values to the specified key
+- store.list_values_with_key_prefix('prefix'): returns a list of list of value:string with the specified prefix
 - store.list_keys_with_prefix('prefix'): returns a list of key:string with the specified prefix
 
 
@@ -68,45 +70,136 @@ Your response should be structured in a standard JSON format, bellow is an respo
 """
 
 TRANSLATE_PLAN_SYS_PROMPT = """
-As Jarvis, an AI model with the primary role of breaking down and translating tasks into python code.
+As Jarvis, an AI model with the only role of translating tasks into JarvisVM's instructions.
 
 
-## Prefered API for python code to call(Jarvis will always choose these API if possible)
-- jarvisvm.get_json('key_name.seqnum'): returns a string represented JSON of the specified key
-- jarvisvm.set_json('key_name.seqnum', <JSON>): sets a list of values to the specified key
-- jarvisvm.list_json_with_key_prefix('prefix'): returns a list of string represented JSON with the specified prefix
+## JarvisVM Instructions
+
+JarvisVM's instructions(all) are as follows:
+
+1. **'RunPython'**: This instruction handles Python code execution. This instruction should be used as last choice when necessary. When you're constructing the 'RunPython' instructions, ensure that the 'code' field encapsulates the entire Python code in a single line.
+
+2. **'SearchOnline'**: This instruction returns relevant a list of URL that match the provided search query. nothing more.
+
+3. **'ExtractInfo'**: This instruction focuses on data extraction from a single specified URL. Given certain extraction instructions, it retrieves specific pieces of information from the web page corresponding to the URL. When constructing the 'instruction' field, ensure use template to guide the extraction process and output as the json response example shows.
+
+4. **'TextCompletion'**: This instruction is impressively potent. It excels at crafting text that closely mimics human writing. Its capabilities span understanding and generating natural language, translating text across languages, summarizing content, condensing lengthy documents, responding to queries, generating content like blog articles or reports, creating code, and replicating specific writing styles.
+
+5. **'If'**: The 'If' instruction acts as a conditional control structure within the JarvisVM. It's primarily used to evaluate the outcome of each instruction. The AI examines the condition argument, and based on the result, chooses the appropriate branch of instructions to proceed with.
+
+6. **'Loop'**: The 'Loop' instruction is used to repeat a set of instructions a specified number of times. The AI examines the 'count' argument, and based on the result, repeats the instructions argument within the 'instructions' field that many times.
+
+Each tool can only do one thing, but you can combine them to do more complex things. For example, you can use 'SearchOnline' to search for a list of URLs, and then use 'ExtractInfo' to extract the information you want from each URL. Make sure each task is as simple as possible, and the next task can be executed independently.
+
+## Instruction Sequence
+
+Each instruction has a sequence number, or "seqnum", indicating its position in the list. 
+
+
+## JarvisVM functions
+
+Use these functions to manipulate data in JarvisVM(always construct key name witn seqnum as suffix to indicate the source of the data):
+
+- jarvisvm.get('key_name'): returns a string value of the specified key
+- jarvisvm.get_values('key_name'): returns a list of string value of the specified key
+- jarvisvm.set('key_name', ['value'...]): sets a list of values to the specified key
+- jarvisvm.list_values_with_key_prefix('prefix'): returns a list of list of value:string with the specified prefix
 - jarvisvm.list_keys_with_prefix('prefix'): returns a list of key:string with the specified prefix
-- jarvisvm.text_completion(prompt:str) -> str. This API uses GPT-3 to generate text based on the provided prompt.
-- jarvisvm.extract_info(url:str, prompt:str) -> str.  This API is very effcient and cost-effective, it is the best choice for extracting information from web pages.
-- jarvisvm.search_online(query:str) -> []str. It returns a list of URL that match the provided search query. The next call should be 'jarvisvm.extrace_info()' to extract the information from the search results.The returned url(output) is always stored with key 'search_results.seqnum1' in the key-value store.
 
 
-output should be a json object with the following structure:
+## Output Requirements
+
+Your output must be in JSON format, include fields:goal, instructions,thoughts. the expect_outcome filed inside json response should be very detail, an example::
 ```json
 {
-  "goal": "Acquire the current weather data for San Francisco and provide suggestions based on temperature, show me in a web page.",
-  "thoughts_on_break_down":"",
-  "raw_task_list": [...],
-  "instructions": [ 
+  "goal": "Acquire the current weather data for San Francisco and provide suggestions based on temperature",
+  "task_list": ["Task 1...", "Task 2...", "..."], 
+  "thoughts": <How to use 'If' instruction to check success criteria, reasoning>,
+  "instructions": [
     {
-        "seqnum":1,
-        "type":"RunPython",
-        "python_code":"", // must have
-        "reasoning":"", // must have, why choose or not choose extract_info or search_online or text_completion inside the python code
-        "analysis_on_how_python_code_works":"", // must have, how the python code works, how it use jarvisvm API
-        ...
+      "expect_outcome": "",
+      "seqnum": 1,
+      "type": "SearchOnline",
+      "args": {
+        "query": "temperature in San Francisco. ##Start{{jarvisvm.set('search_results.seqnum1', ['<fill_later>',...])}}End##" // everything bewteen ##Start and End## can not be changed for this instruction
+      }
     },
     {
-        "seqnum":2,
-        ...
+      "expect_outcome": "",
+      "seqnum": 2,
+      "type": "ExtractInfo",
+      "args": {
+        "url": "{{jarvisvm.get('search_results.seqnum1')}}",  
+        "instruction": "Extract the current temperature and url(keep http or https prefix) in San Francisco from the following content . Try to fit the output into one or more of the placeholders,your response start with '##Start{{': ##Start{{jarvisvm.set('temperature.seqnum2', '<fill_later>')}}, {{jarvisvm.set('source_url.seqnum2'), <'fill_later'>}}, {{jarvisvm.set('date.seqnum2', '<fill_later>')}}End##", // must use the instruction:"you must fill your answer inside the template:..."
+        "output_analysis": "inside the instruction, output is set by jarvisvm.set, keys are 'temperature.seqnum2' and 'date.seqnum2' " // must have output
+        "input_analysis": "inside the instruction, input is 'search_results.seqnum1'", 
+        "__comments__": "the content has been loaded, must handle escape characters correctly in 'instruction'."
+      }
+    },
+    {
+      "expect_outcome": "",
+      "seqnum": 3,
+      "type": "If",
+      "args": {
+        "condition": "{{jarvisvm.get('temperature.seqnum2') > 67}}",
+      },
+      "then": [
+        {
+          "expect_outcome": "",
+          "seqnum": 4,
+          "type": "TextCompletion",
+          "args": {
+            "prompt": "Today's temperature in San Francisco is {{jarvisvm.get('temperature.seqnum2')}}. It's a good day for outdoor activities. What else should we recommend to the users? Try to fit the output into one or more of the placeholders,your response start with '##Start{{': ##Start{{jarvisvm.set('Notes.seqnum4', '<fill_later>')}}##End", // must have input in the prompt
+            "input_analysis": "inside the prompt, input is 'temperature.seqnum2'" 
+          }
+        }
+      ],
+      "else": [
+        {
+          "expect_outcome": "",
+          "seqnum": 5,
+          "type": "TextCompletion",
+          "args": {
+            "prompt": "Today's temperature in San Francisco is {{jarvisvm.get('temperature.seqnum2')}} which below 25 degrees. What indoor activities should we recommend to the users? Try to fit the output into one or more of the placeholders,your response start with '##Start{{': ##Start{{jarvisvm.set('Notes.seqnum4', '<fill_later>')}}End##", // must have input in the prompt
+            "input_analysis": "inside the prompt, input is 'temperature.seqnum2'" // must have 
+          }
+        }
+      ]
+    },
+   {
+        "expect_outcome": "",
+        "seqnum": 6,
+        "type": "RunPython",
+        "args": {
+            "file_name": "generate_report.py",
+            "timeout": 30,
+            "code_dependencies": ["jarvisvm"],
+            "code": "import datetime\ntemp = jarvisvm.get('temperature.seqnum2')\nsource_url = jarvisvm.get('source_url.seqnum2')\ndate = jarvisvm.get('date.seqnum2')\nnotes = jarvisvm.get('Notes.seqnum4')\njarvisvm.set('WeatherReport.seqnum6', [f\"\"\"Weather report as of {date}: \\nTemperature in San Francisco: {temp}\\nNotes: {notes}, source url:{source_url}\"\"\"], )",
+            "__constraints__": "the entire code must be in a single line, handle escape characters correctly, Please generate a Python script using f\"\"\" (triple-quoted f-string) for formatting. "
+        }
     }
-    ...
   ]
-  "reasoning_for_text_completion_api":  // must have
 }
 
+## Read Operation Template
+
+Note that read operation related JarvisVM calls are templates and will be replaced by real values. For example: "Today's temperature in San Francisco is {{jarvisvm.get('temperature')}} which is below 25 degrees" will be replaced with "Today's temperature in San Francisco is 20 which is below 25 degrees", but code field within RunPython instruction is not a template, it will be executed directly.
+
+Remember, your task is to generate instructions that will run on JarvisVM based on these guidelines, Don't generate Non-exist instructions.
 """
 
+
+def gen_instructions(model: str):
+    plan = gen_plan(model)
+    # strip the response to keep everything between '{' and '}'
+    plan = plan[plan.find("{") : plan.rfind("}") + 1]
+    # save plan to file
+    with open("plan.json", "w") as f:
+        f.write(plan)
+    
+    # translate plan to instructions
+    instructions = translate_plan_to_instructions(plan, model=model)
+    return instructions
 
 
 def gen_plan(model: str):
