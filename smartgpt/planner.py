@@ -2,6 +2,7 @@ from typing import Optional
 from dotenv import load_dotenv
 import time, logging
 import gpt
+import json
 
 
 GEN_PLAN__SYS_PROMPT = """
@@ -23,14 +24,14 @@ If the task includes if conditions or loop, describe it explicitly in the task d
 
 1. 'RunPython': This instruction handles Python code execution. This instruction should be used sparingly and only when other instructions do not adequately meet the requirements of the task.
 2. 'SearchOnline': This instruction is employed for conducting online searches. It returns a list of URL that match the provided search query. The next task usually use instruction 'ExtractInfo' to extract the information from the search results.
-3. 'ExtractInfo': This instruction do data extraction by describing the 'prompt' on what we want to get(results), not how to do it, internally, the web page content of specific URL will be loaded first, then execute the instruction in the 'prompt' field. It can work independently or in conjunction with 'SearchOnline'.  
+3. 'ExtractInfo': The most efficient and best choice to extract infomation from a url.This instruction do data extraction by describing the 'prompt' on what we want to get(results), not how to do it, internally, the web page content of specific URL will be loaded first, then execute the instruction in the 'prompt' field. It can work independently or in conjunction with 'SearchOnline'.  
 4. 'TextCompletion': This instruction is impressively potent. It excels at crafting text that closely mimics human writing. Its capabilities span understanding and generating natural language, translating text across languages, summarizing content, condensing lengthy documents, responding to queries, generating content like blog articles or reports, creating code, and replicating specific writing styles.
-5  'Loop': The 'Loop' instruction is used to repeat a set of instructions a specified number of times. The AI examines the 'count' argument, and based on the result, repeats the instructions argument within the 'instructions' field that many times.
+5  'Loop': The 'Loop' command instructs the AI to repeat a certain set of instructions for a specified number of iterations. The number of iterations is determined by the 'count' argument. For each iteration, the AI checks the 'loop_index' argument. Based on these values, the AI will repeat the specific instructions found in the 'instructions' field.
 Note: Above tools are all the tool that you can use.
 
-## key-value store for getting and setting values
+## key-value database for getting and setting values
 
-key-value API are the only way to pass information between tasks. The key-value store is a simple dictionary that can be accessed by the following methods:
+key-value API is the only way to pass information between tasks. The key-value database is a simple dictionary that can be accessed by the following methods:
 
 
 - jarvisvm.get('key_name'): returns an object of the specified key
@@ -57,7 +58,7 @@ Your response should be structured in a standard JSON format, bellow is an respo
         ]
       },
       "output": {
-        "store_api_call": store.set("notes": "<TEXT>")
+        "database_api_call": "{{jarvisvm.set("notes": '<TEXT>')}}"
       }
     }
     ...
@@ -79,15 +80,15 @@ JarvisVM's instructions(all) are as follows:
 
 1. **'RunPython'**: This instruction handles Python code execution. This instruction should be used as last choice when necessary. When you're constructing the 'RunPython' instructions, ensure that the 'code' field encapsulates the entire Python code in a single line.
 
-2. **'SearchOnline'**: This instruction returns relevant a list of URL that match the provided search query. nothing more.
+2. **'SearchOnline'**: This instruction returns a list of URLs by using google search internally. 
 
-3. **'ExtractInfo'**: This instruction focuses on data extraction from a single specified URL. Given certain extraction instructions, it retrieves specific pieces of information from the web page corresponding to the URL. When constructing the 'instruction' field, ensure use template to guide the extraction process and output as the json response example shows.
+3. **'ExtractInfo'**: This instruction is very efficient, it focuses on data extraction(what we want to extract, not how to extract) from a single specified URL. Given certain extraction instructions, it retrieves specific pieces of information from the web page corresponding to the URL. When constructing the 'instruction' field, the content has already sent to AI, ensure use template to guide the extraction process as the json response example shows.
 
 4. **'TextCompletion'**: This instruction is impressively potent. It excels at crafting text that closely mimics human writing. Its capabilities span understanding and generating natural language, translating text across languages, summarizing content, condensing lengthy documents, responding to queries, generating content like blog articles or reports, creating code, and replicating specific writing styles.
 
 5. **'If'**: The 'If' instruction acts as a conditional control structure within the JarvisVM. It's primarily used to evaluate the outcome of each instruction. The AI examines the condition argument, and based on the result, chooses the appropriate branch of instructions to proceed with.
 
-6. **'Loop'**: The 'Loop' instruction is used to repeat a set of instructions a specified number of times. The AI examines the 'count' argument, and based on the result, repeats the instructions argument within the 'instructions' field that many times.
+6. **'Loop'**: The 'Loop' command instructs the AI to repeat a certain set of instructions for a specified number of iterations. The number of iterations is determined by the 'count' argument. For each iteration, the AI checks the 'loop_index' argument. Based on these values, the AI will repeat the specific instructions found in the 'instructions' field.
 
 Each tool can only do one thing, but you can combine them to do more complex things. For example, you can use 'SearchOnline' to search for a list of URLs, and then use 'ExtractInfo' to extract the information you want from each URL. Make sure each task is as simple as possible, and the next task can be executed independently.
 
@@ -96,9 +97,10 @@ Each tool can only do one thing, but you can combine them to do more complex thi
 Each instruction has a sequence number, or "seqnum", indicating its position in the list. 
 
 
-## JarvisVM functions
+## JarvisVM functions that operate on a key-value database
 
 Use these functions to manipulate data in JarvisVM(always construct key name witn seqnum as suffix to indicate the source of the data):
+key-value API is the only way to pass information between tasks. The key-value database is a simple dictionary that can be accessed by the following methods:
 
 - jarvisvm.get('key_name'): returns an object of the specified key
 - jarvisvm.set('key_name', value): sets an object to the specified key
@@ -113,14 +115,14 @@ Your output must be in JSON format, include fields:goal, instructions,thoughts. 
 {
   "goal": "Acquire the current weather data for San Francisco and provide suggestions based on temperature",
   "task_list": ["Task 1...", "Task 2...", "..."], 
-  "thoughts": <How to use 'If' instruction to check success criteria, reasoning>,
+  "thoughts": // why each task is necessary, what is the reason for each task, what is the reason for the order of the tasks, how each task passes data to the next task, etc.
   "instructions": [
     {
       "expect_outcome": "",
       "seqnum": 1,
       "type": "SearchOnline",
       "args": {
-        "query": "temperature in San Francisco. ##Start{{jarvisvm.set('search_results.seqnum1', ['<fill_later>',...])}}End##" // everything bewteen ##Start and End## can not be changed for this instruction
+        "query": "temperature in San Francisco. ##Start{{jarvisvm.set('search_results.seqnum1', <'fill_later'>])}}End##" // everything bewteen ##Start and End## can not be changed for this instruction
       }
     },
     {
@@ -128,8 +130,8 @@ Your output must be in JSON format, include fields:goal, instructions,thoughts. 
       "seqnum": 2,
       "type": "ExtractInfo",
       "args": {
-        "url": "{{jarvisvm.get('search_results.seqnum1')}}",  
-        "instruction": "Extract the current temperature and url(keep http or https prefix) in San Francisco from the following content . Try to fit the output into one or more of the placeholders,your response start with '##Start{{': ##Start{{jarvisvm.set('temperature.seqnum2', '<fill_later>')}}, {{jarvisvm.set('source_url.seqnum2'), <'fill_later'>}}, {{jarvisvm.set('date.seqnum2', '<fill_later>')}}End##", // must use the instruction:"you must fill your answer inside the template:..."
+        "url": "{{jarvisvm.get('search_results.seqnum1')}}",  // always use this key to get the url
+        "instruction": "Extract the current temperature and url(keep http or https prefix) in San Francisco. Try to fit the output into one or more of the placeholders,your response start with '##Start{{': ##Start{{jarvisvm.set('temperature.seqnum2', '<fill_later>')}}, {{jarvisvm.set('source_url.seqnum2'), <'fill_later'>}}, {{jarvisvm.set('date.seqnum2', '<fill_later>')}}End##", // must use the instruction:"you must fill your answer inside the template:..."
         "output_analysis": "inside the instruction, output is set by jarvisvm.set, keys are 'temperature.seqnum2' and 'date.seqnum2' " // must have output
         "input_analysis": "inside the instruction, input is 'search_results.seqnum1'", 
         "__comments__": "the content has been loaded, must handle escape characters correctly in 'instruction'."
@@ -172,11 +174,11 @@ Your output must be in JSON format, include fields:goal, instructions,thoughts. 
         "args": {
             "file_name": "generate_report.py",
             "timeout": 30,
-            "code_dependencies": ["jarvisvm"],
+            "pkg_dependencies": [],
             "code": "import datetime\ntemp = jarvisvm.get('temperature.seqnum2')\nsource_url = jarvisvm.get('source_url.seqnum2')\ndate = jarvisvm.get('date.seqnum2')\nnotes = jarvisvm.get('Notes.seqnum4')\njarvisvm.set('WeatherReport.seqnum6', [f\"\"\"Weather report as of {date}: \\nTemperature in San Francisco: {temp}\\nNotes: {notes}, source url:{source_url}\"\"\"], )",
-            "input_analysis": "inside the code, input is 'temperature.seqnum2','source_url.seqnum2', 'date.seqnum2' and 'Notes.seqnum4', " // must have 
-            "__constraints__": "the entire code must be in a single line, handle escape characters correctly in 'code' "
-            "output_analysis": "inside the code, output is 'WeatherReport.seqnum6'" // must have
+            "code_analysis":  // must have, explain how the code works, is there any placehoder in the code? is it ready to run?
+            "input_analysis": "inside the code, input is 'temperature.seqnum2','source_url.seqnum2', 'date.seqnum2' and 'Notes.seqnum4' ", // must have 
+            "output_analysis": "inside the code, output is 'WeatherReport.seqnum6' " // must have
         }
     }
   ]
@@ -190,17 +192,35 @@ Remember, your task is to generate instructions that will run on JarvisVM based 
 """
 
 
-def gen_instructions(model: str):
-    plan = gen_plan(model)
-    # strip the response to keep everything between '{' and '}'
-    plan = plan[plan.find("{") : plan.rfind("}") + 1]
-    # save plan to file
-    with open("plan.json", "w") as f:
-        f.write(plan)
-    
-    # translate plan to instructions
-    instructions = translate_plan_to_instructions(plan, model=model)
-    return instructions
+
+def gen_instructions(model: str, replan: bool = False):
+    if replan:
+        logging.info("Replanning...")
+        plan = gen_plan(model)
+        # strip the response to keep everything between '{' and '}'
+        plan = plan[plan.find("{") : plan.rfind("}") + 1]
+        # save plan to file
+        with open("plan.json", "w") as f:
+            f.write(plan)
+
+    # translate plan to instructions  
+    logging.info("Translating plan to instructions...")
+    args = json.load(open("plan.json"))
+    # remove reasoning_for_each_task from args
+    args.pop("reasoning_for_each_task", None)
+    args.pop("tools_analysis_for_each_task", None)
+    args.pop("task_dependency_graph", None)
+    # filter fields for each task in args['task_list'], only keep fields in the set ['task_num', 'task', 'input', 'output']
+    # update args['task_list'] with the filtered task list
+    args['task_list'] = [{k: v for k, v in task.items() if k in ['task_num', 'task', 'input', 'output']} for task in args['task_list']]
+    logging.info(f"args: {args}")
+    # translate each task in args['task_list'] to instructions, one by one
+    for task in args['task_list']:
+        instrs = translate_plan_to_instructions(task, model=model)
+        logging.info(f"task: {task}, instrs: {instrs}")
+        # save to file
+        with open(f"{task['task_num']}.json", "w") as f:
+            f.write(instrs)
 
 
 def gen_plan(model: str):

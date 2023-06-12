@@ -36,15 +36,10 @@ class Instruction:
             end = args["query"].find("End##")
             if start != -1 and end != -1:
                 args["query"] = args["query"][:start] + args["query"][end+len("##End"):]
-            args["query"] = self.modify_prompt_with_value(args["query"])
+            args["query"] = self.eval_value(args["query"])
 
         if action_type == "ExtractInfo":
-            urls = jarvisvm.get("urls")
-            logging.info(f"urls: {urls}")
-            if urls:
-                url = self.parse_url(urls)
-                logging.info(f"patching url: {url}")
-                args["url"] = url
+            args["url"] = self.eval_value(args["url"])
 
         if action_type == "RunPython":
             # if file_name is empty, use the default file
@@ -80,25 +75,21 @@ class Instruction:
         if action_type != "RunPython":
             self.update_jarvisvm_values(result)
 
-    def parse_url(self, urls):
-        if len(urls) > 0:
-            return urls[0]
-
     def handle_jarvisvm_methods(self, args, action_type):
         target_arg = "prompt"
         text = args[target_arg]
-        args[target_arg] = self.modify_prompt_with_value(text)
+        args[target_arg] = self.eval_value(text)
         return args
 
-    def modify_prompt_with_value(self, text):
+    def eval_value(self, text):
         pattern = re.compile(r"\{\{(.*?)\}\}")
         matches = pattern.findall(text)
-        logging.info(f"\nmodify prompt, matches: {matches}, text:{text}\n")
+        logging.info(f"\eval_value(), matches: {matches}, text:{text}\n")
         for match in matches:
             if 'jarvisvm.' in match and "jarvisvm.set" not in match:
                 evaluated = eval(match)
                 logging.info(f"\nevaluated: {evaluated}, code:{match}\n")
-                text = text.replace(f"{{{match}}}", str(evaluated), 1)
+                text = text.replace("{{" + f"{match}" + "}}", str(evaluated), 1)
         
         return text
 
@@ -196,37 +187,6 @@ class JarvisVMInterpreter:
                 self.run(instrs)
 
 
-
-def gen_instructions(model: str, replan: bool = False):
-    if replan:
-        logging.info("Replanning...")
-        plan = planner.gen_plan(model)
-        # strip the response to keep everything between '{' and '}'
-        plan = plan[plan.find("{") : plan.rfind("}") + 1]
-        # save plan to file
-        with open("plan.json", "w") as f:
-            f.write(plan)
-
-    # translate plan to instructions  
-    logging.info("Translating plan to instructions...")
-    args = json.load(open("plan.json"))
-    # remove reasoning_for_each_task from args
-    args.pop("reasoning_for_each_task", None)
-    args.pop("tools_analysis_for_each_task", None)
-    args.pop("task_dependency_graph", None)
-    # filter fields for each task in args['task_list'], only keep fields in the set ['task_num', 'task', 'input', 'output']
-    # update args['task_list'] with the filtered task list
-    args['task_list'] = [{k: v for k, v in task.items() if k in ['task_num', 'task', 'input', 'output']} for task in args['task_list']]
-    logging.info(f"args: {args}")
-    # translate each task in args['task_list'] to instructions, one by one
-    for task in args['task_list']:
-        instrs = planner.translate_plan_to_instructions(task, model=model)
-        logging.info(f"task: {task}, instrs: {instrs}")
-        # save to file
-        with open(f"{task['task_num']}.json", "w") as f:
-            f.write(instrs)
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str, default='config.yaml', help='Path to the configuration file')
@@ -271,7 +231,7 @@ if __name__ == "__main__":
             plan_with_instrs = json.load(f)
     else:
         # Generate a new plan
-        gen_instructions(base_model, replan=False)
+        planner.gen_instructions(base_model, replan=True)
 
         # load 1.json
         with open("1.json", 'r') as f:

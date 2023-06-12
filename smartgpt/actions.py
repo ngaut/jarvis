@@ -190,7 +190,7 @@ class RunPythonAction(Action):
     file_name: str = "tmp.py"
     timeout: int  = 30 # in seconds
     code:str = ""
-    code_dependencies: list = field(default_factory=list)
+    pkg_dependencies: list = field(default_factory=list)
     cmd_args: str = ""
     expect_outcome: str = ""
     
@@ -222,7 +222,7 @@ class RunPythonAction(Action):
         return output
 
     def _install_dependencies(self):
-        for dependency in self.code_dependencies:
+        for dependency in self.pkg_dependencies:
             with Spinner(f"Installing {dependency}..."):
                 if dependency != "jarvisvm":
                     logging.info("Installing %s...", dependency)
