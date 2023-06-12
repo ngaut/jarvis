@@ -32,11 +32,11 @@ Note: Above tools are all the tool that you can use.
 
 key-value API are the only way to pass information between tasks. The key-value store is a simple dictionary that can be accessed by the following methods:
 
-- store.get('key_name'): returns a string value of the specified key
-- store.get_values('key_name'): returns a list of string value of the specified key
-- store.set('key_name', ['value'...]): sets a list of values to the specified key
-- store.list_values_with_key_prefix('prefix'): returns a list of list of value:string with the specified prefix
-- store.list_keys_with_prefix('prefix'): returns a list of key:string with the specified prefix
+
+- jarvisvm.get('key_name'): returns an object of the specified key
+- jarvisvm.set('key_name', value): sets an object to the specified key
+- jarvisvm.list_values_with_key_prefix('prefix'): returns a list of object with the specified prefix
+- jarvisvm.list_keys_with_prefix('prefix'): returns a list of key:string with the specified prefix
 
 
 ## Response Requirements
@@ -100,10 +100,9 @@ Each instruction has a sequence number, or "seqnum", indicating its position in 
 
 Use these functions to manipulate data in JarvisVM(always construct key name witn seqnum as suffix to indicate the source of the data):
 
-- jarvisvm.get('key_name'): returns a string value of the specified key
-- jarvisvm.get_values('key_name'): returns a list of string value of the specified key
-- jarvisvm.set('key_name', ['value'...]): sets a list of values to the specified key
-- jarvisvm.list_values_with_key_prefix('prefix'): returns a list of list of value:string with the specified prefix
+- jarvisvm.get('key_name'): returns an object of the specified key
+- jarvisvm.set('key_name', value): sets an object to the specified key
+- jarvisvm.list_values_with_key_prefix('prefix'): returns a list of object with the specified prefix
 - jarvisvm.list_keys_with_prefix('prefix'): returns a list of key:string with the specified prefix
 
 
@@ -175,7 +174,9 @@ Your output must be in JSON format, include fields:goal, instructions,thoughts. 
             "timeout": 30,
             "code_dependencies": ["jarvisvm"],
             "code": "import datetime\ntemp = jarvisvm.get('temperature.seqnum2')\nsource_url = jarvisvm.get('source_url.seqnum2')\ndate = jarvisvm.get('date.seqnum2')\nnotes = jarvisvm.get('Notes.seqnum4')\njarvisvm.set('WeatherReport.seqnum6', [f\"\"\"Weather report as of {date}: \\nTemperature in San Francisco: {temp}\\nNotes: {notes}, source url:{source_url}\"\"\"], )",
-            "__constraints__": "the entire code must be in a single line, handle escape characters correctly, Please generate a Python script using f\"\"\" (triple-quoted f-string) for formatting. "
+            "input_analysis": "inside the code, input is 'temperature.seqnum2','source_url.seqnum2', 'date.seqnum2' and 'Notes.seqnum4', " // must have 
+            "__constraints__": "the entire code must be in a single line, handle escape characters correctly in 'code' "
+            "output_analysis": "inside the code, output is 'WeatherReport.seqnum6'" // must have
         }
     }
   ]
@@ -231,7 +232,7 @@ def translate_plan_to_instructions(plan: str, model: str):
 
         resp = gpt.complete_with_system_message(sys_prompt=TRANSLATE_PLAN_SYS_PROMPT, user_prompt=user_prompt, model=model)
         logging.info("Response from AI: %s", resp)
-        return resp
+        return resp[resp.find("{") : resp.rfind("}") + 1]
 
     except Exception as err:
         logging.error("Error in main: %s", err)

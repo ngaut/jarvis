@@ -33,15 +33,17 @@ class Instruction:
         if action_type == "SearchOnline":
             # empty everything between ##Start and ##End
             start = args["query"].find("##Start")
-            end = args["query"].find("##End")
+            end = args["query"].find("End##")
             if start != -1 and end != -1:
                 args["query"] = args["query"][:start] + args["query"][end+len("##End"):]
             args["query"] = self.modify_prompt_with_value(args["query"])
 
         if action_type == "ExtractInfo":
             urls = jarvisvm.get("urls")
+            logging.info(f"urls: {urls}")
             if urls:
                 url = self.parse_url(urls)
+                logging.info(f"patching url: {url}")
                 args["url"] = url
 
         if action_type == "RunPython":
@@ -49,8 +51,12 @@ class Instruction:
             file_name = args.get("file_name")
             if file_name is None or file_name == "":
                 args["file_name"] = f"tmp_{action_id}.py"
+            # if timeout is empty, use the default timeout
+            timeout = args.get("timeout")
+            if timeout is None or timeout == "":
+                args["timeout"] = 30
 
-        if action_type in ["TextCompletion", "Shutdown"]:
+        if action_type in ["TextCompletion"]:
             args = self.handle_jarvisvm_methods(args, action_type)
             if action_type == "TextCompletion":
                 args["prompt"] = f"our goal:{self.goal}\nYou are working on one of the steps to archive the goal.\n {args['prompt']}"
@@ -79,7 +85,7 @@ class Instruction:
             return urls[0]
 
     def handle_jarvisvm_methods(self, args, action_type):
-        target_arg = "prompt" if action_type == "TextCompletion" else "summary"
+        target_arg = "prompt"
         text = args[target_arg]
         args[target_arg] = self.modify_prompt_with_value(text)
         return args
@@ -122,7 +128,6 @@ class JarvisVMInterpreter:
             "ExtractInfo": actions.ExtractInfoAction,
             "RunPython": actions.RunPythonAction,
             "TextCompletion": actions.TextCompletionAction,
-            "Shutdown": actions.ShutdownAction,
         }
 
     def run(self, instrs, goal):
@@ -138,7 +143,8 @@ class JarvisVMInterpreter:
             self.pc += 1
 
     def loop(self, instruction):
-        args = instruction.get["args"]
+        logging.info(f"Looping: {instruction.instruction}")
+        args =instruction.instruction["args"]
         # Extract the count and the list of instructions for the loop
         loop_count = args["count"]
         # remove the first {{ and last }} from loop_count
@@ -212,8 +218,13 @@ def gen_instructions(model: str, replan: bool = False):
     # update args['task_list'] with the filtered task list
     args['task_list'] = [{k: v for k, v in task.items() if k in ['task_num', 'task', 'input', 'output']} for task in args['task_list']]
     logging.info(f"args: {args}")
-    instructions = planner.translate_plan_to_instructions(args, model=model)
-    return instructions
+    # translate each task in args['task_list'] to instructions, one by one
+    for task in args['task_list']:
+        instrs = planner.translate_plan_to_instructions(task, model=model)
+        logging.info(f"task: {task}, instrs: {instrs}")
+        # save to file
+        with open(f"{task['task_num']}.json", "w") as f:
+            f.write(instrs)
 
 
 if __name__ == "__main__":
@@ -250,6 +261,9 @@ if __name__ == "__main__":
     os.makedirs("workspace", exist_ok=True)
     os.chdir("workspace")
 
+    jarvisvm.load_kv_store()
+    actions.load_cache()
+
     # If a JSON file path is provided, load the plan_with_instrs from the JSON file, otherwise generate a new plan_with_instrs
     if args.json:
         # Load the plan_with_instrs from the JSON file
@@ -257,22 +271,15 @@ if __name__ == "__main__":
             plan_with_instrs = json.load(f)
     else:
         # Generate a new plan
-        plan_with_instrs = gen_instructions(base_model, replan=True)
+        gen_instructions(base_model, replan=False)
 
-        # parse the data between left and right brackets
-        start = plan_with_instrs.find('{')
-        end = plan_with_instrs.rfind('}')
-        if end < start:
-            logging.info(f"invalid json:%s\n", plan_with_instrs)
-            exit(1)
-        plan_with_instrs = json.loads(plan_with_instrs[start:end+1])
-    
-        # save the plan to a file
-        with open('plan_with_instrs.json', "w") as f:
-            json.dump(plan_with_instrs, f, indent=2)
+        # load 1.json
+        with open("1.json", 'r') as f:
+            plan_with_instrs = json.load(f)
 
     # Find the starting sequence number
     start_seq = args.startseq
+    logging.info(f"plan_with_instrs: {plan_with_instrs['instructions']}")
 
     # Make sure start_seq is within bounds
     if start_seq < 0 or start_seq >= len(plan_with_instrs["instructions"]):

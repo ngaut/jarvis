@@ -8,7 +8,8 @@ from typing import Union,List, Dict
 from abc import ABC
 from urllib.error import HTTPError
 from bs4 import BeautifulSoup
-import googlesearch
+import requests
+import time
 from selenium import webdriver
 from selenium.webdriver.chrome.webdriver import WebDriver as ChromeWebDriver
 from selenium.webdriver.common.by import By
@@ -16,6 +17,20 @@ from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from webdriver_manager.chrome import ChromeDriverManager
 
+
+_cache = {}
+
+def load_cache():
+    global _cache
+    if os.path.exists("cache.json"):
+        with open("cache.json", "r") as f:
+            _cache = json.load(f)
+
+def save_to_cache(key, value):
+    global _cache
+    _cache[key] = value
+    with open("cache.json", "w") as f:
+        json.dump(_cache, f)
 
 @dataclass(frozen=True)
 class Action(ABC):
@@ -72,23 +87,49 @@ class SearchOnlineAction:
     def short_string(self):
         return f"action_id: {self.id()}, Search online for `{self.query}`, expect_outcome: `{self.expect_outcome}`."
 
-    def run(self):
-        try:
-            response = list(googlesearch.search(self.query, num_results=15))
-            if response is None:
-                return f"SearchOnlineAction RESULT: The online search for `{self.query}` appears to have failed."
 
-            result = str(response)
+
+    def run(self):
+        global _cache
+        try:
+            if self.query in _cache:
+                return _cache[self.query]
+            
+            url = "https://www.googleapis.com/customsearch/v1"
+            params = {
+                'q': self.query,
+                'num': 3,
+                'key': "AIzaSyBXp89Jf292xF8eIBQqkCanZiOH58APRww",  
+                'cx': 'f728c501aa4eb451c',
+            }
+
+            response = requests.get(url, params=params)
+            response.raise_for_status()  # raise exception if the request was unsuccessful
+
+            search_results = response.json()
+
+            if not search_results.get('items'):
+                return f"SearchOnlineAction RESULT: The online search for `{self.query}` appears to have failed."
+            
+            # return a list of links
+            result = [item['link'] for item in search_results['items']]
+            logging.info(f"SearchOnlineAction RESULT: {result}")
             jarvisvm.set("urls", result)
             jarvisvm.set("search_results", result)
             jarvisvm.set("search_results.seqnum1", result)
-            return result
-        except HTTPError as http_err:
-            if http_err.code == 429:
+            
+            save_to_cache(self.query, str(result))
+
+            return str(result)
+        except requests.exceptions.HTTPError as http_err:
+            if http_err.response.status_code == 429:
                 time.sleep(30)
                 return "SearchOnlineAction RESULT: Too many requests. Please try again later."
             else:
                 return f"SearchOnlineAction RESULT: An HTTP error occurred: {http_err}"
+        except Exception as err:
+            return f"SearchOnlineAction RESULT: An error occurred: {err}"
+
 
 
 @dataclass(frozen=True)
@@ -109,6 +150,11 @@ class ExtractInfoAction(Action):
         return f"action_id: {self.id()}, Extract info from `{self.url}`, with instructions:<{self.instruction}>, expect_outcome: `{self.expect_outcome}`."
 
     def run(self) -> str:
+        global _cache
+        key = f"{self.url}::{self.instruction}"
+        if key in _cache:
+            return _cache[key]
+        
         with Spinner("Reading website..."):
             html = self.get_html(self.url)
         text = self.extract_text(html)
@@ -116,6 +162,7 @@ class ExtractInfoAction(Action):
     
         with Spinner("Extracting info..."):
             extracted_info = gpt.complete(user_message_content, model=gpt.GPT_3_5_TURBO)
+        save_to_cache(key, extracted_info)
         return extracted_info
 
     def get_html(self, url: str) -> str:
@@ -267,24 +314,6 @@ class TextCompletionAction(Action):
         except Exception as e:
             return f"TextCompletionAction RESULT: An error occurred: {e}"
 
-        
-@dataclass(frozen=True)
-class ShutdownAction(Action):
-    action_id: int
-    summary: str
-
-    def key(self):
-        return "Shutdown"
-    
-    def id(self) -> int:
-        return self.action_id
-    
-    def short_string(self) -> str:
-        return f"action_id: {self.id()}, Shutdown:{self.summary}"
-
-    def run(self) -> str:
-        exit(0)
-
 # Helper function to populate the ACTION_CLASSES dictionary
 def _populate_action_classes(action_classes):
     result = {}
@@ -309,7 +338,6 @@ def _populate_action_classes(action_classes):
 
 ACTION_CLASSES = _populate_action_classes([
     RunPythonAction,
-    ShutdownAction,
     ExtractInfoAction,
     SearchOnlineAction,
     TextCompletionAction,

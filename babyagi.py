@@ -97,12 +97,20 @@ def user_input_tool(prompt: str):
     return str(val)
 
 
-def run_python_tool(code: str):
+def run_python_tool(task:str, dependent_tasks_output:str):
+    print("\033[90m\033[3m" + "Preparing Python code...\n" + "\033[0m")
+    if dependent_tasks_output != "":
+        dependent_task = f"Use the dependent task output below as reference to help craft the correct Python code for the provided task above. Dependent task output:{dependent_tasks_output}."
+    else:
+        dependent_task = "."
+    code = text_completion_tool("You are an AI assistant tasked with writing Python code to complete the following task: "+task+". If the task looks like Python code, return the identical Python code as your response. " + dependent_task + "\nPython Code:```python\n")
+    print("\033[90m\033[3m" + "Completed Python code. Now running code...\n" + "\033[0m")
     try:
         exec(code)
-        return "Success"
     except Exception as e:
-        return f"Error: {e}"
+        print(e)
+        return "run_python RESULT: The Python code appears to have failed."
+        
 
 def search(query, num_results=3):
     try:
@@ -120,6 +128,7 @@ def search(query, num_results=3):
              
 
 def web_search_tool(query: str , dependent_tasks_output : str):
+    task = query
     if dependent_tasks_output != "":
       dependent_task = f"Use the dependent task output below as reference to help craft the correct search query for the provided task above. Dependent task output:{dependent_tasks_output}."
     else:
@@ -129,14 +138,13 @@ def web_search_tool(query: str , dependent_tasks_output : str):
 
     print("\033[90m\033[3m" + "Completed search. Now scraping results.\n" + "\033[0m")
     results = "";
-    # Loop through the search results
     for url in search(query):
-        # Call the web_scrape_tool function with the URL
+        print(f"url: {url}")
         print("\033[90m\033[3m" + "Scraping: "+url+"" + "...\033[0m")
         content = web_scrape_tool(url, task)
         print("\033[90m\033[3m" +str(content[0:100])[0:100]+"...\n" + "\033[0m")
         results += str(content)+". "
-    
+    print("\033[90m\033[3m"+"complete Search query: " +str(query)+"\033[0m")
     results = text_completion_tool(f"You are an expert analyst. Rewrite the following information as one report without removing any facts.\n###INFORMATION:{results}.\n###REPORT:")
     return results
 
@@ -146,9 +154,10 @@ def web_scrape_tool(url: str, task:str):
         return None
 
     text = extract_text(content)
-    print("\033[90m\033[3m"+"Scrape completed. Length:" +str(len(text))+".Now extracting relevant info..."+"...\033[0m")
+    print("\033[90m\033[3m"+"Scrape completed. Length:" +str(len(text))+".Now extracting relevant info for task {task}..."+"...\033[0m")
     info = extract_relevant_info(OBJECTIVE, text[0:5000], task)
     links = extract_links(content)
+    print(f"Extracted info for task {task} finish: {info}")
 
     #result = f"{info} URLs: {', '.join(links)}"
     result = info
@@ -212,7 +221,6 @@ def extract_relevant_info(objective, large_string, task):
 
 
 def execute_task(task, task_list, OBJECTIVE):
-    
     global session_summary
     global task_id_counter
     # Check if dependent_task_ids is not empty
@@ -246,10 +254,11 @@ def execute_task(task, task_list, OBJECTIVE):
     elif task["tool"] == "web-search":
         task_output = web_search_tool(str(task['task']),str(dependent_tasks_output))
     elif task["tool"] == "web-scrape":
-        task_output = web_scrape_tool(str(task['task']))
+        task_output = web_scrape_tool(str(task['task']), task=task)
     elif task["tool"] == "user-input":
         task_output = user_input_tool(str(task['task']))
     elif task["tool"] == "run-python":
+        print(f"Running python tool: {task['task']}, dependent_tasks_output: {dependent_tasks_output}")
         task_output = run_python_tool(str(task['task']), str(dependent_tasks_output))
 
     
@@ -347,7 +356,8 @@ with ThreadPoolExecutor() as executor:
         if not tasks_submitted and all(task["status"] == "complete" for task in task_list):
             break
 
-        time.sleep(5)
+        time.sleep(10)
+        print_tasklist()
 
 # Print session summary
 print("\033[96m\033[1m"+"\n*****SAVING FILE...*****\n"+"\033[0m\033[0m")
