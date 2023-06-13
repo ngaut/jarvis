@@ -234,7 +234,7 @@ if __name__ == "__main__":
     args.timeout = args.timeout or assistant_config.get('timeout', 30)
     args.verbose = args.verbose or assistant_config.get('verbose', False)
     args.continuous = args.continuous or assistant_config.get('continuous', False)
-    args.replan = args.replan or assistant_config.get('replan', True)
+    args.replan = args.replan or assistant_config.get('replan', False)
 
     os.makedirs("workspace", exist_ok=True)
     os.chdir("workspace")
