@@ -28,7 +28,8 @@ class Instruction:
             return
 
         action_id = self.instruction.get("seqnum")
-        args = self.instruction.get("args", {})
+        # clone the args dict!
+        args = dict(self.instruction.get("args"))
 
         if action_type == "SearchOnline":
             # empty everything between ##Start and ##End
@@ -86,7 +87,7 @@ class Instruction:
         matches = pattern.findall(text)
         logging.info(f"\eval_value(), matches: {matches}, text:{text}\n")
         for match in matches:
-            if 'jarvisvm.' in match and "jarvisvm.set" not in match:
+            if 'jarvisvm.' in match:
                 evaluated = eval(match)
                 logging.info(f"\nevaluated: {evaluated}, code:{match}\n")
                 text = text.replace("{{" + f"{match}" + "}}", str(evaluated), 1)
@@ -140,9 +141,10 @@ class JarvisVMInterpreter:
         # remove the first {{ and last }} from loop_count
         if loop_count.startswith("{{") and loop_count.endswith("}}"):
             loop_count = loop_count[2:-2]
+            logging.info(f"loop_count: {loop_count}")
+
             # loop_count needs to be evaluated in the context of jarvisvm
             loop_count = eval(loop_count)
-            logging.info(f"loop_count: {loop_count}")
         loop_instructions = instr.instruction.get("args", {}).get("instructions", [])
         logging.info(f"Looping: {loop_instructions}")
 
@@ -154,6 +156,7 @@ class JarvisVMInterpreter:
             jarvisvm.set("loop_index", i)
             jarvisvm.set("index", i)
             jarvisvm.set("i", i)
+            logging.info(f"loop_index: {i}")
             # As each loop execution should start from the first instruction, we reset the program counter
             self.pc = 0
             self.run(loop_instructions, instr.goal)
