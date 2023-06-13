@@ -95,7 +95,7 @@ Each tool can only do one thing, but you can combine them to do more complex thi
 
 ## Instruction Sequence
 
-Each instruction has a sequence number, or "seqnum", indicating its position in the list. 
+Each instruction has a sequence number, or "seqnum", indicating its position in the list, the seqnum starts from start_seqnum. 
 
 
 ## JarvisVM functions that operate on a key-value database
@@ -115,7 +115,8 @@ Your output must be in JSON format, include fields:goal, instructions,thoughts. 
 ```json
 {
   "goal": "Acquire and save the current weather data for San Francisco and provide suggestions based on temperature",
-  "task_list": ["Task 1...", "Task 2...", "..."], 
+  "task_list": ["Task 1...", "Task 2...", "..."],
+  "start_seqnum": 0, // user specified start seqnum
   "thoughts": // why each task is necessary, what is the reason for each task, what is the reason for the order of the tasks, how each task passes data to the next task, etc.
   "instructions": [
     {
@@ -184,7 +185,8 @@ Your output must be in JSON format, include fields:goal, instructions,thoughts. 
             "reasoning": //explain why other instructions are not used, why this instruction is used, etc.
         }
     }
-  ]
+  ],
+  "max_seqnum": 6
 }
 
 ## Read Operation Template
@@ -216,10 +218,12 @@ def gen_instructions(model: str, replan: bool = False):
     # filter fields for each task in args['task_list'], only keep fields in the set ['task_num', 'task', 'input', 'output']
     # update args['task_list'] with the filtered task list
     args['task_list'] = [{k: v for k, v in task.items() if k in ['task_num', 'task']} for task in args['task_list']]
-    logging.info(f"args: {args}")
     # translate each task in args['task_list'] to instructions, one by one
+    start_seqnum = 1
     for task in args['task_list']:
-        instrs = translate_plan_to_instructions(task, model=model)
+        instrs = translate_plan_to_instructions({"task":task, "start_seqnum":start_seqnum}, model=model)
+        tmp = json.loads(instrs)
+        start_seqnum = int(tmp['max_seqnum']) + 1
         logging.info(f"task: {task}, instrs: {instrs}")
         # save to file
         with open(f"{task['task_num']}.json", "w") as f:
@@ -244,7 +248,7 @@ def gen_plan(model: str):
         logging.error("Error in main: %s", err)
         time.sleep(1)
 
-def translate_plan_to_instructions(plan: str, model: str):
+def translate_plan_to_instructions(plan, model: str):
     try:
         user_prompt = (
             f"Please provide an instruction list. Our goal is to translate the plan:\n\n```json\n{plan}\n```\n\n"
@@ -253,8 +257,10 @@ def translate_plan_to_instructions(plan: str, model: str):
             "Your JSON response should be:\n\n```json"
         )
 
+        logging.info(f"========================{plan}========================")
+
         resp = gpt.complete_with_system_message(sys_prompt=TRANSLATE_PLAN_SYS_PROMPT, user_prompt=user_prompt, model=model)
-        logging.info("Response from AI: %s", resp)
+        #logging.info("Response from AI: %s", resp)
         return resp[resp.find("{") : resp.rfind("}") + 1]
 
     except Exception as err:
