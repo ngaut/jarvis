@@ -205,6 +205,7 @@ if __name__ == "__main__":
     parser.add_argument('--timeout', type=int, default=1, help='Timeout for user input')
     parser.add_argument('--continuous', action='store_true', help='Continuous mode')
     parser.add_argument('--verbose', action='store_true', help='Verbose mode')
+    parser.add_argument('--replan', action='store_true', help='create a new plan')
     parser.add_argument('--json', type=str, help='Path to the JSON file to execute plan from')
     parser.add_argument('--startseq', type=int, default=0, help='Starting sequence number')
 
@@ -229,6 +230,7 @@ if __name__ == "__main__":
     args.timeout = args.timeout or assistant_config.get('timeout', 30)
     args.verbose = args.verbose or assistant_config.get('verbose', False)
     args.continuous = args.continuous or assistant_config.get('continuous', False)
+    args.replan = args.replan or assistant_config.get('replan', True)
 
     os.makedirs("workspace", exist_ok=True)
     os.chdir("workspace")
@@ -243,7 +245,7 @@ if __name__ == "__main__":
             plan_with_instrs = json.load(f)
     else:
         # Generate a new plan
-        planner.gen_instructions(base_model, replan=True)
+        planner.gen_instructions(base_model, replan=args.replan)
 
         # load 1.json
         with open("1.json", 'r') as f:

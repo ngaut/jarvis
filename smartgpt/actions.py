@@ -119,9 +119,7 @@ class SearchOnlineAction:
             # return a list of links
             result = [item['link'] for item in search_results['items']]
             logging.info(f"SearchOnlineAction RESULT: {result}")
-            jarvisvm.set("urls", result)
-            jarvisvm.set("search_results", result)
-            jarvisvm.set("search_results.seqnum1", result)
+            jarvisvm.set(f"search_results.seqnum{self.action_id}", result)
             
             save_to_cache(self.query, str(result))
 
