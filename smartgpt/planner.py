@@ -124,7 +124,7 @@ Your output must be in JSON format, include fields:goal, instructions,thoughts. 
       "seqnum": 1,
       "type": "SearchOnline",
       "args": {
-        "query": "temperature in San Francisco. ##Start{{jarvisvm.set('search_results.seqnum1', <'fill_later'>])}}End##" // everything bewteen ##Start and End## can not be changed for this instruction
+        "query": "temperature in San Francisco. ##Start{{jarvisvm.set('search_results.seqnum1', <'fill_later'>])}}End##" // postfix of the key shold be the seqnum of current instruction, everything bewteen ##Start and End## can not be changed for this instruction
       }
       "output_analysis": "inside the query, output is set by jarvisvm.set, key is 'search_results.seqnum1' " // must have output
     },
@@ -133,7 +133,7 @@ Your output must be in JSON format, include fields:goal, instructions,thoughts. 
       "seqnum": 2,
       "type": "ExtractInfo",
       "args": {
-        "url": "{{jarvisvm.get('search_results.seqnum1')[0]}}",  // always use this key to get the url
+        "url": "{{jarvisvm.get('search_results.seqnum1')[0]}}",  // fetch the first url from search results
         "instruction": "Extract the current temperature and url(keep http or https prefix) in San Francisco. Try to fit the output into one or more of the placeholders,your response: ##Start{{jarvisvm.set('temperature.seqnum2', '<fill_later>')}}, {{jarvisvm.set('source_url.seqnum2'), <'fill_later'>}}, {{jarvisvm.set('date.seqnum2', '<fill_later>')}}End##", // must use the instruction:"you must fill your answer inside the template:..."
         "output_analysis": "inside the instruction, output is set by jarvisvm.set, keys are 'temperature.seqnum2' and 'date.seqnum2' " // must have output
         "input_analysis": "inside the instruction, input is 'search_results.seqnum1'", 

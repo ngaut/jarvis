@@ -103,7 +103,7 @@ class SearchOnlineAction:
             url = "https://www.googleapis.com/customsearch/v1"
             params = {
                 'q': self.query,
-                'num': 3,
+                'num': 5,
                 'key': "AIzaSyBXp89Jf292xF8eIBQqkCanZiOH58APRww",  
                 'cx': 'f728c501aa4eb451c',
             }

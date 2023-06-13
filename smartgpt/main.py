@@ -87,6 +87,7 @@ class Instruction:
             if end == -1:
                 logging.critical(f"Error: cannot find }} for jarvisvm.get in {text}")
                 break
+            logging.info(f"\eval_and_patch_template_before_exec, {start}-{end} text: {text}\n")
             evaluated = eval(text[start+2:start+end])
             text = text[:start] + str(evaluated) + text[start+end+2:]
             logging.info(f"\eval_and_patch_template_before_exec, text: {text}\n")
@@ -139,13 +140,16 @@ class JarvisVMInterpreter:
         args = instr.instruction["args"]
         # Extract the count and the list of instructions for the loop
         loop_count = args["count"]
-        # remove the first {{ and last }} from loop_count
-        if loop_count.startswith("{{") and loop_count.endswith("}}"):
-            loop_count = loop_count[2:-2]
-            logging.info(f"loop_count: {loop_count}")
-
-            # loop_count needs to be evaluated in the context of jarvisvm
-            loop_count = eval(loop_count)
+        # if loop_count is integer
+        if isinstance(loop_count, int):
+            loop_count = loop_count
+        elif isinstance(loop_count, str):
+            # remove the first {{ and last }} from loop_count
+            if loop_count.startswith("{{") and loop_count.endswith("}}"):
+                loop_count = loop_count[2:-2]
+                logging.info(f"loop_count: {loop_count}")
+                # loop_count needs to be evaluated in the context of jarvisvm
+                loop_count = eval(loop_count)
         loop_instructions = instr.instruction.get("args", {}).get("instructions", [])
         logging.info(f"Looping: {loop_instructions}")
 
