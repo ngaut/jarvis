@@ -26,6 +26,10 @@ def load_cache():
         with open("cache.json", "r") as f:
             _cache = json.load(f)
 
+def get_from_cache(key):
+    global _cache
+    return _cache.get(key, None)
+
 def save_to_cache(key, value):
     global _cache
     _cache[key] = value
@@ -76,7 +80,6 @@ class Action(ABC):
 class SearchOnlineAction:
     action_id: int
     query: str
-    expect_outcome: str = ""
     
     def key(self):
         return "SearchOnline"
@@ -85,15 +88,17 @@ class SearchOnlineAction:
         return self.action_id
     
     def short_string(self):
-        return f"action_id: {self.id()}, Search online for `{self.query}`, expect_outcome: `{self.expect_outcome}`."
+        return f"action_id: {self.id()}, Search online for `{self.query}`."
 
 
 
     def run(self):
-        global _cache
         try:
-            if self.query in _cache:
-                return _cache[self.query]
+            # Check if the query is already in the cache
+            cached_result = get_from_cache(self.query)
+            if cached_result is not None:
+                logging.info(f"\nSearchOnlineAction RESULT(cached)\n")
+                return cached_result
             
             url = "https://www.googleapis.com/customsearch/v1"
             params = {
@@ -137,7 +142,6 @@ class ExtractInfoAction(Action):
     action_id: int
     url: str
     instruction: str
-    expect_outcome: str = ""
 
 
     def key(self) -> str:
@@ -147,13 +151,14 @@ class ExtractInfoAction(Action):
         return self.action_id
     
     def short_string(self) -> str:
-        return f"action_id: {self.id()}, Extract info from `{self.url}`, with instructions:<{self.instruction}>, expect_outcome: `{self.expect_outcome}`."
+        return f"action_id: {self.id()}, Extract info from `{self.url}`, with instructions:<{self.instruction}>."
 
     def run(self) -> str:
-        global _cache
         key = f"{self.url}::{self.instruction}"
-        if key in _cache:
-            return _cache[key]
+        cached_result = get_from_cache(key)
+        if cached_result is not None:
+            logging.info(f"\nExtractInfoAction RESULT(cached)\n")
+            return cached_result
         
         with Spinner("Reading website..."):
             html = self.get_html(self.url)
@@ -191,9 +196,7 @@ class RunPythonAction(Action):
     timeout: int  = 30 # in seconds
     code:str = ""
     pkg_dependencies: list = field(default_factory=list)
-    cmd_args: str = ""
-    expect_outcome: str = ""
-    
+    cmd_args: str = ""    
 
     def key(self) -> str:
         return "RunPython"
@@ -202,7 +205,7 @@ class RunPythonAction(Action):
         return self.action_id
     
     def short_string(self) -> str:
-        return f"action_id: {self.id()}, Run Python file `{self.file_name} {self.cmd_args}`, expect_outcome: `{self.expect_outcome}`."
+        return f"action_id: {self.id()}, Run Python file `{self.file_name} {self.cmd_args}`"
 
     def run(self) -> str:
         # Make sure filename and code aren't None
@@ -279,8 +282,6 @@ class TextCompletionAction(Action):
     action_id: int
     prompt: str
     model_name: str = gpt.GPT_3_5_TURBO
-    expect_outcome: str = ""
-
 
     def key(self) -> str:
         return "TextCompletion"
@@ -292,6 +293,11 @@ class TextCompletionAction(Action):
         return f"action_id: {self.id()}, Text completion for `{self.prompt}`."
 
     def run(self) -> str:
+        # use cache if possible
+        key = f"TextCompletionAction:{self.prompt}"
+        cached_result = get_from_cache(key)
+        if cached_result is not None:
+            logging.info("\nTextCompletionAction RESULT(cached)\n")
         messages = [
             {
                 "role": "system",
@@ -309,6 +315,7 @@ class TextCompletionAction(Action):
                 return f"TextCompletionAction RESULT: The text completion for `{self.prompt}` appears to have failed."
 
             result = str(response)
+            save_to_cache(key, result)
             return result
 
         except Exception as e:

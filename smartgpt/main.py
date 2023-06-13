@@ -37,10 +37,12 @@ class Instruction:
             end = args["query"].find("End##")
             if start != -1 and end != -1:
                 args["query"] = args["query"][:start] + args["query"][end+len("##End"):]
-            args["query"] = self.eval_value(args["query"])
+            args["query"] = self.eval_and_patch_template_before_exec(args["query"])
 
         if action_type == "ExtractInfo":
-            args["url"] = self.eval_value(args["url"])
+            args["url"] = self.eval_and_patch_template_before_exec(args["url"])
+            # patch instruction
+            args["instruction"] = self.eval_and_patch_template_before_exec(args["instruction"])
 
         if action_type == "RunPython":
             # if file_name is empty, use the default file
@@ -53,9 +55,8 @@ class Instruction:
                 args["timeout"] = 30
 
         if action_type in ["TextCompletion"]:
-            args = self.handle_jarvisvm_methods(args, action_type)
-            if action_type == "TextCompletion":
-                args["prompt"] = f"our goal:{self.goal}\nYou are working on one of the steps to archive the goal.\n {args['prompt']}"
+            args["prompt"] = self.eval_and_patch_template_before_exec(args["prompt"])
+            args["prompt"] = f"our goal:{self.goal}\nYou are working on one of the steps to archive the goal.\n {args['prompt']}"
 
         action_data = {"type": action_type, "action_id": action_id}
         action_data.update(args)
@@ -74,20 +75,14 @@ class Instruction:
         logging.info(f"\nresult of {action_type}: {result}\n")
 
         if action_type != "RunPython":
-            self.update_jarvisvm_values(result)
+            self.patch_after_exec(result)
 
-    def handle_jarvisvm_methods(self, args, action_type):
-        target_arg = "prompt"
-        text = args[target_arg]
-        args[target_arg] = self.eval_value(text)
-        return args
-
-    def eval_value(self, text):
+    def eval_and_patch_template_before_exec(self, text):
         pattern = re.compile(r"\{\{(.*?)\}\}")
         matches = pattern.findall(text)
         logging.info(f"\eval_value(), matches: {matches}, text:{text}\n")
         for match in matches:
-            if 'jarvisvm.' in match:
+            if 'jarvisvm.get' in match:
                 evaluated = eval(match)
                 logging.info(f"\nevaluated: {evaluated}, code:{match}\n")
                 text = text.replace("{{" + f"{match}" + "}}", str(evaluated), 1)
@@ -95,7 +90,7 @@ class Instruction:
         return text
 
 
-    def update_jarvisvm_values(self, result):
+    def patch_after_exec(self, result):
         pattern = re.compile(r"jarvisvm.set\('([^']*)', (.*?)\)")
         matches = pattern.findall(result)
 
