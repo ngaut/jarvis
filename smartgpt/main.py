@@ -78,20 +78,25 @@ class Instruction:
             self.patch_after_exec(result)
 
     def eval_and_patch_template_before_exec(self, text):
-        pattern = re.compile(r"\{\{(.*?)\}\}")
-        matches = pattern.findall(text)
-        logging.info(f"\eval_value(), matches: {matches}, text:{text}\n")
-        for match in matches:
-            if 'jarvisvm.get' in match:
-                evaluated = eval(match)
-                logging.info(f"\nevaluated: {evaluated}, code:{match}\n")
-                text = text.replace("{{" + f"{match}" + "}}", str(evaluated), 1)
+        while True:
+            start = text.find("{{jarvisvm.get")
+            if start == -1:
+                break
+        
+            end = text[start:].find("}}")
+            if end == -1:
+                logging.critical(f"Error: cannot find }} for jarvisvm.get in {text}")
+                break
+            evaluated = eval(text[start+2:start+end])
+            text = text[:start] + str(evaluated) + text[start+end+2:]
+            logging.info(f"\eval_and_patch_template_before_exec, text: {text}\n")
         
         return text
 
 
+    
     def patch_after_exec(self, result):
-        pattern = re.compile(r"jarvisvm.set\('([^']*)', (.*?)\)")
+        pattern = re.compile(r"##Start{{jarvisvm.set\(f'([^']*)', '(.*?)'\)}}##End", re.DOTALL)
         matches = pattern.findall(result)
 
         logging.info(f"\nupdate_jarvisvm_values, matches: {matches}, result:{result}\n")
@@ -104,6 +109,7 @@ class Instruction:
                 value = value_str.strip("'\"")
             jarvisvm.set(key, value)
             logging.info(f"\njarvisvm.set('{key}', {value})\n")
+
 
 
         
