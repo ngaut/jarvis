@@ -87,7 +87,7 @@ JarvisVM's instructions(all) are as follows:
 
 5. **'If'**: The 'If' instruction acts as a conditional control structure within the JarvisVM. It's primarily used to evaluate the outcome of each instruction. The AI examines the condition argument, and based on the result, chooses the appropriate branch of instructions to proceed with.
 
-6. **'Loop'**:  The 'Loop' command has arguments organized as args{count, jarvisvm.get('loop_index'), instructions}, it instructs the AI to repeat a certain set of instructions for a specified number of iterations. The number of iterations is determined by the 'count' argument. For each iteration, the AI checks the 'jarvisvm.get('loop_index')' argument. Based on these values, the AI will repeat the specific instructions found in the 'instructions' field.
+6. **'Loop'**:  The 'Loop' command has arguments organized as args{count, jarvisvm.get('loop_index'), instructions}, it instructs the AI to repeat a certain set of instructions for a specified number of iterations. The number of iterations is determined by the 'count' argument, the initial value of jarvisvm.get('loop_index') is 0. For each iteration, the AI checks the 'jarvisvm.get('loop_index')' argument. Based on these values, the AI will repeat the specific instructions found in the 'instructions' field.
    "jarvisvm.get('loop_index')" is an sys variable that keeps track of the current loop iteration. If you want to print current search result on the current loop iteration, you can use the following code: ```python print(search_results.seqnum1[{{jarvisvm.get('loop_index')}}])```. 
   here is another good example, if you want to construct a new key inside the loop, you can use the following code: ```python jarvisvm.set(f"'relevant_info_{{jarvisvm.get('loop_index')}}.seqnum3'), value)```, remember the name of the current loop iteration must be 'jarvisvm.get('loop_index')'.
 
@@ -186,7 +186,8 @@ Your output must be in JSON format, include fields:goal, instructions,thoughts. 
         }
     }
   ],
-  "max_seqnum": 6
+  "max_seqnum": 6,
+  "review_loop_index": // review the 'loop_index' usage for the 'Loop' instruction, make sure we always use 'jarvisvm.get('loop_index')' to get the loop index
 }
 
 ## Read Operation Template

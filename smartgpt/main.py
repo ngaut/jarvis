@@ -96,7 +96,7 @@ class Instruction:
 
     
     def patch_after_exec(self, result):
-        pattern = re.compile(r"##Start{{jarvisvm.set\(f'([^']*)', '(.*?)'\)}}##End", re.DOTALL)
+        pattern = re.compile(r"{{jarvisvm.set\(f?'([^']*)', '(.*?)'\)}}", re.DOTALL)
         matches = pattern.findall(result)
 
         logging.info(f"\nupdate_jarvisvm_values, matches: {matches}, result:{result}\n")
@@ -243,7 +243,7 @@ if __name__ == "__main__":
             plan_with_instrs = json.load(f)
     else:
         # Generate a new plan
-        planner.gen_instructions(base_model, replan=False)
+        planner.gen_instructions(base_model, replan=True)
 
         # load 1.json
         with open("1.json", 'r') as f:
