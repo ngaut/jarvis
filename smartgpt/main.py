@@ -90,28 +90,25 @@ class Instruction:
             logging.info(f"\eval_and_patch_template_before_exec, {start}-{end} text: {text}\n")
             evaluated = eval(text[start+2:start+end])
             text = text[:start] + str(evaluated) + text[start+end+2:]
-            logging.info(f"\eval_and_patch_template_before_exec, text: {text}\n")
+            logging.info(f"\eval_and_patch_template_before_exec, text after patched: {text}\n")
         
         return text
 
 
     
     def patch_after_exec(self, result):
-        pattern = re.compile(r"{{jarvisvm.set\(f?'([^']*)', '(.*?)'\)}}", re.DOTALL)
-        matches = pattern.findall(result)
-
-        logging.info(f"\nupdate_jarvisvm_values, matches: {matches}, result:{result}\n")
-        for match in matches:
-            key = match[0]
-            value_str = match[1].strip()
-            try:
-                value = ast.literal_eval(value_str)
-            except (ValueError, SyntaxError):
-                value = value_str.strip("'\"")
-            jarvisvm.set(key, value)
-            logging.info(f"\njarvisvm.set('{key}', {value})\n")
-
-
+        # parse result that starts with first '{' and ends with last '}' as json
+        start = result.find("{")
+        end = result.rfind("}")
+        if start != -1 and end != -1:
+            result = result[start:end+1]
+            result = json.loads(result)
+            if result["operation"] != "jarvisvm.set":
+                return
+            # get the key and value pair list
+            for kv in result["kvs"]:
+                logging.info(f"patch_after_exec, set kv: {kv}\n")
+                jarvisvm.set(kv["key"], kv["value"])
 
         
 class JarvisVMInterpreter:
