@@ -127,7 +127,7 @@ class JarvisVMInterpreter:
             instruction = Instruction(instrs[self.pc], self.actions, goal)
             action_type = instrs[self.pc].get("type")
             if action_type == "If":
-                self.conditional(instruction)
+                self.conditional(instruction, goal)
             elif action_type == "Loop":
                 self.loop(instruction)
             else:
@@ -165,7 +165,7 @@ class JarvisVMInterpreter:
             self.run(loop_instructions, instr.goal)
         self.pc = old_pc + len(loop_instructions)
 
-    def conditional(self, instruction):
+    def conditional(self, instruction, goal):
         condition = instruction.instruction.get("args", {}).get("condition", None)
         prompt = f'Is that true?: "{condition}"? Please respond in the following JSON format: \n{{"result": "true/false", "reasoning": "your reasoning"}}.'
 
@@ -193,12 +193,12 @@ class JarvisVMInterpreter:
 
         if condition:
             # instruction.instruction["then"] is a list of instructions
-            self.run(instruction.instruction["then"])
+            self.run(instruction.instruction["then"], goal)
         else:
             instrs = instruction.instruction["else"]
             if instrs is not None:
                 # maybe use pc to jump is a better idea.
-                self.run(instrs)
+                self.run(instrs, goal)
 
 
 if __name__ == "__main__":
