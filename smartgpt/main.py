@@ -42,7 +42,7 @@ class Instruction:
         if action_type == "ExtractInfo":
             args["url"] = self.eval_and_patch_template_before_exec(args["url"])
             # patch instruction
-            args["instruction"] = self.eval_and_patch_template_before_exec(args["instruction"])
+            args["command"] = self.eval_and_patch_template_before_exec(args["command"])
 
         if action_type == "RunPython":
             # if file_name is empty, use the default file

@@ -139,7 +139,7 @@ class SearchOnlineAction:
 class ExtractInfoAction(Action):
     action_id: int
     url: str
-    instruction: str
+    command: str
 
 
     def key(self) -> str:
@@ -149,10 +149,10 @@ class ExtractInfoAction(Action):
         return self.action_id
     
     def short_string(self) -> str:
-        return f"action_id: {self.id()}, Extract info from `{self.url}`, with instructions:<{self.instruction}>."
+        return f"action_id: {self.id()}, Extract info from `{self.url}`, with command:<{self.command}>."
 
     def run(self) -> str:
-        key = f"{self.url}::{self.instruction}"
+        key = f"{self.url}::{self.command}"
         cached_result = get_from_cache(key)
         if cached_result is not None:
             logging.info(f"\nExtractInfoAction RESULT(cached)\n")
@@ -161,7 +161,7 @@ class ExtractInfoAction(Action):
         with Spinner("Reading website..."):
             html = self.get_html(self.url)
         text = self.extract_text(html)
-        user_message_content = f"{self.instruction}\n\nThe content of the web page:```{text}```"
+        user_message_content = f"{self.command}\n\nThe content of the web page:```{text}```"
     
         with Spinner("Extracting info..."):
             extracted_info = gpt.complete(user_message_content, model=gpt.GPT_3_5_TURBO)
