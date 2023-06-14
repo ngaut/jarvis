@@ -1,7 +1,5 @@
 import ast
 import logging
-import gpt
-import re
 import json
 import os
 
@@ -83,6 +81,3 @@ def list_keys_with_prefix(prefix):
     except Exception as e:
         logging.fatal(f"list_keys_with_prefix, An error occurred: {e}")
 
-def text_completion(prompt:str):
-    resp = gpt.complete(prompt=prompt, model = gpt.GPT_3_5_TURBO)
-    return resp

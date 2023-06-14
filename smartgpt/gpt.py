@@ -33,7 +33,7 @@ GPT_4 = "gpt-4"
 #GPT_4 = "gpt-4_playground"
 
 # Alternative model
-GPT_3_5_TURBO = "gpt-3.5-turbo"
+GPT_3_5_TURBO = "gpt-3.5-turbo-0613"
 #GPT_3_5_TURBO = "gpt-35-turbo_playground"
 
 GPT_LOCAL = "mpt-7b-chat"

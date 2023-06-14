@@ -161,7 +161,7 @@ class ExtractInfoAction(Action):
         with Spinner("Reading website..."):
             html = self.get_html(self.url)
         text = self.extract_text(html)
-        user_message_content = f"{self.instruction}\n\n```{text}```"
+        user_message_content = f"{self.instruction}\n\nThe content of the web page:```{text}```"
     
         with Spinner("Extracting info..."):
             extracted_info = gpt.complete(user_message_content, model=gpt.GPT_3_5_TURBO)

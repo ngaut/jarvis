@@ -75,6 +75,7 @@ class Instruction:
         logging.info(f"\nresult of {action_type}: {result}\n")
 
         if action_type != "RunPython":
+            # todo: handle error if the result is not a json 
             self.patch_after_exec(result)
 
     def eval_and_patch_template_before_exec(self, text):
