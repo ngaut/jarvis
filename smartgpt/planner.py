@@ -22,10 +22,11 @@ If the task includes if conditions or loop, describe it explicitly in the beginn
 
 ## Tools justifications
 
-1. 'RunPython': This instruction handles Python code execution. This instruction should be used when there is no other options.
-2. 'SearchOnline': This instruction is employed for conducting online searches. It returns a list of URL that match the provided search query. The next task usually use instruction 'ExtractInfo' to extract the information from the search results.
-3. 'ExtractInfo': The most efficient and best choice to extract infomation from a url.This instruction do data extraction by describing the 'prompt' on what we want to get(results), not how to do it, internally, the web page content of specific URL will be loaded first, then execute the instruction in the 'prompt' field. It can work independently or in conjunction with 'SearchOnline'.  
-4. 'TextCompletion': This powerful instruction type generates human-like text for various tasks like language translation, content summarization, code creation, or emulating writing styles.The 'prompt' argument provides context and guidelines for the AI, ranging from a simple statement to a detailed scenario. The 'prompt' should be self-contained. If it relies on previous outputs or data from the key-value store, it should use @eval_and_replace{{jarvisvm.get('key')}} to refer to the data explicitly.
+- 'RunPython': This instruction handles Python code execution. This instruction should be used when there is no other options.
+- 'SearchOnline': This instruction is employed for conducting online searches. It returns a list of URL that match the provided search query. Usually, the next task is instruction 'Fetch' to fetch the content from a url.
+- 'Fetch': This instruction fetches the content of a URL. Save the content to database. The next task usually use instruction 'ExtractInfo' to extract the information from the content.
+- 'ExtractInfo': The most efficient and best choice to extract infomation. 
+- 'TextCompletion': This powerful instruction type generates human-like text for various tasks like language translation, content summarization, code creation, or emulating writing styles.The 'prompt' argument provides context and guidelines for the AI, ranging from a simple statement to a detailed scenario. The 'prompt' should be self-contained. If it relies on previous outputs or data from the key-value store, it should use @eval_and_replace{{jarvisvm.get('key')}} to refer to the data explicitly.
 
 Note: Above tools are all the tool that you can use. 
 
@@ -48,7 +49,7 @@ Your response should be structured in a standard JSON format, it includes fields
           "https://me.0xffff.me/dbaas2.html",
         ]
       },
-      "tools": ["ExtractInfo", "TextCompletion"],
+      "tools": ["Fetch", "ExtractInfo", "TextCompletion"], // fetch url, extract info from content, generate notes
       "input": // input for the task
       "output": {
         "description": "notes on the key points and features of TiDB Serverless"
@@ -60,7 +61,7 @@ Your response should be structured in a standard JSON format, it includes fields
     }
     ...
   ],
-  "reasoning_for_each_task": [],
+  "reasoning_for_each_task": [],  // description on: logical, coherent sequence of tasks that incorporate the most recent information and maintain the necessary interlinkages
   "task_dependency": [{"2":[1]},...]  // task 2 depends on task 1
 }
 

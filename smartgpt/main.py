@@ -40,9 +40,11 @@ class Instruction:
             args["query"] = self.eval_and_patch_template_before_exec(args["query"])
 
         if action_type == "ExtractInfo":
-            args["url"] = self.eval_and_patch_template_before_exec(args["url"])
             # patch instruction
             args["command"] = self.eval_and_patch_template_before_exec(args["command"])
+
+        if action_type == "Fetch":
+            args["url"] = self.eval_and_patch_template_before_exec(args["url"])
 
         if action_type == "RunPython":
             # if file_name is empty, use the default file
@@ -117,6 +119,7 @@ class JarvisVMInterpreter:
         self.pc = 0
         self.actions = {
             "SearchOnline": actions.SearchOnlineAction,
+            "Fetch": actions.FetchAction,
             "ExtractInfo": actions.ExtractInfoAction,
             "RunPython": actions.RunPythonAction,
             "TextCompletion": actions.TextCompletionAction,

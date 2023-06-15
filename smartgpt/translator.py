@@ -13,19 +13,21 @@ JarvisVM's instructions(all) are as follows:
 
 1. **'RunPython'**: This instruction handles Python code execution. This instruction should be used as last choice if and only if necessary. When you're constructing the 'RunPython' instructions, ensure that the 'code' field encapsulates the entire Python code in a single line. Ensure the 'code' syntax is correct, otherwise the AI will not be able to execute it.
 
-2. **'SearchOnline'**: This instruction returns a list of URLs by using google search internally. The result is aways stored in the 'search_results.seqnum1' key. The 'search_results.seqnum1' key is a list of URLs that match the provided search query. The next task usually use instruction 'ExtractInfo' to extract the information from the search results.
+2. **'SearchOnline'**: This instruction returns a list of URLs by using google search internally. The result is aways stored in the 'search_results.seqnum1' key. The 'search_results.seqnum1' key is a list of URLs that match the provided search query. The next task usually use instruction 'Fetch' to fetch the content of the URL.
 
-3. **'ExtractInfo'**: This instruction is very efficient, it retrieves specific pieces of information from the web page corresponding to the url argument. Then execute the 'command' arugment, the content has already sent to AI, ensure use template to guide the extraction process as the json response example shows. The begin of the 'command' argument should describe what we want AI to extract, The end of 'command' arugment should always require the AI to generate json response. See the example below.
+3. **'Fetch'**: This instruction fetches the content of a URL. Save the content to database. The next task usually use instruction 'ExtractInfo' to extract the information from the content.
 
-4. **'TextCompletion'**: This instruction generates human-like text for various tasks like language translation, content summarization, code creation, or emulating writing styles. The 'prompt' argument includes 2 parts are described together, The context(includes referenced value retrived with template syntax @eval_and_replace{{jarvisvm.get('key')}} ) and command request for the AI. The end of 'prompt' arugment *MUST* always require the AI to generate json response to save the result to database, See the example below.
+4. **'ExtractInfo'**: This instruction is very efficient, it retrieves specific pieces of information from the web page. Then execute the 'command' arugment, ensure use template to guide the extraction process as the json response example shows. The begin of the 'command' argument should start with "The content we have: ```{}```\n\n", The end of 'command' arugment should always require the AI to generate json response. See the example below.
 
-5. **'If'**: The 'If' instruction acts as a conditional control structure within the JarvisVM. It's primarily used to evaluate the output of each instruction. The AI examines the condition argument, and based on the result, chooses the appropriate branch of instructions to proceed with.
+5. **'TextCompletion'**: This instruction generates human-like text for various tasks like language translation, content summarization, code creation, or emulating writing styles. The 'prompt' argument includes 2 parts are described together, The context(includes referenced value retrived with template syntax @eval_and_replace{{jarvisvm.get('key')}} ) and command request for the AI. The end of 'prompt' arugment *MUST* always require the AI to generate json response to save the result to database, See the example below.
 
-6. **'Loop'**:  The 'Loop' instruction has arguments organized as args{count, jarvisvm.get('loop_index'), instructions}, it instructs the AI to repeat a certain set of instructions for a specified number of iterations. The number of iterations is determined by the 'count' argument, the initial value of jarvisvm.get('loop_index') is 0. For each iteration, the AI checks the 'jarvisvm.get('loop_index')' argument. Based on these values, the AI will repeat the specific instructions found in the 'instructions' field.
+6. **'If'**: The 'If' instruction acts as a conditional control structure within the JarvisVM. It's primarily used to evaluate the output of each instruction. The AI examines the condition argument, and based on the result, chooses the appropriate branch of instructions to proceed with.
+
+7. **'Loop'**:  The 'Loop' instruction has arguments organized as args{count, jarvisvm.get('loop_index'), instructions}, it instructs the AI to repeat a certain set of instructions for a specified number of iterations. The number of iterations is determined by the 'count' argument, the initial value of jarvisvm.get('loop_index') is 0. For each iteration, the AI checks the 'jarvisvm.get('loop_index')' argument. Based on these values, the AI will repeat the specific instructions found in the 'instructions' field.
    "jarvisvm.get('loop_index')" is an sys variable that keeps track of the current loop iteration. If you want to print current search result on the current loop iteration, you can use the following code: ```python print(search_results.seqnum1[@eval_and_replace{{jarvisvm.get('loop_index')}}])```. 
-  here is another example to construct a dynamic key for any instructions(ex. ExtraceInfo, TextCompletion and so on) inside the loop, code: ```python jarvisvm.set(f"'relevant_info_@eval_and_replace{{jarvisvm.get('loop_index')}}.seqnum3'), value)```, assume the value jarvisvm.get('loop_index') is 3, the construction key will be evaluted as: 'relevant_info_0.seqnum3', 'relevant_info_1.seqnum3', 'relevant_info_2.seqnum3' . Remember the name of the current loop iteration must be 'jarvisvm.get('loop_index')'.
+  here is another example to construct a dynamic key for any instructions(ex. ExtractInfo, TextCompletion and so on) inside the loop, code: ```python jarvisvm.set(f"'relevant_info_@eval_and_replace{{jarvisvm.get('loop_index')}}.seqnum3'), value)```, assume the value jarvisvm.get('loop_index') is 3, the construction key will be evaluted as: 'relevant_info_0.seqnum3', 'relevant_info_1.seqnum3', 'relevant_info_2.seqnum3' . Remember the name of the current loop iteration must be 'jarvisvm.get('loop_index')'.
 
-Each instruction can only do one thing, but you can combine them to do more complex things. For example, you can use 'SearchOnline' to search for a list of URLs, and then use 'ExtractInfo' to extract the information you want from each URL. Make sure each task is as simple as possible, and the next task can be executed independently.
+Each instruction can only do one thing, but you can combine them to do more complex things. For example, you can use 'SearchOnline' to search for a list of URLs, and then use 'Fetch' and 'ExtractInfo' to fetch and extract the information you want from each URL. Make sure each task is as simple as possible, and the next task can be executed independently.
 Every instruction can save the result to database automatically by using the template:```json {"operation":"jarvisvm.set", "kvs":[{"key":"Notes.seqnum4", "value:": "<fill_later>"}]}```, the template will be executed by JarvisVM to finish the persistence operation. No further action is required. 
 
 ## Instruction Sequence
@@ -65,50 +67,56 @@ Your output must be in JSON format, includes fields: goal, max_seqnum, instructi
     },
     {
       "seqnum": 2,
+      "type": "Fetch",
+      "args": { 
+        "url": "@eval_and_replace{{jarvisvm.get('search_results.seqnum1')[0]}}", 
+        "save_to": "content_fetched.seqnum2"
+    }
+    {
+      "seqnum": 4,
       "type": "ExtractInfo",
       "args": {
-        "url": "@eval_and_replace{{jarvisvm.get('search_results.seqnum1')[0]}}",  // fetch the first url from search results
         "command_review": "the quality of the command is good, check Criterias one by one: [checked]other values are referenced with template @eval_and_replace{{jarvisvm.get('key')}}, [checked]requested AI to return a json response, [checked]the json response is stored in the database, [checked]new key name end with seqnum", // must have 
-        "command": "Extract the current temperature and url(keep http or https prefix) in San Francisco. Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"operation":"jarvisvm.set", "kvs":[{"key":"temperature.seqnum2", "value":"<fill_later>"}, {"key":"source_url.seqnum2"), "value":"<fill_later>"}, {"key":"date.seqnum2", "value": "<fill_later>"}]}``` // must use the instruction template
+        "command": "The content we have: ```@eval_and_replace{{jarvisvm.get('content_fetched.seqnum2')}}\n\n```. Extract the current temperature and url(keep http or https prefix) in San Francisco from the content. Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"operation":"jarvisvm.set", "kvs":[{"key":"temperature.seqnum3", "value":"<fill_later>"}, {"key":"source_url.seqnum3"), "value":"<fill_later>"}, {"key":"date.seqnum3", "value": "<fill_later>"}]}``` // must use the instruction template
       }
     },
     {
-      "seqnum": 3,
+      "seqnum": 4,
       "type": "If",
       "args": {
-        "condition": "@eval_and_replace{{jarvisvm.get('temperature.seqnum2') > 67}}"
+        "condition": "@eval_and_replace{{jarvisvm.get('temperature.seqnum3') > 67}}"
       },
       "then": [
         {
-          "seqnum": 4,
+          "seqnum": 5,
           "type": "TextCompletion",
           "args": {
-            "prompt": "Today's temperature in San Francisco is @eval_and_replace{{jarvisvm.get('temperature.seqnum2')}}. It's a good day for outdoor activities. What else should we recommend to the users? Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"operation":"jarvisvm.set", "kvs":[{"key":"Notes.seqnum4", "value:": "<fill_later>"}]}``` // must use the instruction template
+            "prompt": "Today's temperature in San Francisco is @eval_and_replace{{jarvisvm.get('temperature.seqnum3')}}. It's a good day for outdoor activities. What else should we recommend to the users? Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"operation":"jarvisvm.set", "kvs":[{"key":"Notes.seqnum5", "value:": "<fill_later>"}]}``` // must use the instruction template
           }
         }
       ],
       "else": [
         {
-          "seqnum": 5,
+          "seqnum": 6,
           "type": "TextCompletion",
           "args": {
-            "prompt": "Today's temperature in San Francisco is @eval_and_replace{{jarvisvm.get('temperature.seqnum2')}} which below 25 degrees. What indoor activities should we recommend to the users? Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"operation":"jarvisvm.set", "kvs":[{"key":"Notes.seqnum4", "value:": "<fill_later>"}]}``` // must use the instruction template
+            "prompt": "Today's temperature in San Francisco is @eval_and_replace{{jarvisvm.get('temperature.seqnum3')}} which below 25 degrees. What indoor activities should we recommend to the users? Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"operation":"jarvisvm.set", "kvs":[{"key":"Notes.seqnum5", "value:": "<fill_later>"}]}``` // must use the instruction template
           }
         }
       ]
     },
     {
-        "seqnum": 6,
+        "seqnum": 7,
         "type": "RunPython",  // not necessary for current task, just for demo
         "args": {
             "timeout": 30,
             "pkg_dependencies": [],
-            "code": "import datetime\ntemp = jarvisvm.get('temperature.seqnum2')\nsource_url = jarvisvm.get('source_url.seqnum2')\ndate = jarvisvm.get('date.seqnum2')\nnotes = jarvisvm.get('Notes.seqnum4')\njarvisvm.set('WeatherReport.seqnum6', [f\"\"\"Weather report as of {date}: \\nTemperature in San Francisco: {temp}\\nNotes: {notes}, source url:{source_url}\"\"\"], )",
+            "code": "import datetime\ntemp = jarvisvm.get('temperature.seqnum3')\nsource_url = jarvisvm.get('source_url.seqnum3')\ndate = jarvisvm.get('date.seqnum3')\nnotes = jarvisvm.get('Notes.seqnum5')\njarvisvm.set('WeatherReport.seqnum7', [f\"\"\"Weather report as of {date}: \\nTemperature in San Francisco: {temp}\\nNotes: {notes}, source url:{source_url}\"\"\"], )",
             "code_review": "the quality of the code is good, check Criterias one by one:: [checked]other values are referenced, [checked]all the source are merged into a single line, [checked]the results are stored in the database, [checked]new key name end with seqnum", 
         }
     }
   ],
-  "max_seqnum": 6, // last instruction's seqnum
+  "max_seqnum": 7, // last instruction's seqnum
   "over_all_outcome": "The current weather reprot for San Francisco stored, it can be retrived by jarvis api with key name 'WeatherReport.seqnum6', the report includes: the source url of weather data, date of fetching weather, notes on suggestions from AI,  ", // explain the overall outcome after succed, what is the final result and how to retrive the results(specific key names) As there will be tasks that use the result later, give a brief hit that will passed to next task.
 }
 

@@ -10,6 +10,7 @@ from urllib.error import HTTPError
 from bs4 import BeautifulSoup
 import requests
 import time
+import hashlib
 from selenium import webdriver
 from selenium.webdriver.chrome.webdriver import WebDriver as ChromeWebDriver
 from selenium.webdriver.common.by import By
@@ -74,6 +75,59 @@ class Action(ABC):
         """Returns what jarvis should learn from running the action."""
         raise NotImplementedError
 
+# add a new action class 
+@dataclass(frozen=True)
+class FetchAction:
+    action_id: int
+    url: str
+    save_to: str = None  # the key that will be used to save content to database
+
+    def key(self):
+        return "Fetch"
+    
+    def id(self) -> int:
+        return self.action_id
+    
+    def short_string(self):
+        return f"action_id: {self.id()}, Fetch `{self.url}`."
+    
+    def get_html(self, url: str) -> str:
+        options = ChromeOptions()
+        options.headless = True
+        browser = ChromeWebDriver(executable_path=ChromeDriverManager().install(), options=options)
+        browser.get(url)
+        html = browser.find_element(By.TAG_NAME, "body").get_attribute("innerHTML")
+        browser.quit()
+        return html
+
+    def extract_text(self, html: str) -> str:
+        soup = BeautifulSoup(html, "html.parser")
+        for script in soup(["script", "style"]):
+            script.extract()
+        text = soup.get_text()
+        lines = (line.strip() for line in text.splitlines())
+        chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+        text = "\n".join(chunk for chunk in chunks if chunk)
+        return text
+    
+    def run(self):
+        try:
+            # Check if the url is already in the cache
+            cached_result = get_from_cache(self.url)
+            if cached_result is not None:
+                logging.info(f"\nFetchAction RESULT(cached)\n")
+                return cached_result
+            
+            html = self.get_html(self.url)
+            text = self.extract_text(html)
+            logging.info(f"\nFetchAction RESULT:\n{text}")
+            jarvisvm.set(self.save_to, text)
+            
+            save_to_cache(self.url, text)
+
+            return "success"
+        except Exception as err:
+            return f"FetchAction RESULT: An error occurred: {err}"
 
 
 @dataclass(frozen=True)
@@ -138,9 +192,7 @@ class SearchOnlineAction:
 @dataclass(frozen=True)
 class ExtractInfoAction(Action):
     action_id: int
-    url: str
     command: str
-
 
     def key(self) -> str:
         return "ExtractInfo"
@@ -149,43 +201,24 @@ class ExtractInfoAction(Action):
         return self.action_id
     
     def short_string(self) -> str:
-        return f"action_id: {self.id()}, Extract info from `{self.url}`, with command:<{self.command}>."
+        return f"action_id: {self.id()}, Extract info."
 
     def run(self) -> str:
-        key = f"{self.url}::{self.command}"
+        hash_str = hashlib.md5(self.command.encode()).hexdigest()
+        key = f"{self.action_id}::{hash_str}"
         cached_result = get_from_cache(key)
         if cached_result is not None:
             logging.info(f"\nExtractInfoAction RESULT(cached)\n")
             return cached_result
         
-        with Spinner("Reading website..."):
-            html = self.get_html(self.url)
-        text = self.extract_text(html)
-        user_message_content = f"{self.command}\n\nThe content of the web page:```{text}```"
+        user_message_content = f"{self.command}"
     
         with Spinner("Extracting info..."):
             extracted_info = gpt.complete(user_message_content, model=gpt.GPT_3_5_TURBO)
         save_to_cache(key, extracted_info)
         return extracted_info
 
-    def get_html(self, url: str) -> str:
-        options = ChromeOptions()
-        options.headless = True
-        browser = ChromeWebDriver(executable_path=ChromeDriverManager().install(), options=options)
-        browser.get(url)
-        html = browser.find_element(By.TAG_NAME, "body").get_attribute("innerHTML")
-        browser.quit()
-        return html
-
-    def extract_text(self, html: str) -> str:
-        soup = BeautifulSoup(html, "html.parser")
-        for script in soup(["script", "style"]):
-            script.extract()
-        text = soup.get_text()
-        lines = (line.strip() for line in text.splitlines())
-        chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-        text = "\n".join(chunk for chunk in chunks if chunk)
-        return text
+    
 
 @dataclass(frozen=True)
 class RunPythonAction(Action):
@@ -342,6 +375,7 @@ def _populate_action_classes(action_classes):
 
 
 ACTION_CLASSES = _populate_action_classes([
+    FetchAction,
     RunPythonAction,
     ExtractInfoAction,
     SearchOnlineAction,
