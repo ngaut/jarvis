@@ -25,18 +25,9 @@ If the task includes if conditions or loop, describe it explicitly in the beginn
 1. 'RunPython': This instruction handles Python code execution. This instruction should be used when there is no other options.
 2. 'SearchOnline': This instruction is employed for conducting online searches. It returns a list of URL that match the provided search query. The next task usually use instruction 'ExtractInfo' to extract the information from the search results.
 3. 'ExtractInfo': The most efficient and best choice to extract infomation from a url.This instruction do data extraction by describing the 'prompt' on what we want to get(results), not how to do it, internally, the web page content of specific URL will be loaded first, then execute the instruction in the 'prompt' field. It can work independently or in conjunction with 'SearchOnline'.  
-4. 'TextCompletion': This powerful instruction type generates human-like text for various tasks like language translation, content summarization, code creation, or emulating writing styles.The 'prompt' argument provides context and guidelines for the AI, ranging from a simple statement to a detailed scenario. The 'prompt' should be self-contained. If it relies on previous outputs or data from the key-value store, it should use {{jarvisvm.get('key')}} to refer to the data explicitly.
+4. 'TextCompletion': This powerful instruction type generates human-like text for various tasks like language translation, content summarization, code creation, or emulating writing styles.The 'prompt' argument provides context and guidelines for the AI, ranging from a simple statement to a detailed scenario. The 'prompt' should be self-contained. If it relies on previous outputs or data from the key-value store, it should use @eval_and_replace{{jarvisvm.get('key')}} to refer to the data explicitly.
 
 Note: Above tools are all the tool that you can use. 
-
-## key-value database for getting and setting values
-
-key-value API is the only way to pass information between tasks. The key-value database is a simple dictionary that can be accessed by the following methods:
-
-- jarvisvm.get('key_name'): returns an object of the specified key
-- jarvisvm.set('key_name', value): sets an object to the specified key
-- jarvisvm.list_values_with_key_prefix('prefix'): returns a list of object with the specified prefix
-- jarvisvm.list_keys_with_prefix('prefix'): returns a list of key:string with the specified prefix
 
 
 ## Response Requirements
@@ -57,9 +48,8 @@ Your response should be structured in a standard JSON format, bellow is an respo
           "https://me.0xffff.me/dbaas2.html",
         ]
       },
-      "tools": ["SearchOnline", "ExtractInfo", "TextCompletion"],
+      "tools": ["ExtractInfo", "TextCompletion"],
       "output": {
-        "database_api_call": ["jarvisvm.set"]",
         "description": "notes on the key points and features of TiDB Serverless"
       }
     }
@@ -94,15 +84,22 @@ def gen_instructions(model: str, replan: bool = False):
     args['task_list'] = [{k: v for k, v in task.items() if k in ['task_num', 'task', 'input', 'output']} for task in args['task_list']]
     # translate each task in args['task_list'] to instructions, one by one
     start_seqnum = 1
+    previous_outcome = []
+    previous_tasks = []
     for task in args['task_list']:
         instrs = translator.translate_to_instructions({
             "goal":args["goal"],
-            "task":task, 
-            "start_seqnum":start_seqnum}, 
-            model=model)
+            "task":task['task'], 
+            "previous_tasks":previous_tasks,
+            "start_seqnum":start_seqnum, 
+            "previous_outcome":previous_outcome
+        },model=model)
         tmp = json.loads(instrs)
         start_seqnum = int(tmp['max_seqnum']) + 1
-        logging.info(f"task: {task}, instrs: {instrs}")
+        # append to previous_outcome
+        previous_outcome.append(tmp['over_all_outcome'])
+        previous_tasks.append(task['task'])
+        #logging.info(f"task: {task}, instrs: {instrs}")
         # save to file
         with open(f"{task['task_num']}.json", "w") as f:
             f.write(instrs)

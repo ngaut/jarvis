@@ -80,7 +80,7 @@ class Instruction:
 
     def eval_and_patch_template_before_exec(self, text):
         while True:
-            start = text.find("{{jarvisvm.get")
+            start = text.find("@eval_and_replace{{jarvisvm.get")
             if start == -1:
                 break
         
