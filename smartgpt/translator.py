@@ -99,19 +99,16 @@ Your output must be in JSON format, includes fields: goal, max_seqnum, instructi
     },
     {
         "seqnum": 6,
-        "type": "RunPython",  // not necessary for current task, but you can use it to write to file, or do other things that are not supported by other instructions
+        "type": "RunPython",  // not necessary for current task, just for demo
         "args": {
             "timeout": 30,
             "pkg_dependencies": [],
             "code": "import datetime\ntemp = jarvisvm.get('temperature.seqnum2')\nsource_url = jarvisvm.get('source_url.seqnum2')\ndate = jarvisvm.get('date.seqnum2')\nnotes = jarvisvm.get('Notes.seqnum4')\njarvisvm.set('WeatherReport.seqnum6', [f\"\"\"Weather report as of {date}: \\nTemperature in San Francisco: {temp}\\nNotes: {notes}, source url:{source_url}\"\"\"], )",
             "code_review": "the quality of the code is good, check Criterias one by one:: [checked]other values are referenced, [checked]all the source are merged into a single line, [checked]the results are stored in the database, [checked]new key name end with seqnum", 
-            "reasoning": //explain why other instructions are not used, since RunPython is our last choice.
         }
     }
   ],
   "max_seqnum": 6, // last instruction's seqnum
-  "review_loop_index": // review the 'loop_index' usage for the 'Loop' instruction, make sure we always use 'jarvisvm.get('loop_index')' to get the loop index
-  "review_instructions_inside_loop": // review the instructions inside the 'Loop' instruction, are these instructions used dynamic keys for both input and output? are these instructions used 'jarvisvm.get('loop_index')' to get the loop index?
   "over_all_outcome": "The current weather reprot for San Francisco stored, it can be retrived by jarvis api with key name 'WeatherReport.seqnum6', the report includes: the source url of weather data, date of fetching weather, notes on suggestions from AI,  ", // explain the overall outcome after succed, what is the final result and how to retrive the results(specific key names) As there will be tasks that use the result later, give a brief hit that will passed to next task.
 }
 
