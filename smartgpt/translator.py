@@ -26,7 +26,7 @@ JarvisVM's instructions(all) are as follows:
   here is another example to construct a dynamic key for any instructions(ex. ExtraceInfo, TextCompletion and so on) inside the loop, code: ```python jarvisvm.set(f"'relevant_info_@eval_and_replace{{jarvisvm.get('loop_index')}}.seqnum3'), value)```, assume the value jarvisvm.get('loop_index') is 3, the construction key will be evaluted as: 'relevant_info_0.seqnum3', 'relevant_info_1.seqnum3', 'relevant_info_2.seqnum3' . Remember the name of the current loop iteration must be 'jarvisvm.get('loop_index')'.
 
 Each instruction can only do one thing, but you can combine them to do more complex things. For example, you can use 'SearchOnline' to search for a list of URLs, and then use 'ExtractInfo' to extract the information you want from each URL. Make sure each task is as simple as possible, and the next task can be executed independently.
-Every instruction can save the result to database automatically by using the template:```json {"operation":"jarvisvm.set", "kvs":[{"key":"Notes.seqnum4", "value:": <fill_later>}]}```, the template will be executed by JarvisVM to finish the persistence operation. No further action is required. 
+Every instruction can save the result to database automatically by using the template:```json {"operation":"jarvisvm.set", "kvs":[{"key":"Notes.seqnum4", "value:": "<fill_later>"}]}```, the template will be executed by JarvisVM to finish the persistence operation. No further action is required. 
 
 ## Instruction Sequence
 
@@ -60,7 +60,7 @@ Your output must be in JSON format, includes fields: goal, max_seqnum, instructi
       "type": "SearchOnline",
       "args": {
         "query": "temperature in San Francisco",
-        "resp_format": your response is a json, here is the json template with placeholders:```json {"operation":"jarvisvm.set", "kvs":[{"key":"search_results.seqnum1", "value:": <fill_later>}]}```" // postfix of the key shold be the seqnum of current instruction
+        "resp_format": Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"operation":"jarvisvm.set", "kvs":[{"key":"search_results.seqnum1", "value:": "<fill_later>"}]}```" // postfix of the key shold be the seqnum of current instruction
       }
     },
     {
@@ -69,7 +69,7 @@ Your output must be in JSON format, includes fields: goal, max_seqnum, instructi
       "args": {
         "url": "@eval_and_replace{{jarvisvm.get('search_results.seqnum1')[0]}}",  // fetch the first url from search results
         "command_review": "the quality of the command is good, check Criterias one by one: [checked]other values are referenced with template @eval_and_replace{{jarvisvm.get('key')}}, [checked]requested AI to return a json response, [checked]the json response is stored in the database, [checked]new key name end with seqnum", // must have 
-        "command": "Extract the current temperature and url(keep http or https prefix) in San Francisco. your response is a json, here is the json template with placeholders:```json {"operation":"jarvisvm.set", "kvs":[{"key":"temperature.seqnum2", "value":<fill_later>}, {"key":"source_url.seqnum2"), "value":<fill_later>}, {"key":"date.seqnum2", "value": <fill_later>}]}``` // must use the instruction template
+        "command": "Extract the current temperature and url(keep http or https prefix) in San Francisco. Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"operation":"jarvisvm.set", "kvs":[{"key":"temperature.seqnum2", "value":"<fill_later>"}, {"key":"source_url.seqnum2"), "value":"<fill_later>"}, {"key":"date.seqnum2", "value": "<fill_later>"}]}``` // must use the instruction template
       }
     },
     {
@@ -83,7 +83,7 @@ Your output must be in JSON format, includes fields: goal, max_seqnum, instructi
           "seqnum": 4,
           "type": "TextCompletion",
           "args": {
-            "prompt": "Today's temperature in San Francisco is @eval_and_replace{{jarvisvm.get('temperature.seqnum2')}}. It's a good day for outdoor activities. What else should we recommend to the users? your response is a json, here is the json template with placeholders:```json {"operation":"jarvisvm.set", "kvs":[{"key":"Notes.seqnum4", "value:": <fill_later>}]}``` // must use the instruction template
+            "prompt": "Today's temperature in San Francisco is @eval_and_replace{{jarvisvm.get('temperature.seqnum2')}}. It's a good day for outdoor activities. What else should we recommend to the users? Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"operation":"jarvisvm.set", "kvs":[{"key":"Notes.seqnum4", "value:": "<fill_later>"}]}``` // must use the instruction template
           }
         }
       ],
@@ -92,7 +92,7 @@ Your output must be in JSON format, includes fields: goal, max_seqnum, instructi
           "seqnum": 5,
           "type": "TextCompletion",
           "args": {
-            "prompt": "Today's temperature in San Francisco is @eval_and_replace{{jarvisvm.get('temperature.seqnum2')}} which below 25 degrees. What indoor activities should we recommend to the users? your response is a json, here is the json template with placeholders:```json {"operation":"jarvisvm.set", "kvs":[{"key":"Notes.seqnum4", "value:": <fill_later>}]}``` // must use the instruction template
+            "prompt": "Today's temperature in San Francisco is @eval_and_replace{{jarvisvm.get('temperature.seqnum2')}} which below 25 degrees. What indoor activities should we recommend to the users? Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"operation":"jarvisvm.set", "kvs":[{"key":"Notes.seqnum4", "value:": "<fill_later>"}]}``` // must use the instruction template
           }
         }
       ]

@@ -84,17 +84,17 @@ class Instruction:
             if start == -1:
                 break
         
+            prefix_len = len("@eval_and_replace{{")
             end = text[start:].find("}}")
             if end == -1:
                 logging.critical(f"Error: cannot find }} for jarvisvm.get in {text}")
                 break
             logging.info(f"\eval_and_patch_template_before_exec, {start}-{end} text: {text}\n")
-            evaluated = eval(text[start+2:start+end])
+            evaluated = eval(text[start+prefix_len:start+end])
             text = text[:start] + str(evaluated) + text[start+end+2:]
             logging.info(f"\eval_and_patch_template_before_exec, text after patched: {text}\n")
         
         return text
-
 
     
     def patch_after_exec(self, result):

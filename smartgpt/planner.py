@@ -32,7 +32,7 @@ Note: Above tools are all the tool that you can use.
 
 ## Response Requirements
 
-Your response should be structured in a standard JSON format, bellow is an response example that demonstrates the structure of the response, and how to use the tools:
+Your response should be structured in a standard JSON format, it includes fields: {goal,task_list, task_dependency, reasoning_for_each_task, hints_from_user(if exist),  bellow is an response example that demonstrates the structure of the response, and how to use the tools:
 {
   {
   "goal": "Write a blog post introducing TiDB Serverless using markdown format and linking all the sections in an index file.",
@@ -49,16 +49,34 @@ Your response should be structured in a standard JSON format, bellow is an respo
         ]
       },
       "tools": ["ExtractInfo", "TextCompletion"],
+      "input": // input for the task
       "output": {
         "description": "notes on the key points and features of TiDB Serverless"
       }
     }
+    {
+      "task_num":2,
+      ...
+    }
     ...
   ],
   "reasoning_for_each_task": [],
-  "task_dependency_graph": {} 
+  "task_dependency": [{"2":[1]},...]  // task 2 depends on task 1
 }
 
+"""
+
+
+"""
+    "task_dependency": [
+    {"2": [1]},
+    {"3": [1]},
+    {"4": [1]},
+    {"5": [1]},
+    {"6": [1]},
+    {"7": [1]},
+    {"8": [2, 3, 4, 5, 6, 7]}
+  ],
 """
 
 
@@ -66,44 +84,38 @@ def gen_instructions(model: str, replan: bool = False):
     if replan:
         logging.info("Replanning...")
         plan = gen_plan(model)
-        # strip the response to keep everything between '{' and '}'
         plan = plan[plan.find("{") : plan.rfind("}") + 1]
-        # save plan to file
         with open("plan.json", "w") as f:
             f.write(plan)
 
-    # translate plan to instructions  
     logging.info("Translating plan to instructions...")
     args = json.load(open("plan.json"))
-    # remove reasoning_for_each_task from args
     args.pop("reasoning_for_each_task", None)
     args.pop("tools_analysis_for_each_task", None)
-    args.pop("task_dependency_graph", None)
-    # filter fields for each task in args['task_list'], only keep fields in the set ['task_num', 'task', 'input', 'output']
-    # update args['task_list'] with the filtered task list
+    
+    # Prepare task dependencies
+    task_dependency = {int(k): v for item in args.pop("task_dependency", []) for k, v in item.items()}
+    task_outputs = {}
+
+    # Filter and translate tasks
     args['task_list'] = [{k: v for k, v in task.items() if k in ['task_num', 'task', 'input', 'output']} for task in args['task_list']]
-    # translate each task in args['task_list'] to instructions, one by one
     start_seqnum = 1
-    previous_outcome = []
-    previous_tasks = []
     for task in args['task_list']:
+        task_num = task['task_num']
+        previous_outcome = [task_outputs[i] for i in task_dependency.get(task_num, [])]
+        previous_tasks = [i for i in task_dependency.get(task_num, [])]
         instrs = translator.translate_to_instructions({
             "goal":args["goal"],
             "task":task['task'], 
             "previous_tasks":previous_tasks,
             "start_seqnum":start_seqnum, 
             "previous_outcome":previous_outcome
-        },model=model)
+        }, model=model)
         tmp = json.loads(instrs)
         start_seqnum = int(tmp['max_seqnum']) + 1
-        # append to previous_outcome
-        previous_outcome.append(tmp['over_all_outcome'])
-        previous_tasks.append(task['task'])
-        #logging.info(f"task: {task}, instrs: {instrs}")
-        # save to file
-        with open(f"{task['task_num']}.json", "w") as f:
+        task_outputs[task_num] = tmp['over_all_outcome']
+        with open(f"{task_num}.json", "w") as f:
             f.write(instrs)
-
 
 def gen_plan(model: str):
     #input the goal
