@@ -73,10 +73,9 @@ Your output must be in JSON format, includes fields: goal, max_seqnum, instructi
         "save_to": "content_fetched.seqnum2"
     }
     {
-      "seqnum": 4,
+      "seqnum": 3,
       "type": "ExtractInfo",
       "args": {
-        "command_review": "the quality of the command is good, check Criterias one by one: [checked]other values are referenced with template @eval_and_replace{{jarvisvm.get('key')}}, [checked]requested AI to return a json response, [checked]the json response is stored in the database, [checked]new key name end with seqnum", // must have 
         "command": "The content we have: ```@eval_and_replace{{jarvisvm.get('content_fetched.seqnum2')}}\n\n```. Extract the current temperature and url(keep http or https prefix) in San Francisco from the content. Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"operation":"jarvisvm.set", "kvs":[{"key":"temperature.seqnum3", "value":"<fill_later>"}, {"key":"source_url.seqnum3"), "value":"<fill_later>"}, {"key":"date.seqnum3", "value": "<fill_later>"}]}``` // must use the instruction template
       }
     },
@@ -122,7 +121,7 @@ Your output must be in JSON format, includes fields: goal, max_seqnum, instructi
 
 ## Read Operation Template syntax
  
- @eval_and_replace{{jarvisvm.get('key_name')}} is the only valid *template syntax* to retrive data from database, it will be replaced lazily with real values by JarvisVM before instruction execution. For example: "Today's temperature in San Francisco is @eval_and_replace{{jarvisvm.get('temperature')}} which is below 25 degrees" will be replaced to "Today's temperature in San Francisco is 20 which is below 25 degrees", but code field within RunPython instruction is not a template, it will be executed directly.
+@eval_and_replace{{jarvisvm.get('key_name')}}" is the exclusive template syntax to retrieve data from the database. JarvisVM evaluates and replaces this syntax lazily with actual values prior to instruction execution. For instance, "Today's temperature in San Francisco is @eval_and_replace{{jarvisvm.get('temperature')}}" which is below 25 degrees" will transform into "Today's temperature in San Francisco is 20 which is below 25 degrees". However, the code field within the RunPython instruction doesn't function as a template; it is executed directly without modification.
 
 Remember, your task is to generate instructions that will run on JarvisVM based on these guidelines, Don't generate Non-exist instructions.
 """
