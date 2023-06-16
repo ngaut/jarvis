@@ -13,7 +13,6 @@ import json
 
 base_model  = gpt.GPT_3_5_TURBO
 
-# evaluate from right to left
 def eval_get_expression(text):
     # find last occurrence of "@eval("
     start = text.rfind("@eval(")
@@ -21,18 +20,42 @@ def eval_get_expression(text):
         return None
 
     prefix_len = len("@eval(")
-    # find the corresponding closing tag
-    end_tag = ")"
-    end = text[start:].find(end_tag)
-    if end == -1:
-        logging.critical(f"Error: cannot find }} for jarvisvm.get in {text}")
+    # find the corresponding closing tag with parentheses balance
+    rest = text[start+prefix_len:]
+    balance = 0
+    end = 0
+    for char in rest:
+        if char == '(':
+            balance += 1
+        elif char == ')':
+            if balance == 0:
+                break
+            balance -= 1
+        end += 1
+
+    if balance != 0:
+        logging.critical(f"Error: parentheses are not balanced in {text}")
         return None
+
     logging.info(f"\eval_and_patch_template_before_exec, {start}-{end} text: {text}\n")
-    evaluated = eval(text[start+prefix_len:start+end])
-    text = text[:start] + str(evaluated) + text[start+end+len(end_tag):]
+
+    # adjust the end position relative to the original string
+    end = end + start + prefix_len
+    # evaluate the substring between @eval( and )
+    expression = text[start+prefix_len:end].strip()
+    try:
+        evaluated = eval(expression)
+    except Exception as e:
+        logging.critical(f"Failed to evaluate {expression}. Error: {str(e)}")
+        return None
+
+    # replace the evaluated part in the original string
+    text = text[:start] + str(evaluated) + text[end+1:]
     logging.info(f"\eval_and_patch_template_before_exec, text after patched: {text}\n")
 
     return text
+
+
 
 
 def init_loop_index_in_jarvisvm(value):

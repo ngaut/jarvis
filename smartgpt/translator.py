@@ -32,12 +32,12 @@ Here are the JarvisVM's instructions, with specified arguments, that you should 
 
 4. **'ExtractInfo'**: This instruction retrieves specific pieces of information from the fetched webpage content. The arguments for this instruction include:
    - args {
-    'command': The specific command that guides the extraction process. It includes a template for the extracted information to be stored in the database.
+    'command': The string that contains the context(it reference all of the inputs by using @eval synatx) and command request for the AI to extract information. The last part of the prompt must be the command request go get what we want to save by using the syntax:Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"operation":"jarvisvm.set", "kvs":[{"key":"key", "value:": "<fill_later>"}]}```"
   }
 
 5. **'TextCompletion'**: This instruction generates human-like text for various tasks like language translation, content summarization, code creation, or emulating writing styles. The arguments for this instruction include:
    - args {
-    'prompt': The string that contains the context and command request for the AI to generate a response. The last part of the prompt must be the command request go get what we want to save by using the syntax:Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"operation":"jarvisvm.set", "kvs":[{"key":"key", "value:": "<fill_later>"}]}```"
+    'prompt': The string that contains the context(it reference all of the inputs by using @eval synatx) and command request for the AI to generate a response. The last part of the prompt must be the command request go get what we want to save by using the syntax:Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"operation":"jarvisvm.set", "kvs":[{"key":"key", "value:": "<fill_later>"}]}```"
   }
 
 6. **'If'**: The 'If' instruction acts as a conditional control structure within the JarvisVM. The arguments for this instruction include:
@@ -93,7 +93,7 @@ When construct over_all_outcome, describe which key prefix we need to handle dyn
       "args": {
         "query": "temperature in San Francisco",
         // postfix of the key shold be the seqnum of current instruction
-        "resp_format": Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"operation":"jarvisvm.set", "kvs":[{"key":"search_results.seqnum1", "value:": "<fill_later>"}]}```" 
+        "resp_format": Populate the following JSON template by replacing "<fill_later>" with appropriate values: {"operation":"jarvisvm.set", "kvs":[{"key":"search_results.seqnum1", "value:": "<fill_later>"}]}" 
       }
     },
     {
@@ -173,7 +173,7 @@ def translate_to_instructions(task_info, model: str):
         
     try:
         user_prompt = (
-            f"The objective is to translate a task into a series of instructions based on user's hints(if exist). The task at hand is: |{task_info['task']}|.\n"
+            f"The objective is to translate a task into a series of instructions based on user's hints(if exist). The task at hand is: |{task_info['task']}. The objective of the task is: {task_info['objective']}|.\n"
             f"Every instruction must save its outcome to database for other tasks to use.\n"
             f"The starting sequence number is {task_info['start_seqnum']}.\n"
         )

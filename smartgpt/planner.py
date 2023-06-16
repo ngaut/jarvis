@@ -37,35 +37,45 @@ Note: Above tools are all the tool that you can use.
 
 Your response should be structured in a standard JSON format, it includes fields: {goal,task_list, task_dependency, reasoning_for_each_task, hints_from_user(if exist),  bellow is an response example that demonstrates the structure of the response, and how to use the tools:
 {
-  {
   "goal": "Write a blog post introducing TiDB Serverless using markdown format and linking all the sections in an index file.",
-  "hints_from_user": "study the content of these links first: https://me.0xffff.me/dbaas1.html, https://me.0xffff.me/dbaas2.html",
+  "objective": "Create an informative and comprehensive blog post about TiDB Serverless by studying relevant resources, outlining key points and features, and crafting content in an engaging manner.",
+  "hints_from_user": "Please study the content of these links first: https://me.0xffff.me/dbaas1.html, https://me.0xffff.me/dbaas2.html",
   "task_list": [
     {
-      "task_num":1,
-      "task": "Loop through the provided links, read the content, and take notes on the key points and features of TiDB Serverless",
+      "task_num": 1,
+      "task": "Loop through the provided links, read the content, and take notes on the key points and features of TiDB Serverless", 
+      "objective": "To gather necessary information and understand the fundamental aspects of TiDB Serverless from the provided links.",
       "input": {
-        "description": 
+        "description": "",
         "links": [
           "https://me.0xffff.me/dbaas1.html",
-          "https://me.0xffff.me/dbaas2.html",
+          "https://me.0xffff.me/dbaas2.html"
         ]
       },
-      "tools": ["Loop", "Fetch", "ExtractInfo", "TextCompletion"], // fetch url, extract info from content, generate notes
-      "input": // input for the task
+      "tools": ["Loop", "Fetch", "ExtractInfo", "TextCompletion"],
       "output": {
-        "description": "notes on the key points and features of TiDB Serverless"
+        "description": "Notes highlighting the key points and features of TiDB Serverless"
       }
-    }
+    },
     {
-      "task_num":2,
-      ...
-    }
+      "task_num": 2,
+      "task": "...",
+      "objective": "...",
+      "input": {},
+      "tools": [],
+      "output": {}
+    },
     ...
   ],
-  "reasoning_for_each_task": [],  // description on: logical, coherent sequence of tasks that incorporate the most recent information and maintain the necessary interlinkages
-  "task_dependency": [{"2":[1]},...]  // task 2 depends on task 1
+  "reasoning_for_each_task": [],
+  "task_dependency": [
+    {
+      "2": [1]
+    },
+    ...
+  ]
 }
+
 
 """
 
@@ -100,7 +110,7 @@ def gen_instructions(model: str, replan: bool = False):
     task_outputs = {}
 
     # Filter and translate tasks
-    args['task_list'] = [{k: v for k, v in task.items() if k in ['task_num', 'task', 'input', 'output']} for task in args['task_list']]
+    args['task_list'] = [{k: v for k, v in task.items() if k in ['task_num', 'task', 'objective', 'input', 'output']} for task in args['task_list']]
     task_num_to_task = {task['task_num']: task['task'] for task in args['task_list']}
     start_seqnum = 1
     for task in args['task_list']:
@@ -110,6 +120,7 @@ def gen_instructions(model: str, replan: bool = False):
         instrs = translator.translate_to_instructions({
             "goal":args["goal"],
             "task":task['task'], 
+            "objective":task['objective'],
             "previous_tasks":previous_tasks,
             "start_seqnum":start_seqnum, 
             "previous_outcome":previous_outcome
