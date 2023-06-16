@@ -13,22 +13,25 @@ import json
 
 base_model  = gpt.GPT_3_5_TURBO
 
+# evaluate from right to left
 def eval_get_expression(text):
-        start = text.find("@eval_and_replace{{")
-        if start == -1:
-            return None
-    
-        prefix_len = len("@eval_and_replace{{")
-        end = text[start:].find("}}")
-        if end == -1:
-            logging.critical(f"Error: cannot find }} for jarvisvm.get in {text}")
-            return None
-        logging.info(f"\eval_and_patch_template_before_exec, {start}-{end} text: {text}\n")
-        evaluated = eval(text[start+prefix_len:start+end])
-        text = text[:start] + str(evaluated) + text[start+end+2:]
-        logging.info(f"\eval_and_patch_template_before_exec, text after patched: {text}\n")
+    # find last occurrence of "@eval{{"
+    start = text.rfind("@eval{{")
+    if start == -1:
+        return None
 
-        return text
+    prefix_len = len("@eval{{")
+    # find the corresponding closing "}}"
+    end = text[start:].find("}}")
+    if end == -1:
+        logging.critical(f"Error: cannot find }} for jarvisvm.get in {text}")
+        return None
+    logging.info(f"\eval_and_patch_template_before_exec, {start}-{end} text: {text}\n")
+    evaluated = eval(text[start+prefix_len:start+end])
+    text = text[:start] + str(evaluated) + text[start+end+2:]
+    logging.info(f"\eval_and_patch_template_before_exec, text after patched: {text}\n")
+
+    return text
 
 
 def init_loop_index_in_jarvisvm(value):

@@ -50,7 +50,7 @@ Here are the JarvisVM's instructions, with specified arguments, that you should 
 7. **'Loop'**: The 'Loop' instruction is used to repeat a certain set of instructions for a specified number of iterations. The arguments for this instruction include:
    - args {
      'count': The number of iterations for the loop, can be evaluated dynamically by using the template syntax.
-     'loop_index': The number of iterations is determined by the 'count' argument, the initial value of 'loop_index' can be retrived with @eval_and_replace{{jarvisvm.get('loop_index')}}, the default value of @eval_and_replace{{jarvisvm.get('loop_index')}} is 0. For each iteration, the AI checks the 'jarvisvm.get('loop_index')' argument. Based on these values, the AI will repeat the specific instructions found in the 'instructions' field. "jarvisvm.get('loop_index')" is an sys variable that keeps track of the current loop iteration. If you want to print current search result on the current loop iteration, you can use the following code: ```python print(search_results.seqnum1[@eval_and_replace{{jarvisvm.get('loop_index')}}])```. here is another example to construct a dynamic key for any instructions(ex. Fetch, ExtractInfo, TextCompletion and so on) inside the loop, code: ```python jarvisvm.set(f"'relevant_info_@eval_and_replace{{jarvisvm.get('loop_index')}}.seqnum3'), value)```, assume the value jarvisvm.get('loop_index') is 3, the construction key will be evaluted as: 'relevant_info_0.seqnum3', 'relevant_info_1.seqnum3', 'relevant_info_2.seqnum3', so we can use 'relevant_info_' as prefix to list all the keys with the prefix 'relevant_info_' by using jarvisvm.list_keys_with_prefix('relevant_info_'), or we can use jarvisvm.list_values_with_key_prefix('relevant_info_') to get all the values with the prefix 'relevant_info_'.
+     'loop_index': The number of iterations is determined by the 'count' argument, the initial value of 'loop_index' can be retrived with @eval{{jarvisvm.get('loop_index')}}, the default value of @eval{{jarvisvm.get('loop_index')}} is 0. For each iteration, the AI checks the 'jarvisvm.get('loop_index')' argument. Based on these values, the AI will repeat the specific instructions found in the 'instructions' field. "jarvisvm.get('loop_index')" is an sys variable that keeps track of the current loop iteration. If you want to print current search result on the current loop iteration, you can use the following code: ```python print(search_results.seqnum1[@eval{{jarvisvm.get('loop_index')}}])```. here is another example to construct a dynamic key for any instructions(ex. Fetch, ExtractInfo, TextCompletion and so on) inside the loop, code: ```python jarvisvm.set(f"'relevant_info_@eval{{jarvisvm.get('loop_index')}}.seqnum3'), value)```, assume the value jarvisvm.get('loop_index') is 3, the construction key will be evaluted as: 'relevant_info_0.seqnum3', 'relevant_info_1.seqnum3', 'relevant_info_2.seqnum3', so we can use 'relevant_info_' as prefix to list all the keys with the prefix 'relevant_info_' by using jarvisvm.list_keys_with_prefix('relevant_info_'), or we can use jarvisvm.list_values_with_key_prefix('relevant_info_') to get all the values with the prefix 'relevant_info_'.
      'instructions': The list of instructions to be repeated for each iteration.
    }
    
@@ -96,28 +96,28 @@ When construct over_all_outcome, describe which key prefix we need to handle dyn
       "seqnum": 2,
       "type": "Fetch",
       "args": { 
-        "url": "@eval_and_replace{{jarvisvm.get('search_results.seqnum1')[0]}}", 
-        "save_to": "content_fetched_@eval_and_replace{{jarvisvm.get('loop_index')}}.seqnum2"  // other tasks can use the key or key prefix 'content_fetched_' to scan the data, this is the key point to handle dynamic data
+        "url": "@eval{{jarvisvm.get('search_results.seqnum1')[0]}}", 
+        "save_to": "content_fetched_@eval{{jarvisvm.get('loop_index')}}.seqnum2"  // other tasks can use the key or key prefix 'content_fetched_' to scan the data, this is the key point to handle dynamic data
     }
     {
       "seqnum": 3,
       "type": "ExtractInfo",
       "args": {
-        "command": "The content we have: ```content_fetched_@eval_and_replace{{jarvisvm.get('loop_index')}}.seqnum2\n\n```. Extract the current temperature and url(keep http or https prefix) in San Francisco from the content. Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"operation":"jarvisvm.set", "kvs":[{"key":"temperature.seqnum3", "value":"<fill_later>"}, {"key":"source_url.seqnum3"), "value":"<fill_later>"}, {"key":"date.seqnum3", "value": "<fill_later>"}]}``` // must use the instruction template
+        "command": "The content we have: ```content_fetched_@eval{{jarvisvm.get('loop_index')}}.seqnum2\n\n```. Extract the current temperature and url(keep http or https prefix) in San Francisco from the content. Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"operation":"jarvisvm.set", "kvs":[{"key":"temperature.seqnum3", "value":"<fill_later>"}, {"key":"source_url.seqnum3"), "value":"<fill_later>"}, {"key":"date.seqnum3", "value": "<fill_later>"}]}``` // must use the instruction template
       }
     },
     {
       "seqnum": 4,
       "type": "If",
       "args": {
-        "condition": "@eval_and_replace{{jarvisvm.get('temperature.seqnum3') > 67}}"
+        "condition": "@eval{{jarvisvm.get('temperature.seqnum3') > 67}}"
       },
       "then": [
         {
           "seqnum": 5,
           "type": "TextCompletion",
           "args": {
-            "prompt": "Today's temperature in San Francisco is @eval_and_replace{{jarvisvm.get('temperature.seqnum3')}}. It's a good day for outdoor activities. What else should we recommend to the users? Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"operation":"jarvisvm.set", "kvs":[{"key":"Notes.seqnum5", "value:": "<fill_later>"}]}``` // must use the instruction template
+            "prompt": "Today's temperature in San Francisco is @eval{{jarvisvm.get('temperature.seqnum3')}}. It's a good day for outdoor activities. What else should we recommend to the users? Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"operation":"jarvisvm.set", "kvs":[{"key":"Notes.seqnum5", "value:": "<fill_later>"}]}``` // must use the instruction template
           }
         }
       ],
@@ -126,7 +126,7 @@ When construct over_all_outcome, describe which key prefix we need to handle dyn
           "seqnum": 6,
           "type": "TextCompletion",
           "args": {
-            "prompt": "Today's temperature in San Francisco is @eval_and_replace{{jarvisvm.get('temperature.seqnum3')}} which below 25 degrees. What indoor activities should we recommend to the users? Please generate a weather report, Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"operation":"jarvisvm.set", "kvs":[{"key":"Notes.seqnum5", "value:": "<fill_later>"}]}``` // must use the instruction template
+            "prompt": "Today's temperature in San Francisco is @eval{{jarvisvm.get('temperature.seqnum3')}} which below 25 degrees. What indoor activities should we recommend to the users? Please generate a weather report, Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"operation":"jarvisvm.set", "kvs":[{"key":"Notes.seqnum5", "value:": "<fill_later>"}]}``` // must use the instruction template
           }
         }
       ]
@@ -135,25 +135,22 @@ When construct over_all_outcome, describe which key prefix we need to handle dyn
       "seqnum": 7,
       "type": "TextCompletion",
       "args": {
-        "prompt": "Please generate current weather reprot for San Francisco, temp = @eval_and_replace{{jarvisvm.get('temperature.seqnum3')}}, source_url = @eval_and_replace{{jarvisvm.get('source_url.seqnum3')}}, date = @eval_and_replace{{jarvisvm.get('date.seqnum3')}}, notes = @eval_and_replace{{jarvisvm.get('Notes.seqnum5')}}. Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"operation":"jarvisvm.set", "kvs":[{"key":"WeatherReport.seqnum7", "value:": "<fill_later>"}]}``` // must use the instruction template
+        "prompt": "Please generate current weather reprot for San Francisco, temp = @eval{{jarvisvm.get('temperature.seqnum3')}}, source_url = @eval{{jarvisvm.get('source_url.seqnum3')}}, date = @eval{{jarvisvm.get('date.seqnum3')}}, notes = @eval{{jarvisvm.get('Notes.seqnum5')}}. Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"operation":"jarvisvm.set", "kvs":[{"key":"WeatherReport.seqnum7", "value:": "<fill_later>"}]}``` // must use the instruction template
   ],
   "review_instructions_inside_loop": // review the instructions inside the 'Loop' instruction, are these instructions used dynamic keys for both input and output? 
   "max_seqnum": 6, // last instruction's seqnum
-  "over_all_outcome": "The current weather reprot for San Francisco stored, it can be retrived by @eval_and_replace{{jarvisvm.get('WeatherReport.seqnum6')}} , the report includes: the source url of weather data, date of fetching weather, notes on suggestions from AI ", // explain the overall outcome after succed, what is the final result and how to retrive the results(use temmplate syntax) As there will be tasks that use the result later, give a brief hit that will passed to next task.
+  "over_all_outcome": "The current weather reprot for San Francisco stored, it can be retrived by @eval{{jarvisvm.get('WeatherReport.seqnum6')}} , the report includes: the source url of weather data, date of fetching weather, notes on suggestions from AI ", // explain the overall outcome after succed, what is the final result and how to retrive the results(use temmplate syntax) As there will be tasks that use the result later, give a brief hit that will passed to next task.
 }
 ```
 
-Anothor example:
-
-
 ## Read Operation Template syntax
  
-@eval_and_replace{{jarvisvm.get('key_name') or list_values_with_key_prefix('key_prefix') or list_keys_with_prefix('key_prefix')}} is the exclusive template syntax to retrieve data from the database. JarvisVM evaluates and replaces this syntax lazily with actual values prior to instruction execution. For instance, "Today's temperature in San Francisco is @eval_and_replace{{jarvisvm.get('temperature')}}" which is below 25 degrees" will transform into "Today's temperature in San Francisco is 20 which is below 25 degrees". However, the code field within the RunPython instruction doesn't function as a template; it is executed directly without modification.
+@eval{{jarvisvm.get('key_name') or list_values_with_key_prefix('key_prefix') or list_keys_with_prefix('key_prefix')}} is the exclusive template syntax to retrieve data from the database. JarvisVM evaluates and replaces this syntax lazily with actual values prior to instruction execution. For instance, "Today's temperature in San Francisco is @eval{{jarvisvm.get('temperature')}}" which is below 25 degrees" will transform into "Today's temperature in San Francisco is 20 which is below 25 degrees". However, the code field within the RunPython instruction doesn't function as a template; it is executed directly without modification.
 
 Remember, your task is to generate instructions that will run on JarvisVM based on these guidelines, Don't generate Non-exist instructions.
 """
 
-# "prompt_review": "the quality of the prompt is good, check Criterias one by one: [checked]other values are referenced with template @eval_and_replace{{jarvisvm.get('temperature.seqnum2')}}, [checked]requested AI to return result with the specific json template which is the only way to save result to database, [checked]the json response is stored in the database, [checked]new key name end with seqnum", // must have 
+# "prompt_review": "the quality of the prompt is good, check Criterias one by one: [checked]other values are referenced with template @eval{{jarvisvm.get('temperature.seqnum2')}}, [checked]requested AI to return result with the specific json template which is the only way to save result to database, [checked]the json response is stored in the database, [checked]new key name end with seqnum", // must have 
 
 
 def translate_to_instructions(task_info, model: str):
