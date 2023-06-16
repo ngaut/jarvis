@@ -29,7 +29,7 @@ ENCODING = tiktoken.encoding_for_model(MODEL)
 
 
 # Default model
-GPT_4 = "gpt-4"
+GPT_4 = "gpt-4-0613"
 #GPT_4 = "gpt-4_playground"
 
 # Alternative model

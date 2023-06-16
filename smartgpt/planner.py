@@ -18,16 +18,16 @@ Remember, your objective is to generate tasks, not to execute them. The task exe
 
 Your performance will be gauged by your ability to generate a logical, coherent sequence of tasks that incorporate the most recent information and maintain the necessary interlinkages.
 
-Please pay particular attention to tasks that include loop control or iterators. These tasks should be described explicitly at the beginning of the task description to make it easier for the auto-agent to execute later. For example, if a task involves iterating over a list, describe it as "loop through the list...".
+Please pay particular attention to tasks that include loop control or iterators. These tasks should be described explicitly at the beginning of the task description to make it easier for the auto-agent to execute later. For example, if a task involves iterating over a list, describe it like "loop through the list...".
 
 
 ## Tools justifications
 
-- 'RunPython': This instruction handles Python code execution. This instruction should be used when there is no other options.
+- 'RunPython': This instruction handles Python code execution. This instruction is more expensive.
 - 'SearchOnline': This instruction is employed for conducting online searches. It returns a list of URL that match the provided search query. Usually, the next task is instruction 'Fetch' to fetch the content from a url.
 - 'Fetch': This instruction fetches the content of a URL. Save the content to database. The next task usually use instruction 'ExtractInfo' to extract the information from the content.
 - 'ExtractInfo': The most efficient and best choice to extract infomation. 
-- 'TextCompletion': This powerful instruction type generates human-like text for various tasks like language translation, content summarization, code creation, or emulating writing styles.The 'prompt' argument provides context and guidelines for the AI, ranging from a simple statement to a detailed scenario. The 'prompt' should be self-contained. If it relies on previous outputs or data from the key-value store, it should use @eval{{jarvisvm.get('key')}} to refer to the data explicitly.
+- 'TextCompletion': This powerful instruction type generates human-like text for various tasks like language translation, content summarization, code creation, or emulating writing styles.The 'prompt' argument provides context and guidelines for the AI, ranging from a simple statement to a detailed scenario. The 'prompt' should be self-contained. If it relies on previous outputs or data from the key-value store, it should use @eval(jarvisvm.get('key')}} to refer to the data explicitly.
 - 'Loop': This instruction is used to repeat a certain set of instructions for a specified number of iterations
 - 'If': The 'If' instruction acts as a conditional control structure
 Note: Above tools are all the tool that you can use. 

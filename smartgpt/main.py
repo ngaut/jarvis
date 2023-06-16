@@ -15,20 +15,21 @@ base_model  = gpt.GPT_3_5_TURBO
 
 # evaluate from right to left
 def eval_get_expression(text):
-    # find last occurrence of "@eval{{"
-    start = text.rfind("@eval{{")
+    # find last occurrence of "@eval("
+    start = text.rfind("@eval(")
     if start == -1:
         return None
 
-    prefix_len = len("@eval{{")
-    # find the corresponding closing "}}"
-    end = text[start:].find("}}")
+    prefix_len = len("@eval(")
+    # find the corresponding closing tag
+    end_tag = ")"
+    end = text[start:].find(end_tag)
     if end == -1:
         logging.critical(f"Error: cannot find }} for jarvisvm.get in {text}")
         return None
     logging.info(f"\eval_and_patch_template_before_exec, {start}-{end} text: {text}\n")
     evaluated = eval(text[start+prefix_len:start+end])
-    text = text[:start] + str(evaluated) + text[start+end+2:]
+    text = text[:start] + str(evaluated) + text[start+end+len(end_tag):]
     logging.info(f"\eval_and_patch_template_before_exec, text after patched: {text}\n")
 
     return text
