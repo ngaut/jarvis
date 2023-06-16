@@ -113,7 +113,7 @@ class FetchAction:
     def run(self):
         try:
             # Check if the url is already in the cache
-            cached_result = get_from_cache(self.url)
+            cached_result = get_from_cache(f"{self.url}{self.save_to}")
             if cached_result is not None:
                 logging.info(f"\nFetchAction RESULT(cached)\n")
                 return cached_result
@@ -205,7 +205,7 @@ class ExtractInfoAction(Action):
 
     def run(self) -> str:
         hash_str = hashlib.md5(self.command.encode()).hexdigest()
-        key = f"{self.action_id}::{hash_str}"
+        key = f"{hash_str}"
         cached_result = get_from_cache(key)
         if cached_result is not None:
             logging.info(f"\nExtractInfoAction RESULT(cached)\n")
@@ -325,7 +325,8 @@ class TextCompletionAction(Action):
 
     def run(self) -> str:
         # use cache if possible
-        key = f"TextCompletionAction:{self.prompt}"
+        hash_str = hashlib.md5(self.prompt.encode()).hexdigest()
+        key = f"{hash_str}"
         cached_result = get_from_cache(key)
         if cached_result is not None:
             logging.info("\nTextCompletionAction RESULT(cached)\n")
