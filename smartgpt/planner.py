@@ -17,7 +17,8 @@ Make sure all of the task can be done automatically.your responsibilities includ
 Remember, your objective is to generate tasks, not to execute them. The task execution will be carried out by others, based on your generated task list.
 
 Your performance will be gauged by your ability to generate a logical, coherent sequence of tasks that incorporate the most recent information and maintain the necessary interlinkages.
-If the task includes if conditions or loop, describe it explicitly in the beginning of the task description to make it easier for the auto-agent to execute later.
+
+Please pay particular attention to tasks that include loop control or iterators. These tasks should be described explicitly at the beginning of the task description to make it easier for the auto-agent to execute later. For example, if a task involves iterating over a list, describe it as "loop through the list...".
 
 
 ## Tools justifications
@@ -27,7 +28,8 @@ If the task includes if conditions or loop, describe it explicitly in the beginn
 - 'Fetch': This instruction fetches the content of a URL. Save the content to database. The next task usually use instruction 'ExtractInfo' to extract the information from the content.
 - 'ExtractInfo': The most efficient and best choice to extract infomation. 
 - 'TextCompletion': This powerful instruction type generates human-like text for various tasks like language translation, content summarization, code creation, or emulating writing styles.The 'prompt' argument provides context and guidelines for the AI, ranging from a simple statement to a detailed scenario. The 'prompt' should be self-contained. If it relies on previous outputs or data from the key-value store, it should use @eval_and_replace{{jarvisvm.get('key')}} to refer to the data explicitly.
-
+- 'Loop': This instruction is used to repeat a certain set of instructions for a specified number of iterations
+- 'If': The 'If' instruction acts as a conditional control structure
 Note: Above tools are all the tool that you can use. 
 
 
@@ -49,7 +51,7 @@ Your response should be structured in a standard JSON format, it includes fields
           "https://me.0xffff.me/dbaas2.html",
         ]
       },
-      "tools": ["Fetch", "ExtractInfo", "TextCompletion"], // fetch url, extract info from content, generate notes
+      "tools": ["Loop", "Fetch", "ExtractInfo", "TextCompletion"], // fetch url, extract info from content, generate notes
       "input": // input for the task
       "output": {
         "description": "notes on the key points and features of TiDB Serverless"
@@ -80,7 +82,6 @@ Your response should be structured in a standard JSON format, it includes fields
   ],
 """
 
-
 def gen_instructions(model: str, replan: bool = False):
     if replan:
         logging.info("Replanning...")
@@ -100,11 +101,12 @@ def gen_instructions(model: str, replan: bool = False):
 
     # Filter and translate tasks
     args['task_list'] = [{k: v for k, v in task.items() if k in ['task_num', 'task', 'input', 'output']} for task in args['task_list']]
+    task_num_to_task = {task['task_num']: task['task'] for task in args['task_list']}
     start_seqnum = 1
     for task in args['task_list']:
         task_num = task['task_num']
         previous_outcome = [task_outputs[i] for i in task_dependency.get(task_num, [])]
-        previous_tasks = [i for i in task_dependency.get(task_num, [])]
+        previous_tasks = {i: task_num_to_task[i] for i in task_dependency.get(task_num, [])}
         instrs = translator.translate_to_instructions({
             "goal":args["goal"],
             "task":task['task'], 
@@ -117,6 +119,7 @@ def gen_instructions(model: str, replan: bool = False):
         task_outputs[task_num] = tmp['over_all_outcome']
         with open(f"{task_num}.json", "w") as f:
             f.write(instrs)
+
 
 def gen_plan(model: str):
     #input the goal

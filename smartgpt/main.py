@@ -13,6 +13,29 @@ import json
 
 base_model  = gpt.GPT_3_5_TURBO
 
+def eval_get_expression(text):
+        start = text.find("@eval_and_replace{{")
+        if start == -1:
+            return None
+    
+        prefix_len = len("@eval_and_replace{{")
+        end = text[start:].find("}}")
+        if end == -1:
+            logging.critical(f"Error: cannot find }} for jarvisvm.get in {text}")
+            return None
+        logging.info(f"\eval_and_patch_template_before_exec, {start}-{end} text: {text}\n")
+        evaluated = eval(text[start+prefix_len:start+end])
+        text = text[:start] + str(evaluated) + text[start+end+2:]
+        logging.info(f"\eval_and_patch_template_before_exec, text after patched: {text}\n")
+
+        return text
+
+
+def init_loop_index_in_jarvisvm(value):
+    jarvisvm.set("loop_index", value)
+    jarvisvm.set("index", value)
+    jarvisvm.set("i", value)
+
 class Instruction:
     def __init__(self, instruction, act, goal):
         self.instruction = instruction
@@ -45,6 +68,7 @@ class Instruction:
 
         if action_type == "Fetch":
             args["url"] = self.eval_and_patch_template_before_exec(args["url"])
+            args["save_to"] = self.eval_and_patch_template_before_exec(args["save_to"])
 
         if action_type == "RunPython":
             # if file_name is empty, use the default file
@@ -80,22 +104,16 @@ class Instruction:
             # todo: handle error if the result is not a json 
             self.patch_after_exec(result)
 
+    
+
     def eval_and_patch_template_before_exec(self, text):
+        tmp_text = text
         while True:
-            start = text.find("@eval_and_replace{{jarvisvm.get")
-            if start == -1:
+            tmp_text = eval_get_expression(tmp_text)
+            if tmp_text is None:
                 break
-        
-            prefix_len = len("@eval_and_replace{{")
-            end = text[start:].find("}}")
-            if end == -1:
-                logging.critical(f"Error: cannot find }} for jarvisvm.get in {text}")
-                break
-            logging.info(f"\eval_and_patch_template_before_exec, {start}-{end} text: {text}\n")
-            evaluated = eval(text[start+prefix_len:start+end])
-            text = text[:start] + str(evaluated) + text[start+end+2:]
-            logging.info(f"\eval_and_patch_template_before_exec, text after patched: {text}\n")
-        
+            text = tmp_text
+            
         return text
 
     
@@ -125,6 +143,8 @@ class JarvisVMInterpreter:
             "TextCompletion": actions.TextCompletionAction,
         }
 
+        init_loop_index_in_jarvisvm(0)
+
     def run(self, instrs, goal):
         while self.pc < len(instrs):
             instruction = Instruction(instrs[self.pc], self.actions, goal)
@@ -145,12 +165,8 @@ class JarvisVMInterpreter:
         if isinstance(loop_count, int):
             loop_count = loop_count
         elif isinstance(loop_count, str):
-            # remove the first {{ and last }} from loop_count
-            if loop_count.startswith("{{") and loop_count.endswith("}}"):
-                loop_count = loop_count[2:-2]
-                logging.info(f"loop_count: {loop_count}")
-                # loop_count needs to be evaluated in the context of jarvisvm
-                loop_count = eval(loop_count)
+            # loop_count needs to be evaluated in the context of jarvisvm
+            loop_count = int(eval_get_expression(loop_count))
         loop_instructions = instr.instruction.get("args", {}).get("instructions", [])
         logging.info(f"Looping: {loop_instructions}")
 
@@ -159,9 +175,7 @@ class JarvisVMInterpreter:
         old_pc = self.pc
         for i in range(loop_count):
             # Set the loop index in jarvisvm, to adopt gpt behaviour error
-            jarvisvm.set("loop_index", i)
-            jarvisvm.set("index", i)
-            jarvisvm.set("i", i)
+            init_loop_index_in_jarvisvm(i)
             logging.info(f"loop_index: {i}")
             # As each loop execution should start from the first instruction, we reset the program counter
             self.pc = 0
