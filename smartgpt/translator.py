@@ -32,12 +32,12 @@ Here are the JVM's instructions, with specified arguments, that you should consi
 
 4. **'ExtractInfo'**: This instruction retrieves specific pieces of information from the fetched webpage content. The arguments for this instruction include:
    - args {
-    "command": The string contains the context description with all of the referenced inputs by using @eval synatx and a command request for the AI to extract information. Usually it start with "The content we have:|@eval(jvm.get(key_name))|\n\n". The last part of the prompt must be the command request go get what we want to save by using the syntax:Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"kvs":[{"key":"key", "value": "<fill_later>"}]}```"
+    "command": The string contains the context description with all of the referenced inputs by using @eval synatx and a command request for the AI to extract information. Usually it start with "The content we have:```@eval(jvm.get(key_name))```". The last part of the prompt must be the command request go get what we want to save by using the syntax:Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"kvs":[{"key":"key", "value": "<fill_later>"}]}```"
   }
 
 5. **'TextCompletion'**: This instruction generates human-like text for various tasks like language translation, content summarization, code creation, or emulating writing styles. The arguments for this instruction include:
    - args {
-    "prompt": TThe string contains the context description with all of the referenced inputs by using @eval synatx and a command request for the AI to generate a response. Usually it start with "The content we have:|@eval(jvm.get(key_name))|\n\n". The last part of the prompt must be the command request go get what we want to save by using the syntax:Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"kvs":[{"key":"key", "value": "<fill_later>"}]}```"
+    "prompt": TThe string contains the context description with all of the referenced inputs by using @eval synatx and a command request for the AI to generate a response. Usually it start with "The content we have:```@eval(jvm.get(key_name))```". The last part of the prompt must be the command request go get what we want to save by using the syntax:Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"kvs":[{"key":"key", "value": "<fill_later>"}]}```"
   }
 
 6. **'If'**: The 'If' instruction acts as a conditional control structure within the JVM. The arguments for this instruction include:
@@ -109,7 +109,7 @@ When construct over_all_outcome, describe which key prefix we need to handle dyn
       "seq": 3,
       "type": "ExtractInfo",
       "args": {
-        "command": "The content we have: ||@eval(jvm.get("content_fetched_" + jvm.get("idx") + ".seq2.str"))||. Extract the current temperature and url(keep http or https prefix) in San Francisco from the content. Populate the following JSON template by replacing "<fill_later>" with appropriate values:{"kvs":[{"key":"temperature.seq3.int", "value":"<fill_later>"}, {"key":"source_url.seq3.str"), "value":"<fill_later>"}, {"key":"date.seq3.str", "value": "<fill_later>"}]} // must use the instruction template
+        "command": "The content we have: ```@eval(jvm.get("content_fetched_" + jvm.get("idx") + ".seq2.str"))```. Extract the current temperature and url(keep http or https prefix) in San Francisco from the content. Populate the following JSON template by replacing "<fill_later>" with appropriate values:{"kvs":[{"key":"temperature.seq3.int", "value":"<fill_later>"}, {"key":"source_url.seq3.str"), "value":"<fill_later>"}, {"key":"date.seq3.str", "value": "<fill_later>"}]} // must use the instruction template
       }
     },
     {
@@ -123,7 +123,7 @@ When construct over_all_outcome, describe which key prefix we need to handle dyn
           "seq": 5,
           "type": "TextCompletion",
           "args": {
-            "prompt": "The content we have: ||Today's temperature in San Francisco is @eval(jvm.get("temperature.seq3.int")).|| It's a good day for outdoor activities. What else should we recommend to the users? Populate the following JSON template by replacing "<fill_later>" with appropriate values: {"kvs":[{"key":"Notes.seq5.list", "value": "<fill_later>"}]} // must use the instruction template
+            "prompt": "The content we have: ```Today's temperature in San Francisco is @eval(jvm.get("temperature.seq3.int")).``` It's a good day for outdoor activities. What else should we recommend to the users? Populate the following JSON template by replacing "<fill_later>" with appropriate values: {"kvs":[{"key":"Notes.seq5.list", "value": "<fill_later>"}]} // must use the instruction template
           }
         }
       ],
@@ -132,7 +132,7 @@ When construct over_all_outcome, describe which key prefix we need to handle dyn
           "seq": 6,
           "type": "TextCompletion",
           "args": {
-            "prompt": "The content we have: ||Today's temperature in San Francisco is @eval(jvm.get("temperature.seq3.int")) which below 25 degrees.|| What indoor activities should we recommend to the users?Please generate a weather report, Populate the following JSON template by replacing "<fill_later>" with appropriate values:{"kvs":[{"key":"Notes.seq5.list", "value": "<fill_later>"}]} // must use the instruction template
+            "prompt": "The content we have: ```Today's temperature in San Francisco is @eval(jvm.get("temperature.seq3.int")) which below 25 degrees.``` What indoor activities should we recommend to the users?Please generate a weather report, Populate the following JSON template by replacing "<fill_later>" with appropriate values:{"kvs":[{"key":"Notes.seq5.list", "value": "<fill_later>"}]} // must use the instruction template
           }
         }
       ]
