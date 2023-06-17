@@ -32,12 +32,12 @@ Here are the JVM's instructions, with specified arguments, that you should consi
 
 4. **'ExtractInfo'**: This instruction retrieves specific pieces of information from the fetched webpage content. The arguments for this instruction include:
    - args {
-    "command": The string contains the context description with all of the referenced inputs by using @eval synatx and a command request for the AI to extract information. Usually it start with "The content we have:|@eval(jvm.get(key_name))|\n\n". The last part of the prompt must be the command request go get what we want to save by using the syntax:Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"operation":"jvm.set", "kvs":[{"key":"key", "value:": "<fill_later>"}]}```"
+    "command": The string contains the context description with all of the referenced inputs by using @eval synatx and a command request for the AI to extract information. Usually it start with "The content we have:|@eval(jvm.get(key_name))|\n\n". The last part of the prompt must be the command request go get what we want to save by using the syntax:Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"operation":"jvm.set", "kvs":[{"key":"key", "value": "<fill_later>"}]}```"
   }
 
 5. **'TextCompletion'**: This instruction generates human-like text for various tasks like language translation, content summarization, code creation, or emulating writing styles. The arguments for this instruction include:
    - args {
-    "prompt": TThe string contains the context description with all of the referenced inputs by using @eval synatx and a command request for the AI to generate a response. Usually it start with "The content we have:|@eval(jvm.get(key_name))|\n\n". The last part of the prompt must be the command request go get what we want to save by using the syntax:Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"operation":"jvm.set", "kvs":[{"key":"key", "value:": "<fill_later>"}]}```"
+    "prompt": TThe string contains the context description with all of the referenced inputs by using @eval synatx and a command request for the AI to generate a response. Usually it start with "The content we have:|@eval(jvm.get(key_name))|\n\n". The last part of the prompt must be the command request go get what we want to save by using the syntax:Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"operation":"jvm.set", "kvs":[{"key":"key", "value": "<fill_later>"}]}```"
   }
 
 6. **'If'**: The 'If' instruction acts as a conditional control structure within the JVM. The arguments for this instruction include:
@@ -50,12 +50,12 @@ Here are the JVM's instructions, with specified arguments, that you should consi
 7. **'Loop'**: The 'Loop' instruction is used to repeat a certain set of instructions for a specified number of iterations. The arguments for this instruction include:
    - args {
      "count": The number of iterations for the loop, can be evaluated dynamically by using the lazy eval syntax.
-     "idx": The number of iterations is determined by the "count" argument, the initial value of "idx" can be retrived with @eval(jvm.get("idx")), the default value of @eval(jvm.get("idx")) is 0. For each iteration, the AI checks the 'jvm.get("idx")' argument. Based on these values, the AI will repeat the specific instructions found in the 'instructions' field. "jvm.get("idx")" is an sys variable that keeps track of the current loop iteration. If you want to print current search result on the current loop iteration, you can use the following code: ```python print(@eval(search_results.seq1[jvm.get("idx")]))```. here is another example to construct a dynamic key for any instructions inside the loop, code: ```python @eval(jvm.set("relevant_info_" + str(jvm.get("idx")) + ".seq3"), value))```, assume the value jvm.get("idx") is 3, the construction key will be evaluted as: "relevant_info_0.seq3", "relevant_info_1.seq3", "relevant_info_2.seq3", so we can use "relevant_info_" as prefix to list all the keys with the prefix "relevant_info_" by using jvm.list_keys_with_prefix("relevant_info_"), or we can use jvm.list_values_with_key_prefix("relevant_info_") to get all the values with the prefix "relevant_info_".
+     "idx": "idx". The number of iterations is determined by the "count" argument, the initial value of "idx" can be retrived with @eval(jvm.get("idx")), the default value of @eval(jvm.get("idx")) is 0. For each iteration, the AI checks the 'jvm.get("idx")' argument. Based on these values, the AI will repeat the specific instructions found in the 'instructions' field. "jvm.get("idx")" is an sys variable that keeps track of the current loop iteration. If you want to print current search result on the current loop iteration, you can use the following code: ```python print(@eval(search_results.seq1[jvm.get("idx")]))```. here is another example to construct a dynamic key for any instructions inside the loop, code: ```python @eval(jvm.set("relevant_info_" + str(jvm.get("idx")) + ".seq3"), value))```, assume the value jvm.get("idx") is 3, the construction key will be evaluted as: "relevant_info_0.seq3", "relevant_info_1.seq3", "relevant_info_2.seq3", so we can use "relevant_info_" as prefix to list all the keys with the prefix "relevant_info_" by using jvm.list_keys_with_prefix("relevant_info_"), or we can use jvm.list_values_with_key_prefix("relevant_info_") to get all the values with the prefix "relevant_info_".
      "instructions": The list of instructions to be repeated for each iteration.
    }
    
 Each instruction can only do one thing, but you can combine them to do more complex things. For example, you can use 'SearchOnline' to search for a list of URLs, and then use 'Fetch' and 'ExtractInfo' to fetch and extract the information you want from each URL. Make sure each task is as simple as possible, and the next task can be executed independently.
-Every instruction can save the result to database automatically by using the template:```json {"operation":"jvm.set", "kvs":[{"key":"Notes.seq4", "value:": "<fill_later>"}]}```, the template will be executed by JVM to finish the persistence operation. No further action is required. 
+Every instruction can save the result to database automatically by using the template:```json {"operation":"jvm.set", "kvs":[{"key":"Notes.seq4", "value": "<fill_later>"}]}```, the template will be executed by JVM to finish the persistence operation. No further action is required. 
 
 ## Instruction Sequence
 
@@ -94,7 +94,7 @@ When construct over_all_outcome, describe which key prefix we need to handle dyn
       "args": {
         "query": "temperature in San Francisco",
         // postfix of the key shold be the seq of current instruction + type of the value(which can be one of {int, str, list})
-        "resp_format": Populate the following JSON template by replacing "<fill_later>" with appropriate values: {"operation":"jvm.set", "kvs":[{"key":"search_results.seq1.list", "value:": "<fill_later>"}]}" 
+        "resp_format": Populate the following JSON template by replacing "<fill_later>" with appropriate values: {"operation":"jvm.set", "kvs":[{"key":"search_results.seq1.list", "value": "<fill_later>"}]}" 
       }
     },
     {
@@ -123,7 +123,7 @@ When construct over_all_outcome, describe which key prefix we need to handle dyn
           "seq": 5,
           "type": "TextCompletion",
           "args": {
-            "prompt": "The content we have: ||Today's temperature in San Francisco is @eval(jvm.get("temperature.seq3.int")).|| It's a good day for outdoor activities. What else should we recommend to the users? Populate the following JSON template by replacing "<fill_later>" with appropriate values: {"operation":"jvm.set", "kvs":[{"key":"Notes.seq5.list", "value:": "<fill_later>"}]} // must use the instruction template
+            "prompt": "The content we have: ||Today's temperature in San Francisco is @eval(jvm.get("temperature.seq3.int")).|| It's a good day for outdoor activities. What else should we recommend to the users? Populate the following JSON template by replacing "<fill_later>" with appropriate values: {"operation":"jvm.set", "kvs":[{"key":"Notes.seq5.list", "value": "<fill_later>"}]} // must use the instruction template
           }
         }
       ],
@@ -132,7 +132,7 @@ When construct over_all_outcome, describe which key prefix we need to handle dyn
           "seq": 6,
           "type": "TextCompletion",
           "args": {
-            "prompt": "The content we have: ||Today's temperature in San Francisco is @eval(jvm.get("temperature.seq3.int")) which below 25 degrees.|| What indoor activities should we recommend to the users?Please generate a weather report, Populate the following JSON template by replacing "<fill_later>" with appropriate values:{"operation":"jvm.set", "kvs":[{"key":"Notes.seq5.list", "value:": "<fill_later>"}]} // must use the instruction template
+            "prompt": "The content we have: ||Today's temperature in San Francisco is @eval(jvm.get("temperature.seq3.int")) which below 25 degrees.|| What indoor activities should we recommend to the users?Please generate a weather report, Populate the following JSON template by replacing "<fill_later>" with appropriate values:{"operation":"jvm.set", "kvs":[{"key":"Notes.seq5.list", "value": "<fill_later>"}]} // must use the instruction template
           }
         }
       ]
@@ -141,7 +141,7 @@ When construct over_all_outcome, describe which key prefix we need to handle dyn
       "seq": 7,
       "type": "TextCompletion",
       "args": {
-        "prompt": "Please generate current weather reprot for San Francisco, temp = @eval(jvm.get("temperature.seq3.int")), source_url = @eval(jvm.get("source_url.seq3.str")), date = @eval(jvm.get("date.seq3.str")}}, notes = @eval(jvm.get("Notes.seq5.list")). Populate the following JSON template by replacing "<fill_later>" with appropriate values: {"operation":"jvm.set", "kvs":[{"key":"WeatherReport.seq7.str", "value:": "<fill_later>"}]} // must use the instruction template
+        "prompt": "Please generate current weather reprot for San Francisco, temp = @eval(jvm.get("temperature.seq3.int")), source_url = @eval(jvm.get("source_url.seq3.str")), date = @eval(jvm.get("date.seq3.str")}}, notes = @eval(jvm.get("Notes.seq5.list")). Populate the following JSON template by replacing "<fill_later>" with appropriate values: {"operation":"jvm.set", "kvs":[{"key":"WeatherReport.seq7.str", "value": "<fill_later>"}]} // must use the instruction template
   ],
   // review the instructions inside the 'Loop' instruction, are these instructions used dynamic keys for both input and output? to avoid rewrite the same key. 
   "review_instructions_inside_loop": 

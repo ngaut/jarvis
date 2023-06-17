@@ -35,7 +35,7 @@ Note: Above tools are all the tool that you can use.
 
 ## Response Requirements
 
-Your response should be structured in a standard JSON format, it includes fields: {goal,task_list, task_dependency, reasoning_for_each_task, hints_from_user(if exist),  bellow is an response example that demonstrates the structure of the response, and how to use the tools:
+Your response should be structured in a standard JSON format, it includes fields: {goal, objective, task_list, task_dependency, reasoning_for_each_task, hints_from_user(if exist),  bellow is an response example that demonstrates the structure of the response, and how to use the tools:
 {
   "goal": "Write a blog post introducing TiDB Serverless using markdown format and linking all the sections in an index file.",
   "objective": "Create an informative and comprehensive blog post about TiDB Serverless by studying relevant resources, outlining key points and features, and crafting content in an engaging manner.",
@@ -68,29 +68,16 @@ Your response should be structured in a standard JSON format, it includes fields
     ...
   ],
   "reasoning_for_each_task": [],
-  "task_dependency": [
-    {
-      "2": [1]
-    },
+  "task_dependency": {
+    "2": [1],
+    "3": [2],
     ...
-  ]
+  }
 }
 
 
 """
 
-
-"""
-    "task_dependency": [
-    {"2": [1]},
-    {"3": [1]},
-    {"4": [1]},
-    {"5": [1]},
-    {"6": [1]},
-    {"7": [1]},
-    {"8": [2, 3, 4, 5, 6, 7]}
-  ],
-"""
 
 def gen_instructions(model: str, replan: bool = False):
     if replan:
@@ -106,7 +93,7 @@ def gen_instructions(model: str, replan: bool = False):
     args.pop("tools_analysis_for_each_task", None)
     
     # Prepare task dependencies
-    task_dependency = {int(k): v for item in args.pop("task_dependency", []) for k, v in item.items()}
+    task_dependency = {int(k): [int(i) for i in v] for k, v in args.pop("task_dependency", {}).items()}
     task_outputs = {}
 
     # Filter and translate tasks

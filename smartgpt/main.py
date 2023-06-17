@@ -15,11 +15,12 @@ base_model  = gpt.GPT_3_5_TURBO
 
 def eval_get_expression(text):
     # find last occurrence of "@eval("
-    start = text.rfind("@eval(")
+    lazy_eval_prefix = "@eval("
+    start = text.rfind(lazy_eval_prefix)
     if start == -1:
         return None
 
-    prefix_len = len("@eval(")
+    prefix_len = len(lazy_eval_prefix)
     # find the corresponding closing tag with parentheses balance
     rest = text[start+prefix_len:]
     balance = 0
@@ -88,7 +89,7 @@ class Instruction:
             if start != -1 and end != -1:
                 args["query"] = args["query"][:start] + args["query"][end+len("##End"):]
             args["query"] = self.eval_and_patch_template_before_exec(args["query"])
-            # extract key from: {"operation":"jvm.set", "kvs":[{"key":"search_results.seq1.list", "value:": "<fill_later>"}]}
+            # extract key from: {"operation":"jvm.set", "kvs":[{"key":"search_results.seq1.list", "value": "<fill_later>"}]}
             resp_format = args["resp_format"]
             if resp_format is not None:
                 # find and decode json to extract key
@@ -174,7 +175,7 @@ class Instruction:
             # get the key and value pair list
             for kv in result["kvs"]:
                 logging.info(f"patch_after_exec, set kv: {kv}\n")
-                jvm.set(kv["key"], kv["value"])
+                jvm.set(eval(kv["key"]), kv["value"])
 
         
 class JVMInterpreter:
