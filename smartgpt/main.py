@@ -38,7 +38,7 @@ def eval_get_expression(text):
         logging.critical(f"Error: parentheses are not balanced in {text}")
         return None
 
-    logging.info(f"\eval_and_patch_template_before_exec, {start}-{end} text: {text}\n")
+    logging.info(f"eval_and_patch_template_before_exec, {start}-{end} text: {text}\n")
 
     # adjust the end position relative to the original string
     end = end + start + prefix_len
@@ -52,7 +52,7 @@ def eval_get_expression(text):
 
     # replace the evaluated part in the original string
     text = text[:start] + str(evaluated) + text[end+1:]
-    logging.info(f"\eval_and_patch_template_before_exec, text after patched: {text}\n")
+    logging.info(f"text after patched: {text}\n")
 
     return text
 
