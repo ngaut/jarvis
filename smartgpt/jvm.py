@@ -21,7 +21,7 @@ def get(key):
     
     try:
         value = kv_store.get(key, None)
-        logging.info(f"get, key: {key}, value: {value}")
+        #logging.info(f"get, key: {key}, value: {value}")
         if value is None:
             return None
         else:

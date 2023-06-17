@@ -82,13 +82,7 @@ class Instruction:
         # clone the args dict!
         args = dict(self.instruction.get("args"))
 
-        if action_type == "SearchOnline":
-            # empty everything between ##Start and ##End
-            start = args["query"].find("##Start")
-            end = args["query"].find("End##")
-            if start != -1 and end != -1:
-                args["query"] = args["query"][:start] + args["query"][end+len("##End"):]
-            args["query"] = self.eval_and_patch_template_before_exec(args["query"])
+        if action_type == "SearchOnline": 
             # extract key from: {"kvs":[{"key":"search_results.seq1.list", "value": "<fill_later>"}]}
             resp_format = args["resp_format"]
             if resp_format is not None:
@@ -102,8 +96,6 @@ class Instruction:
                     key = resp_format["kvs"][0]["key"]
                     # replace the value with the key
                     args["result_key"] = key
-
-
 
         if action_type == "ExtractInfo":
             # patch instruction
