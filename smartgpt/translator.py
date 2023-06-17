@@ -109,7 +109,7 @@ When construct over_all_outcome, describe which key prefix we need to handle dyn
       "seq": 3,
       "type": "ExtractInfo",
       "args": {
-        "command": "The content we have: ```@eval(jvm.get("content_fetched_" + jvm.get("idx") + ".seq2.str"))```. Extract the current temperature and url(keep http or https prefix) in San Francisco from the content. Populate the following JSON template by replacing "<fill_later>" with appropriate values:{"kvs":[{"key":"temperature.seq3.int", "value":"<fill_later>"}, {"key":"source_url.seq3.str"), "value":"<fill_later>"}, {"key":"date.seq3.str", "value": "<fill_later>"}]} // must use the instruction template
+        "command": "The content we have: ```@eval(jvm.get("content_fetched_" + str(jvm.get("idx")) + ".seq2.str"))```. Extract the current temperature and url(keep http or https prefix) in San Francisco from the content. Populate the following JSON template by replacing "<fill_later>" with appropriate values:{"kvs":[{"key":"temperature.seq3.int", "value":"<fill_later>"}, {"key":"source_url.seq3.str"), "value":"<fill_later>"}, {"key":"date.seq3.str", "value": "<fill_later>"}]} // must use the instruction template
       }
     },
     {
