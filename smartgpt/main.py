@@ -89,7 +89,7 @@ class Instruction:
             if start != -1 and end != -1:
                 args["query"] = args["query"][:start] + args["query"][end+len("##End"):]
             args["query"] = self.eval_and_patch_template_before_exec(args["query"])
-            # extract key from: {"operation":"jvm.set", "kvs":[{"key":"search_results.seq1.list", "value": "<fill_later>"}]}
+            # extract key from: {"kvs":[{"key":"search_results.seq1.list", "value": "<fill_later>"}]}
             resp_format = args["resp_format"]
             if resp_format is not None:
                 # find and decode json to extract key
@@ -98,9 +98,6 @@ class Instruction:
                 if start != -1 and end != -1:
                     resp_format = resp_format[start:end+1]
                     resp_format = json.loads(resp_format)
-                    if resp_format["operation"] != "jvm.set":
-                        print(f"Error: resp_format is not jvm.set: {resp_format}")
-                        return
                     # get the key
                     key = resp_format["kvs"][0]["key"]
                     # replace the value with the key
@@ -170,12 +167,10 @@ class Instruction:
         if start != -1 and end != -1:
             result = result[start:end+1]
             result = json.loads(result)
-            if result["operation"] != "jvm.set":
-                return
             # get the key and value pair list
             for kv in result["kvs"]:
                 logging.info(f"patch_after_exec, set kv: {kv}\n")
-                jvm.set(eval(kv["key"]), kv["value"])
+                jvm.set(kv["key"], kv["value"])
 
         
 class JVMInterpreter:
