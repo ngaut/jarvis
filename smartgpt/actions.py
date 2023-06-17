@@ -8,6 +8,7 @@ from typing import Union,List, Dict
 from abc import ABC
 from urllib.error import HTTPError
 from bs4 import BeautifulSoup
+from urllib.parse import urlparse
 import requests
 import time
 import hashlib
@@ -110,6 +111,7 @@ class FetchAction:
         text = "\n".join(chunk for chunk in chunks if chunk)
         return text
     
+
     def run(self):
         try:
             # Check if the url is already in the cache
@@ -118,16 +120,25 @@ class FetchAction:
                 logging.info(f"\nFetchAction RESULT(cached)\n")
                 return cached_result
             
-            html = self.get_html(self.url)
+            url = self.url
+            # todo: check if the url is valid, if missing http:// or https://, add it
+            parsed = urlparse(url)
+            if not bool(parsed.netloc) and bool(parsed.path):
+                url = 'https://' + url
+            elif not parsed.scheme:
+                url = 'https://' + url
+
+            html = self.get_html(url)
             text = self.extract_text(html)
             logging.info(f"\nFetchAction RESULT:\n{text}")
             jvm.set(self.save_to, text)
             
-            save_to_cache(self.url, text)
+            save_to_cache(url, text)
 
             return "success"
         except Exception as err:
             return f"FetchAction RESULT: An error occurred: {err}"
+
 
 
 @dataclass(frozen=True)
