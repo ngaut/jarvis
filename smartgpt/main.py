@@ -1,7 +1,7 @@
 from typing import Optional
 from dotenv import load_dotenv
 from spinner import Spinner
-import gpt, jarvisvm
+import gpt, jvm
 import actions
 import ast
 
@@ -58,10 +58,10 @@ def eval_get_expression(text):
 
 
 
-def init_loop_index_in_jarvisvm(value):
-    jarvisvm.set("loop_index", value)
-    jarvisvm.set("index", value)
-    jarvisvm.set("i", value)
+def init_idx_in_jvm(value):
+    jvm.set("idx", value)
+    jvm.set("index", value)
+    jvm.set("i", value)
 
 class Instruction:
     def __init__(self, instruction, act, goal):
@@ -77,7 +77,7 @@ class Instruction:
             print(f"Unknown action type: {action_type}")
             return
 
-        action_id = self.instruction.get("seqnum")
+        action_id = self.instruction.get("seq")
         # clone the args dict!
         args = dict(self.instruction.get("args"))
 
@@ -151,15 +151,15 @@ class Instruction:
         if start != -1 and end != -1:
             result = result[start:end+1]
             result = json.loads(result)
-            if result["operation"] != "jarvisvm.set":
+            if result["operation"] != "jvm.set":
                 return
             # get the key and value pair list
             for kv in result["kvs"]:
                 logging.info(f"patch_after_exec, set kv: {kv}\n")
-                jarvisvm.set(kv["key"], kv["value"])
+                jvm.set(kv["key"], kv["value"])
 
         
-class JarvisVMInterpreter:
+class JVMInterpreter:
     def __init__(self):
         self.pc = 0
         self.actions = {
@@ -170,7 +170,7 @@ class JarvisVMInterpreter:
             "TextCompletion": actions.TextCompletionAction,
         }
 
-        init_loop_index_in_jarvisvm(0)
+        init_idx_in_jvm(0)
 
     def run(self, instrs, goal):
         while self.pc < len(instrs):
@@ -192,7 +192,7 @@ class JarvisVMInterpreter:
         if isinstance(loop_count, int):
             loop_count = loop_count
         elif isinstance(loop_count, str):
-            # loop_count needs to be evaluated in the context of jarvisvm
+            # loop_count needs to be evaluated in the context of jvm
             loop_count = int(eval_get_expression(loop_count))
         loop_instructions = instr.instruction.get("args", {}).get("instructions", [])
         logging.info(f"Looping: {loop_instructions}")
@@ -201,9 +201,9 @@ class JarvisVMInterpreter:
         # Execute the loop instructions the given number of times
         old_pc = self.pc
         for i in range(loop_count):
-            # Set the loop index in jarvisvm, to adopt gpt behaviour error
-            init_loop_index_in_jarvisvm(i)
-            logging.info(f"loop_index: {i}")
+            # Set the loop index in jvm, to adopt gpt behaviour error
+            init_idx_in_jvm(i)
+            logging.info(f"idx: {i}")
             # As each loop execution should start from the first instruction, we reset the program counter
             self.pc = 0
             self.run(loop_instructions, instr.goal)
@@ -213,15 +213,15 @@ class JarvisVMInterpreter:
         condition = instruction.instruction.get("args", {}).get("condition", None)
         prompt = f'Is that true?: "{condition}"? Please respond in the following JSON format: \n{{"result": "true/false", "reasoning": "your reasoning"}}.'
 
-        # patch prompt by replacing jarvisvm.get('key') with value using regex
-        # use regex to extract key from result:{jarvisvm.get('key')}    
-        pattern = re.compile(r"jarvisvm.get\('(\w+)'\)")
+        # patch prompt by replacing jvm.get('key') with value using regex
+        # use regex to extract key from result:{jvm.get('key')}    
+        pattern = re.compile(r"jvm.get\('(\w+)'\)")
         matches = pattern.findall(prompt)
         for match in matches:
             key = match
-            value = jarvisvm.get(key)
-            # replace jarvisvm.get('...') in prompt with value
-            prompt = prompt.replace(f"jarvisvm.get('{key}')", value, 1)
+            value = jvm.get(key)
+            # replace jvm.get('...') in prompt with value
+            prompt = prompt.replace(f"jvm.get('{key}')", value, 1)
         evaluation_result = actions.TextCompletionAction(0, prompt).run()
 
         try:
@@ -281,7 +281,7 @@ if __name__ == "__main__":
     os.makedirs("workspace", exist_ok=True)
     os.chdir("workspace")
 
-    jarvisvm.load_kv_store()
+    jvm.load_kv_store()
     actions.load_cache()
 
     # If a JSON file path is provided, load the plan_with_instrs from the JSON file, otherwise generate a new plan_with_instrs
@@ -307,7 +307,7 @@ if __name__ == "__main__":
         exit(1)
 
     # Run the instructions starting from start_seq
-    interpreter = JarvisVMInterpreter()
+    interpreter = JVMInterpreter()
     logging.info(f"Running instructions from  {plan_with_instrs['instructions'][start_seq]}\n")
     interpreter.run(plan_with_instrs["instructions"][start_seq:], goal=plan_with_instrs["goal"])
 

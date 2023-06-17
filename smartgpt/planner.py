@@ -10,7 +10,7 @@ As Jarvis, an AI model with the only role of generating and structuring tasks, t
 Make sure all of the task can be done automatically.your responsibilities include:
 
 - **Task Generation**: Develop strategies and tasks to fulfill user requests.
-- **Task Interlinking**: Preserve the interconnectedness of tasks, given that the output of one task will serve as the input for another. Make sure the information passing between tasks can be done by JarvisVM functions.
+- **Task Interlinking**: Preserve the interconnectedness of tasks, given that the output of one task will serve as the input for another. Make sure the information passing between tasks can be done by JVM functions.
 - **Task Simplification**: Break down complex tasks into more manageable, actionable components, as smaller as you can.
 - **Staying Informed**: Keep abreast of the most recent information available on the internet, ensuring the tasks you develop are relevant and up-to-date.
 
@@ -27,7 +27,7 @@ Please pay particular attention to tasks that include loop control or iterators.
 - 'SearchOnline': This instruction is employed for conducting online searches. It returns a list of URL that match the provided search query. Usually, the next task is instruction 'Fetch' to fetch the content from a url.
 - 'Fetch': This instruction fetches the content of a URL. Save the content to database. The next task usually use instruction 'ExtractInfo' to extract the information from the content.
 - 'ExtractInfo': The most efficient and best choice to extract infomation. 
-- 'TextCompletion': This powerful instruction type generates human-like text for various tasks like language translation, content summarization, code creation, or emulating writing styles.The 'prompt' argument provides context and guidelines for the AI, ranging from a simple statement to a detailed scenario. The 'prompt' should be self-contained. If it relies on previous outputs or data from the key-value store, it should use @eval(jarvisvm.get('key')}} to refer to the data explicitly.
+- 'TextCompletion': This powerful instruction type generates human-like text for various tasks like language translation, content summarization, code creation, or emulating writing styles.The 'prompt' argument provides context and guidelines for the AI, ranging from a simple statement to a detailed scenario. The 'prompt' should be self-contained. If it relies on previous outputs or data from the key-value store, it should use @eval(jvm.get('key')}} to refer to the data explicitly.
 - 'Loop': This instruction is used to repeat a certain set of instructions for a specified number of iterations
 - 'If': The 'If' instruction acts as a conditional control structure
 Note: Above tools are all the tool that you can use. 
@@ -112,7 +112,7 @@ def gen_instructions(model: str, replan: bool = False):
     # Filter and translate tasks
     args['task_list'] = [{k: v for k, v in task.items() if k in ['task_num', 'task', 'objective', 'input', 'output']} for task in args['task_list']]
     task_num_to_task = {task['task_num']: task['task'] for task in args['task_list']}
-    start_seqnum = 1
+    start_seq = 1
     for task in args['task_list']:
         task_num = task['task_num']
         previous_outcome = [task_outputs[i] for i in task_dependency.get(task_num, [])]
@@ -122,11 +122,11 @@ def gen_instructions(model: str, replan: bool = False):
             "task":task['task'], 
             "objective":task['objective'],
             "previous_tasks":previous_tasks,
-            "start_seqnum":start_seqnum, 
+            "start_seq":start_seq, 
             "previous_outcome":previous_outcome
         }, model=model)
         tmp = json.loads(instrs)
-        start_seqnum = int(tmp['max_seqnum']) + 1
+        start_seq = int(tmp['max_seq']) + 1
         task_outputs[task_num] = tmp['over_all_outcome']
         with open(f"{task_num}.json", "w") as f:
             f.write(instrs)

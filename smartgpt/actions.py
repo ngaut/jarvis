@@ -2,7 +2,7 @@
 from dataclasses import dataclass, field
 
 import io, subprocess, os, inspect, json, logging, time, re
-import gpt, jarvisvm
+import gpt, jvm
 from spinner import Spinner
 from typing import Union,List, Dict
 from abc import ABC
@@ -121,7 +121,7 @@ class FetchAction:
             html = self.get_html(self.url)
             text = self.extract_text(html)
             logging.info(f"\nFetchAction RESULT:\n{text}")
-            jarvisvm.set(self.save_to, text)
+            jvm.set(self.save_to, text)
             
             save_to_cache(self.url, text)
 
@@ -173,7 +173,7 @@ class SearchOnlineAction:
             # return a list of links
             result = [item['link'] for item in search_results['items']]
             logging.info(f"SearchOnlineAction RESULT: {result}")
-            jarvisvm.set(f"search_results.seqnum{self.action_id}", result)
+            jvm.set(f"search_results.seq{self.action_id}", result)
             
             save_to_cache(self.query, str(result))
 
@@ -258,14 +258,14 @@ class RunPythonAction(Action):
     def _install_dependencies(self):
         for dependency in self.pkg_dependencies:
             with Spinner(f"Installing {dependency}..."):
-                if dependency != "jarvisvm":
+                if dependency != "jvm":
                     logging.info("Installing %s...", dependency)
                     os.system(f"pip install {dependency}")
 
 
     def _write_code_to_file(self):
         with io.open(self.file_name, mode="w", encoding="utf-8") as file:
-            file.write("import jarvisvm\n")
+            file.write("import jvm\n")
             file.write(self.code)
 
 

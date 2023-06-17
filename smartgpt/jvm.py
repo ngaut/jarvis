@@ -16,7 +16,6 @@ def load_kv_store():
             kv_store = json.load(f)
 
 def get(key):
-    load_kv_store()
     global kv_store
     try:
         value = kv_store.get(key, None)
@@ -33,7 +32,6 @@ def get(key):
         logging.fatal(f"get, An error occurred: {e}")
 
 def set(jarvis_key, value):
-    load_kv_store()
     global kv_store
     global kv_store_file
     try:
@@ -49,7 +47,6 @@ def set(jarvis_key, value):
         logging.fatal(f"set, An error occurred: {error}")
 
 def all():
-    load_kv_store()
     global kv_store
     try:
         kv_dict = {}
@@ -64,10 +61,10 @@ def all():
         logging.fatal(f"all, An error occurred: {e}")
 
 def list_values_with_key_prefix(prefix):
-    load_kv_store()
     global kv_store
     try:
         values = [value for key, value in kv_store.items() if key.startswith(prefix)]
+        logging.info(f"list_values_with_key_prefix, prefix: {prefix}, values: {values}, len(values): {len(values)}")
         return values
     except Exception as e:
         logging.fatal(f"list_values_with_key_prefix, An error occurred: {e}")
