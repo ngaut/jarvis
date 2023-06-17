@@ -88,6 +88,24 @@ class Instruction:
             if start != -1 and end != -1:
                 args["query"] = args["query"][:start] + args["query"][end+len("##End"):]
             args["query"] = self.eval_and_patch_template_before_exec(args["query"])
+            # extract key from: {"operation":"jvm.set", "kvs":[{"key":"search_results.seq1.list", "value:": "<fill_later>"}]}
+            resp_format = args["resp_format"]
+            if resp_format is not None:
+                # find and decode json to extract key
+                start = resp_format.find("{")
+                end = resp_format.rfind("}")
+                if start != -1 and end != -1:
+                    resp_format = resp_format[start:end+1]
+                    resp_format = json.loads(resp_format)
+                    if resp_format["operation"] != "jvm.set":
+                        print(f"Error: resp_format is not jvm.set: {resp_format}")
+                        return
+                    # get the key
+                    key = resp_format["kvs"][0]["key"]
+                    # replace the value with the key
+                    args["result_key"] = key
+
+
 
         if action_type == "ExtractInfo":
             # patch instruction
