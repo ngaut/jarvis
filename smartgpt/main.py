@@ -154,6 +154,7 @@ class Instruction:
             text = tmp_text
 
         logging.info(f"\n*************text before patched: *********************\n")
+        patch_success = False
         start = text.find("{'kvs':")
         end = text.rfind("}")
         if start != -1 and end != -1:
@@ -173,6 +174,11 @@ class Instruction:
                 # replace the key with the patched one in the new response string
                 # todo: may have side effectives.
                 text = text.replace(key, patched_key)
+                patch_success = True
+        if patch_success:
+            # from 'start' to replace single quotes to double quotes 
+            text = text[:start] + fix_string_to_json(text[start:])
+
 
         return text
     
