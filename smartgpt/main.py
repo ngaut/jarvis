@@ -13,9 +13,11 @@ import json
 
 base_model  = gpt.GPT_3_5_TURBO
 
-def eval_get_expression(text):
+LAZY_EVAL_PREFIX = "@eval("
+
+    
+def eval_expression(text, lazy_eval_prefix=LAZY_EVAL_PREFIX):
     # find last occurrence of "@eval("
-    lazy_eval_prefix = "@eval("
     start = text.rfind(lazy_eval_prefix)
     if start == -1:
         return None
@@ -56,10 +58,13 @@ def eval_get_expression(text):
 
     return text
 
+def fix_string_to_json(s):
+    # fix single quotes to double quotes
+    s = s.replace("'", '"')
+    return s
 
 
-
-def init_idx_in_jvm(value):
+def set_idx_in_jvm(value):
     jvm.set("idx", value)
     jvm.set("index", value)
     jvm.set("i", value)
@@ -99,11 +104,11 @@ class Instruction:
 
         if action_type == "ExtractInfo":
             # patch instruction
-            args["command"] = self.eval_and_patch_template_before_exec(args["command"])
+            args["command"] = self.eval_and_patch_before_exec(args["command"])
 
         if action_type == "Fetch":
-            args["url"] = self.eval_and_patch_template_before_exec(args["url"])
-            args["save_to"] = self.eval_and_patch_template_before_exec(args["save_to"])
+            args["url"] = self.eval_and_patch_before_exec(args["url"])
+            args["save_to"] = self.eval_and_patch_before_exec(args["save_to"])
 
         if action_type == "RunPython":
             # if file_name is empty, use the default file
@@ -116,7 +121,7 @@ class Instruction:
                 args["timeout"] = 30
 
         if action_type in ["TextCompletion"]:
-            args["prompt"] = self.eval_and_patch_template_before_exec(args["prompt"])
+            args["prompt"] = self.eval_and_patch_before_exec(args["prompt"])
             args["prompt"] = f"our goal:{self.goal}\nYou are working on one of the steps to archive the goal.\n {args['prompt']}"
 
         action_data = {"type": action_type, "action_id": action_id}
@@ -141,22 +146,43 @@ class Instruction:
 
     
 
-    def eval_and_patch_template_before_exec(self, text):
-        tmp_text = text
+    def eval_and_patch_before_exec(self, text):
         while True:
-            tmp_text = eval_get_expression(tmp_text)
+            tmp_text = eval_expression(text)
             if tmp_text is None:
                 break
             text = tmp_text
-            
-        return text
 
+        logging.info(f"\n*************text before patched: *********************\n")
+        start = text.find("{'kvs':")
+        end = text.rfind("}")
+        if start != -1 and end != -1:
+            resp_format = text[start:end+1]
+            logging.info(f"resp_format: {resp_format}\n")
+            pattern = re.compile(r"'key':\s*(.+?),\s*'value':\s*(.+?)")
+            matches = pattern.findall(resp_format)
+
+            new_resp_format = resp_format
+            for match in matches:
+                key = match[0]
+                # patch the key
+                # add LAZY_EVAL_PREFIX and ")" to the wrapped key
+                to_eval = LAZY_EVAL_PREFIX + key + ")"
+                logging.info(f"to_eval: {to_eval}\n")
+                patched_key = eval_expression(to_eval, lazy_eval_prefix=LAZY_EVAL_PREFIX)
+                # replace the key with the patched one in the new response string
+                # todo: may have side effectives.
+                text = text.replace(key, patched_key)
+
+        return text
     
     def patch_after_exec(self, result):
         # parse result that starts with first '{' and ends with last '}' as json
         start = result.find("{")
         end = result.rfind("}")
+        
         if start != -1 and end != -1:
+            logging.info(f"patch_after_exec**********\n")
             result = result[start:end+1]
             result = json.loads(result)
             # get the key and value pair list
@@ -176,7 +202,7 @@ class JVMInterpreter:
             "TextCompletion": actions.TextCompletionAction,
         }
 
-        init_idx_in_jvm(0)
+        set_idx_in_jvm(0)
 
     def run(self, instrs, goal):
         while self.pc < len(instrs):
@@ -199,7 +225,7 @@ class JVMInterpreter:
             loop_count = loop_count
         elif isinstance(loop_count, str):
             # loop_count needs to be evaluated in the context of jvm
-            loop_count = int(eval_get_expression(loop_count))
+            loop_count = int(eval_expression(loop_count))
         loop_instructions = instr.instruction.get("args", {}).get("instructions", [])
         logging.info(f"Looping: {loop_instructions}")
 
@@ -208,7 +234,7 @@ class JVMInterpreter:
         old_pc = self.pc
         for i in range(loop_count):
             # Set the loop index in jvm, to adopt gpt behaviour error
-            init_idx_in_jvm(i)
+            set_idx_in_jvm(i)
             logging.info(f"idx: {i}")
             # As each loop execution should start from the first instruction, we reset the program counter
             self.pc = 0
