@@ -63,7 +63,10 @@ def all():
 
 def list_values_with_key_prefix(prefix):
     try:
-        values = [get(key) for key in kv_store.keys() if key.startswith(prefix)]
+        values = []
+        for key in kv_store.keys():
+            if key.startswith(prefix):
+                values.extend(get(key))
         return values
     except Exception as e:
         logging.fatal(f"list_values_with_key_prefix, An error occurred: {e}")
