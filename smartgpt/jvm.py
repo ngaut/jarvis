@@ -15,40 +15,39 @@ def load_kv_store():
         with open(kv_store_file, 'r') as f:
             kv_store = json.load(f)
 
-def get(key):
-    load_kv_store()
-    global kv_store
-    
-    try:
-        value = kv_store.get(key, None)
-        #logging.info(f"get, key: {key}, value: {value}")
-        if value is None:
-            return None
-        else:
-            return value
-    except Exception as e:
-        logging.fatal(f"get, An error occurred: {e}")
-
-def set(jarvis_key, value):
-    load_kv_store()
+def save_kv_store():
     global kv_store
     global kv_store_file
-    
+    with open(kv_store_file, 'w') as f:
+        json.dump(kv_store, f)
+
+def get(key):
+    global kv_store
+    try:
+        value = kv_store.get(key, None)
+        if value is not None:
+            try:
+                value = ast.literal_eval(value)
+            except (ValueError, SyntaxError):
+                pass  # value is not a string representation of a list, so leave it as is
+        return value
+    except Exception as e:
+        logging.fatal(f"get, An error occurred: {e}")
+        return None
+
+def set(key, value):
+    global kv_store
     try:
         if isinstance(value, list):
             value = repr(value)
-        logging.debug(f"set, jarvis_key: {jarvis_key}, value: {value}")
-        kv_store[jarvis_key] = value
-
-        # Save the kv_store dictionary to the file
-        with open(kv_store_file, 'w') as f:
-            json.dump(kv_store, f)
+        kv_store[key] = value
+        save_kv_store()
     except Exception as error:
         logging.fatal(f"set, An error occurred: {error}")
 
 def all():
-    load_kv_store()
     global kv_store
+
     try:
         kv_dict = {}
         for key, value in kv_store.items():
@@ -60,23 +59,20 @@ def all():
         return kv_dict
     except Exception as e:
         logging.fatal(f"all, An error occurred: {e}")
+        return {}
 
 def list_values_with_key_prefix(prefix):
-    load_kv_store()
-    global kv_store
     try:
-        values = [value for key, value in kv_store.items() if key.startswith(prefix)]
-        logging.info(f"list_values_with_key_prefix, prefix: {prefix}, values: {values}, len(values): {len(values)}")
+        values = [get(key) for key in kv_store.keys() if key.startswith(prefix)]
         return values
     except Exception as e:
         logging.fatal(f"list_values_with_key_prefix, An error occurred: {e}")
+        return []
 
 def list_keys_with_prefix(prefix):
-    load_kv_store()
-    global kv_store
     try:
         keys = [key for key in kv_store.keys() if key.startswith(prefix)]
         return keys
     except Exception as e:
         logging.fatal(f"list_keys_with_prefix, An error occurred: {e}")
-
+        return []

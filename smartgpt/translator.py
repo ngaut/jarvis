@@ -74,7 +74,7 @@ key-value API is the only way to pass information between tasks. The database ca
 
 ## Output Requirements
 
-Your output must be in JSON format, includes fields: goal,objective, max_seq, instructions, thoughts, overall_outcome. 
+Your output must be in JSON format, includes fields: goal,objective, max_seq(means max instruction's seqence number), instructions, thoughts, overall_outcome. 
 When constructing overall_outcome, describe which key prefix we need to handle dynamic data, and which API should be used, jvm.list_values_with_key_prefix('prefix') or jvm.list_keys_with_prefix('prefix'), it is important to give hint to next task.An example:
 ```json
 {
@@ -146,7 +146,6 @@ When constructing overall_outcome, describe which key prefix we need to handle d
   ],
   // review the instructions inside the 'Loop' instruction, are these instructions used dynamic keys for both input and output? to avoid rewrite the same key. 
   "review_instructions_inside_loop": 
-  // last instruction's seqence number
   "max_seq": 7, 
   // explain the overall outcome we had after successed, what was the final result and how to retrive the results(what's the key prefix), As there are other tasks will use the result, give a brief hit to next task.
   "overall_outcome": "The current weather reprot for San Francisco stored, it can be retrived by @eval(jvm.get('WeatherReport.seq7.str')) , the report includes: the source url of weather data, date of fetching weather, notes on suggestions from AI ", 

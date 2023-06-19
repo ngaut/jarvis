@@ -17,6 +17,7 @@ LAZY_EVAL_PREFIX = "@eval("
 
     
 def eval_expression(text, lazy_eval_prefix=LAZY_EVAL_PREFIX):
+    logging.info(f"enter eval_expression\n")
     # find last occurrence of "@eval("
     start = text.rfind(lazy_eval_prefix)
     if start == -1:
@@ -171,7 +172,7 @@ class Instruction:
                 to_eval = LAZY_EVAL_PREFIX + key + ")"
                 logging.info(f"to_eval: {to_eval}\n")
                 patched_key = eval_expression(to_eval, lazy_eval_prefix=LAZY_EVAL_PREFIX)
-                # replace the key with the patched one in the new response string
+                # replace the key with the patched one 
                 # todo: may have side effectives.
                 text = text.replace(key, patched_key)
                 patch_success = True

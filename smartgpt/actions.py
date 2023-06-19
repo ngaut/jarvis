@@ -206,6 +206,8 @@ class SearchOnlineAction:
 class ExtractInfoAction(Action):
     action_id: int
     command: str
+    model_name: str = gpt.GPT_3_5_TURBO
+
 
     def key(self) -> str:
         return "ExtractInfo"
@@ -224,12 +226,28 @@ class ExtractInfoAction(Action):
             logging.info(f"\nExtractInfoAction RESULT(cached)\n")
             return cached_result
         
-        user_message_content = f"{self.command}"
-    
-        with Spinner("Extracting info..."):
-            extracted_info = gpt.complete(user_message_content, model=gpt.GPT_3_5_TURBO)
-        save_to_cache(key, extracted_info)
-        return extracted_info
+        messages = [
+            {
+                "role": "system",
+                "content": "You are a helpful assistant that follow user's command. When constructing your response, please pay attention to the postfix of key name, the postfix indicates the type of value, such as: list, str,int and so on.",
+            },
+            {"role": "user", "content": self.command},
+        ]
+
+        request_token_count = gpt.count_tokens(messages)
+        max_response_token_count = gpt.max_token_count(self.model_name) - request_token_count
+
+        try:
+            response = gpt.send_message(messages, max_response_token_count, model=self.model_name)
+            if response is None:
+                return f"TextCompletionAction RESULT: The text completion for `{self.command}` appears to have failed."
+
+            result = str(response)
+            save_to_cache(key, result)
+            return result
+
+        except Exception as e:
+            return f"ExtractInfoAction RESULT: An error occurred: {e}"
 
     
 
