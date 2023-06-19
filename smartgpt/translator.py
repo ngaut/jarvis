@@ -75,7 +75,7 @@ key-value API is the only way to pass information between tasks. The database ca
 ## Output Requirements
 
 Your output must be in JSON format, includes fields: goal,objective, max_seq(means max instruction's seqence number), instructions, thoughts, overall_outcome. 
-When constructing overall_outcome, describe which key prefix we need to handle dynamic data, and which API should be used, jvm.list_values_with_key_prefix('prefix') or jvm.list_keys_with_prefix('prefix'), it is important to give hint to next task.An example:
+When constructing overall_outcome, describe key prefix and postfix if the keys are dynamic, or range of keys, it is important to give hint to next task.An example:
 ```json
 {
   "goal": "Acquire and save the current weather data for San Francisco to file and provide suggestions based on temperature",
@@ -103,7 +103,7 @@ When constructing overall_outcome, describe which key prefix we need to handle d
       "args": { 
         "url": "@eval(jvm.get('search_results.seq1.list')[0])", 
         // other tasks can use the key or key prefix 'content_fetched_' to scan the data, this is the key point to handle dynamic data
-        "save_to": "@eval(content_fetched_" + str(jvm.get("idx") + ".seq2.str")  
+        "save_to": "@eval('content_fetched_' + str(jvm.get('idx')) + '.seq2.str')"  
       }
     }
     {
@@ -145,8 +145,8 @@ When constructing overall_outcome, describe which key prefix we need to handle d
         "prompt": "Please generate current weather reprot for San Francisco, temp = @eval(jvm.get("temperature.seq3.int")), source_url = @eval(jvm.get("source_url.seq3.str")), date = @eval(jvm.get("date.seq3.str")}}, notes = @eval(jvm.get("Notes.seq5.list")). Populate the following JSON template by replacing "<fill_later>" with appropriate values: {"kvs":[{"key":"WeatherReport.seq7.str", "value": "<fill_later>"}]} // must use the instruction template
   ],
   // review the instructions inside the 'Loop' instruction, are these instructions used dynamic keys for both input and output? to avoid rewrite the same key. 
-  "review_instructions_inside_loop": 
-  "max_seq": 7, 
+  "review_instructions_inside_loop":,
+  "max_seq": 7,  // must have this field
   // explain the overall outcome we had after successed, what was the final result and how to retrive the results(what's the key prefix), As there are other tasks will use the result, give a brief hit to next task.
   "overall_outcome": "The current weather reprot for San Francisco stored, it can be retrived by @eval(jvm.get('WeatherReport.seq7.str')) , the report includes: the source url of weather data, date of fetching weather, notes on suggestions from AI ", 
 }
