@@ -123,7 +123,7 @@ class Instruction:
 
         if action_type in ["TextCompletion"]:
             args["prompt"] = self.eval_and_patch_before_exec(args["prompt"])
-            args["prompt"] = f"our goal:{self.goal}\nYou are working on one of the steps to archive the goal.\n {args['prompt']}"
+            args["prompt"] = f"our goal:{self.goal}\n\n {args['prompt']}"
 
         action_data = {"type": action_type, "action_id": action_id}
         action_data.update(args)

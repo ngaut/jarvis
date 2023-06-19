@@ -113,7 +113,7 @@ def gen_instructions(model: str, replan: bool = False):
             "previous_outcome":previous_outcome
         }, model=model)
         tmp = json.loads(instrs)
-        start_seq = int(tmp['max_seq']) + 1
+        start_seq = int(tmp['end_seq']) + 1
         task_outputs[task_num] = tmp['overall_outcome']
         with open(f"{task_num}.json", "w") as f:
             f.write(instrs)

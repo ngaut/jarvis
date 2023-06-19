@@ -32,12 +32,12 @@ Here are the JVM's instructions, with specified arguments, that you should consi
 
 4. **'ExtractInfo'**: This instruction retrieves specific pieces of information from the fetched webpage content. The arguments for this instruction include:
    - args {
-    "command": The string contains the context description with all of the referenced inputs by using @eval synatx and a command request for the AI to extract information. Usually it start with "The content we have:```@eval(jvm.get(key_name))```". The last part of the prompt must be the command request go get what we want to save by using the syntax:Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"kvs":[{"key":"key", "value": "<fill_later>"}]}```"
+    "command": The string contains the context and a command request for the AI to extract information. It starts with "The content we have:```@eval(jvm.get(key_name))```". The last part of the prompt must be the command request go get what we want to save by using the syntax:Populate the following JSON template by replacing "<fill_later>" with appropriate values: {"kvs":[{"key":"key", "value": "<fill_later>"}]}"
   }
 
 5. **'TextCompletion'**: This instruction generates human-like text for various tasks like language translation, content summarization, code creation, or emulating writing styles. The arguments for this instruction include:
    - args {
-    "prompt": TThe string contains the context description with all of the referenced inputs by using @eval synatx and a command request for the AI to generate a response. Usually it start with "The content we have:```@eval(jvm.get(key_name))```". The last part of the prompt must be the command request go get what we want to save by using the syntax:Populate the following JSON template by replacing "<fill_later>" with appropriate values:```json {"kvs":[{"key":"key", "value": "<fill_later>"}]}```"
+    "prompt": The string contains the context and a command request for the AI to generate a response. It starts with "The content we have:```@eval(jvm.get(key_name))```". The last part of the prompt must be the command request go get what we want to save by using the syntax:Populate the following JSON template by replacing "<fill_later>" with appropriate values: {"kvs":[{"key":"key", "value": "<fill_later>"}]}"
   }
 
 6. **'If'**: The 'If' instruction acts as a conditional control structure within the JVM. The arguments for this instruction include:
@@ -55,7 +55,7 @@ Here are the JVM's instructions, with specified arguments, that you should consi
    }
    
 Each instruction can only do one thing, but you can combine them to do more complex things. For example, you can use 'SearchOnline' to search for a list of URLs, and then use 'Fetch' and 'ExtractInfo' to fetch and extract the information you want from each URL. Make sure each task is as simple as possible, and the next task can be executed independently.
-Every instruction can save the result to database automatically by using the template:```json {"kvs":[{"key":"Notes.seq4", "value": "<fill_later>"}]}```, the template will be executed by JVM to finish the persistence operation. No further action is required. 
+Every instruction can save the result to database automatically by using the json template:{"kvs":[{"key":"Notes.seq4", "value": "<fill_later>"}]}, the template will be executed by JVM to finish the persistence operation. No further action is required. 
 
 ## Instruction Sequence
 
@@ -74,7 +74,7 @@ key-value API is the only way to pass information between tasks. The database ca
 
 ## Output Requirements
 
-Your output must be in JSON format, includes fields: goal,objective, max_seq(means max instruction's seqence number), instructions, thoughts, overall_outcome. 
+Your output must be in JSON format, includes fields: goal,objective, end_seq(means max instruction's seqence number), instructions, thoughts, overall_outcome. 
 When constructing overall_outcome, describe key prefix and postfix if the keys are dynamic, or range of keys, it is important to give hint to next task.An example:
 ```json
 {
@@ -84,7 +84,7 @@ When constructing overall_outcome, describe key prefix and postfix if the keys a
   "hints_from_user": 
   "task_list": ["Task 1...", "Task 2...", "..."],
   // user specified start seq
-  "start_seq": 0, 
+  "start_seq": 1, 
   // how to fully leverage user's hints(if exists), what is the reason for the order of the tasks, how each task passes data to the next task, analyze prefix of the key from previous task, and how to use the prefix to get the data from database, and so on.
   "thoughts": 
   "instructions": [
@@ -133,7 +133,7 @@ When constructing overall_outcome, describe key prefix and postfix if the keys a
           "seq": 6,
           "type": "TextCompletion",
           "args": {
-            "prompt": "The content we have: ```Today's temperature in San Francisco is @eval(jvm.get("temperature.seq3.int")) which below 25 degrees.``` What indoor activities should we recommend to the users?Please generate a weather report, Populate the following JSON template by replacing "<fill_later>" with appropriate values:{"kvs":[{"key":"Notes.seq5.list", "value": "<fill_later>"}]} // must use the instruction template
+            "prompt": "The content we have: ```Today's temperature in San Francisco is @eval(jvm.get("temperature.seq3.int")) which below 25 degrees.``` What indoor activities should we recommend to the users? Please generate a weather report, Populate the following JSON template by replacing "<fill_later>" with appropriate values:{"kvs":[{"key":"Notes.seq5.list", "value": "<fill_later>"}]} // must use the instruction template
           }
         }
       ]
@@ -142,11 +142,11 @@ When constructing overall_outcome, describe key prefix and postfix if the keys a
       "seq": 7,
       "type": "TextCompletion",
       "args": {
-        "prompt": "Please generate current weather reprot for San Francisco, temp = @eval(jvm.get("temperature.seq3.int")), source_url = @eval(jvm.get("source_url.seq3.str")), date = @eval(jvm.get("date.seq3.str")}}, notes = @eval(jvm.get("Notes.seq5.list")). Populate the following JSON template by replacing "<fill_later>" with appropriate values: {"kvs":[{"key":"WeatherReport.seq7.str", "value": "<fill_later>"}]} // must use the instruction template
+        "prompt": "Please generate current weather reprot for San Francisco, ```temp = @eval(jvm.get("temperature.seq3.int"))```, ```source_url = @eval(jvm.get("source_url.seq3.str"))```, ```date = @eval(jvm.get("date.seq3.str")}}```, ```notes = @eval(jvm.get("Notes.seq5.list"))```. Populate the following JSON template by replacing "<fill_later>" with appropriate values: {"kvs":[{"key":"WeatherReport.seq7.str", "value": "<fill_later>"}]} // must use the instruction template
   ],
   // review the instructions inside the 'Loop' instruction, are these instructions used dynamic keys for both input and output? to avoid rewrite the same key. 
   "review_instructions_inside_loop":,
-  "max_seq": 7,  // must have this field
+  "end_seq": 7,  // must have this field
   // explain the overall outcome we had after successed, what was the final result and how to retrive the results(what's the key prefix), As there are other tasks will use the result, give a brief hit to next task.
   "overall_outcome": "The current weather reprot for San Francisco stored, it can be retrived by @eval(jvm.get('WeatherReport.seq7.str')) , the report includes: the source url of weather data, date of fetching weather, notes on suggestions from AI ", 
 }
@@ -176,7 +176,7 @@ def translate_to_instructions(task_info, model: str):
         user_prompt = (
             f"The objective is to translate a task into a series of instructions based on user's hints(if exist). The task at hand is: |{task_info['task']}. The objective of the task is: {task_info['objective']}|.\n"
             f"Every instruction must save its outcome to database for other tasks to use.\n"
-            f"The starting sequence number is {task_info['start_seq']}.\n"
+            f"The start_seq is {task_info['start_seq']}.\n"
         )
         if hints != "":
             user_prompt += f"Here are some hints: {hints}\n"
