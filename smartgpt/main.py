@@ -214,7 +214,6 @@ class JVMInterpreter:
     def run(self, instrs, goal):
         while self.pc < len(instrs):
             instruction = Instruction(instrs[self.pc], self.actions, goal)
-            logging.info(f"\n\nRunning instruction: {instruction}\n\n")
             action_type = instrs[self.pc].get("type")
             if action_type == "If":
                 self.conditional(instruction, goal)

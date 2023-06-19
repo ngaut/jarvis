@@ -5,6 +5,7 @@ import gpt
 
 TRANSLATE_PLAN_SYS_PROMPT = """
 As Jarvis, an AI model with the role of translating task into JVM's instructions. You will fully leverage user's hints(if exist), reuse them to generate instructions efficiently.
+Pay attention on on detect description on loop, for each, every etc, it will help you to understand the task better.
 
 
 ## JVM Instructions
@@ -144,8 +145,7 @@ When constructing overall_outcome, describe key prefix and postfix if the keys a
       "args": {
         "prompt": "Please generate current weather reprot for San Francisco, ```temp = @eval(jvm.get("temperature.seq3.int"))```, ```source_url = @eval(jvm.get("source_url.seq3.str"))```, ```date = @eval(jvm.get("date.seq3.str")}}```, ```notes = @eval(jvm.get("Notes.seq5.list"))```. Populate the following JSON template by replacing "<fill_later>" with appropriate values: {"kvs":[{"key":"WeatherReport.seq7.str", "value": "<fill_later>"}]} // must use the instruction template
   ],
-  // review the instructions inside the 'Loop' instruction, are these instructions used dynamic keys for both input and output? to avoid rewrite the same key. 
-  "review_instructions_inside_loop":,
+  
   "end_seq": 7,  // must have this field
   // explain the overall outcome we had after successed, what was the final result and how to retrive the results(what's the key prefix), As there are other tasks will use the result, give a brief hit to next task.
   "overall_outcome": "The current weather reprot for San Francisco stored, it can be retrived by @eval(jvm.get('WeatherReport.seq7.str')) , the report includes: the source url of weather data, date of fetching weather, notes on suggestions from AI ", 
@@ -160,7 +160,8 @@ Remember, your task is to generate instructions that will run on JVM based on th
 """
 
 # "prompt_review": "the quality of the prompt is good, check Criterias one by one: [checked]other values are referenced with template @eval(jvm.get('temperature.seq2')), [checked]requested AI to return result with the specific json template which is the only way to save result to database, [checked]the json response is stored in the database, [checked]new key name end with seq", // must have 
-
+# // review the instructions inside the 'Loop' instruction, are these instructions used dynamic keys for both input and output? to avoid rewrite the same key. 
+#  "review_instructions_inside_loop":,
 
 def translate_to_instructions(task_info, model: str):
     hints = ""
