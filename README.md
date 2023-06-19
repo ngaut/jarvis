@@ -11,5 +11,11 @@
 
 ## Usage
 
-Run `python smartgpt/main.py --continuous --timeout 3 --config=./config.yaml --startseq=0 --verbose` to start the program.
+Run `python smartgpt/main.py --continuous --timeout 3 --config=./config.yaml --startseq=0 --verbose --replan` to start the program.
+Once we got a plan, simplify Run `python smartgpt/main.py --continuous --timeout 3 --config=./config.yaml --startseq=0 --verbose --replan` to generate instructions.
+Then we can run those instructions: 
+python smartgpt/main.py --continuous --timeout 3 --config=./config.yaml --startseq=0 --verbose --json=1.json
+python smartgpt/main.py --continuous --timeout 3 --config=./config.yaml --startseq=0 --verbose --json=2.json
+and so on.
+
 
