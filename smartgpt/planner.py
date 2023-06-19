@@ -59,19 +59,17 @@ Your response should be structured in a standard JSON format, it includes fields
     },
     {
       "task_num": 2,
-      "task": "...",
-      "objective": "...",
+      "task": "",
+      "objective": "",
       "input": {},
       "tools": [],
       "output": {}
     },
-    ...
   ],
   "reasoning_for_each_task": [],
   "task_dependency": {
     "2": [1],
     "3": [2],
-    ...
   }
 }
 

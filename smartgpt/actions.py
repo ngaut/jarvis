@@ -156,8 +156,6 @@ class SearchOnlineAction:
     def short_string(self):
         return f"action_id: {self.id()}, Search online for `{self.query}`."
 
-
-
     def run(self):
         try:
             # Check if the query is already in the cache
@@ -229,7 +227,7 @@ class ExtractInfoAction(Action):
         messages = [
             {
                 "role": "system",
-                "content": "You are a helpful assistant that follow user's command. When constructing your response, please pay attention to the postfix of key name, the postfix indicates the type of value, such as: list, str,int and so on.",
+                "content": "You are a helpful assistant that follow user's command. When constructing your response, please pay attention to <idx> and the postfix of key, idx starts from 0. the postfix of key indicates the type of value, such as: list, str,int and so on",
             },
             {"role": "user", "content": self.command},
         ]
@@ -364,7 +362,7 @@ class TextCompletionAction(Action):
         messages = [
             {
                 "role": "system",
-                "content": "You are a helpful assistant that uses AI to complete text.",
+                "content": "You are a helpful assistant that uses AI to complete text.When constructing your response, please pay attention to <idx> and the postfix of key, idx starts from 0. the postfix of key indicates the type of value, such as: list, str,int and so on",
             },
             {"role": "user", "content": self.prompt},
         ]

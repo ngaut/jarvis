@@ -89,7 +89,7 @@ class Instruction:
         args = dict(self.instruction.get("args"))
 
         if action_type == "SearchOnline": 
-            # extract key from: {"kvs":[{"key":"search_results.seq1.list", "value": "<fill_later>"}]}
+            # extract key from: {"kvs":[{"key":"search_results.seq1.list", "value": "<to_fill>"}]}
             resp_format = args["resp_format"]
             if resp_format is not None:
                 # find and decode json to extract key
@@ -331,10 +331,7 @@ if __name__ == "__main__":
     else:
         # Generate a new plan
         planner.gen_instructions(base_model, replan=args.replan)
-
-        # load 1.json
-        with open("1.json", 'r') as f:
-            plan_with_instrs = json.load(f)
+        exit(0)
 
     # Find the starting sequence number
     start_seq = args.startseq
