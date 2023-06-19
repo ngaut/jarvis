@@ -1,5 +1,3 @@
-markdown
-Copy code
 # jarvis: A virtual machine designed for AI
 
 ## Setup
