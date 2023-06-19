@@ -214,6 +214,7 @@ class JVMInterpreter:
     def run(self, instrs, goal):
         while self.pc < len(instrs):
             instruction = Instruction(instrs[self.pc], self.actions, goal)
+            logging.info(f"\n\nRunning instruction: {instruction}\n\n")
             action_type = instrs[self.pc].get("type")
             if action_type == "If":
                 self.conditional(instruction, goal)
@@ -246,7 +247,7 @@ class JVMInterpreter:
             # As each loop execution should start from the first instruction, we reset the program counter
             self.pc = 0
             self.run(loop_instructions, instr.goal)
-        self.pc = old_pc + len(loop_instructions)
+        self.pc = old_pc
 
     def conditional(self, instruction, goal):
         condition = instruction.instruction.get("args", {}).get("condition", None)
