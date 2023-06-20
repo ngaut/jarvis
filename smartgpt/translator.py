@@ -37,12 +37,12 @@ Here are the JVM's instructions, with specified arguments, that you should consi
 
 4. **'ExtractInfo'**: This instruction retrieves specific pieces of information from the fetched webpage content. The arguments for this instruction include:
    - args {
-    "command": The string contains the context and a command request for the AI to extract information. It starts with "The content we have:```@eval(jvm.get(key_name))```". The last part of the prompt must be the command request go get what we want to save by using the syntax:Populate the following JSON template by replacing "<to_fill>" with appropriate values: idx starts from 0, {"kvs":[{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]}" // idx starts from 0
+    "command": The string contains the context and a command request for the AI to extract information. It starts with "The content we have:```@eval(jvm.get(key_name))```". The last part of the prompt must be the command request go get what we want to save by using the syntax: Based on the content and command, now populate the following JSON template by replacing "<to_fill>" with appropriate values: idx starts from 0, {"kvs":[{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]}" // idx starts from 0
   }
 
 5. **'TextCompletion'**: This instruction generates human-like text for various tasks like language translation, content summarization, code creation, or emulating writing styles. The arguments for this instruction include:
    - args {
-    "prompt": The string contains the context and a command request for the AI to generate a response. It starts with "The content we have:```@eval(jvm.get(key_name))```". The last part of the prompt must be the command request go get what we want to save by using the syntax:Populate the following JSON template by replacing "<to_fill>" with appropriate values: idx starts from 0, {"kvs":[{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]}" 
+    "prompt": The string contains the context and a command request for the AI to generate a response. It starts with "The content we have:```@eval(jvm.get(key_name))```". The last part of the prompt must be the command request go get what we want to save by using the syntax: Based on the content and command, now populate the following JSON template by replacing "<to_fill>" with appropriate values: idx starts from 0, {"kvs":[{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]}" 
   }
 
 6. **'If'**: The 'If' instruction acts as a conditional control structure within the JVM. The arguments for this instruction include:
@@ -108,14 +108,14 @@ An Output example:
       "args": { 
         "url": "@eval(jvm.get('search_results.seq1.list')[0])", 
         // other tasks can use the key or key prefix 'content_fetched_' to scan the data, this is the key point to handle dynamic data
-        "save_to": "@eval('content_fetched_' + str(jvm.get('idx')) + '.seq2.str')"  
+        "save_to": "@eval('content_fetched_' + str(jvm.get('idx')) + '.seq2.str')"  // use string concatenation(+) instead of f-string to avoid syntax error
       }
     }
     {
       "seq": 3,
       "type": "ExtractInfo",
       "args": {
-        "command": "The content we have: ```@eval(jvm.get("content_fetched_" + str(jvm.get("idx")) + ".seq2.str"))```, Extract the current temperature and url(keep http or https prefix) in San Francisco from the content. Populate the following JSON template by replacing "<to_fill>" with appropriate values:{"kvs":[{"key":"temperature.seq3.int", "value":"<to_fill>"}, {"key":"source_url.seq3.str", "value":"<to_fill>"}, {"key":"date.seq3.str", "value": "<to_fill>"}]} 
+        "command": "The content we have: ```@eval(jvm.get("content_fetched_" + str(jvm.get("idx")) + ".seq2.str"))```, Extract the current temperature and url(keep http or https prefix) in San Francisco from the content. Based on the content and command, now populate the following JSON template by replacing "<to_fill>" with appropriate values:{"kvs":[{"key":"temperature.seq3.int", "value":"<to_fill>"}, {"key":"source_url.seq3.str", "value":"<to_fill>"}, {"key":"date.seq3.str", "value": "<to_fill>"}]} 
       }
     },
     {
@@ -129,7 +129,7 @@ An Output example:
           "seq": 5,
           "type": "TextCompletion",
           "args": {
-            "prompt": "The content we have: ```Today's temperature in San Francisco is @eval(jvm.get("temperature.seq3.int")).``` It's a good day for outdoor activities. What else should we recommend to the users? Populate the following JSON template by replacing "<to_fill>" with appropriate values: {"kvs":[{"key":"Notes.seq5.list", "value": "<to_fill>"}]} 
+            "prompt": "The content we have: ```Today's temperature in San Francisco is @eval(jvm.get("temperature.seq3.int")).``` It's a good day for outdoor activities. What else should we recommend to the users? Based on the content and command, now populate the following JSON template by replacing "<to_fill>" with appropriate values: {"kvs":[{"key":"Notes.seq5.list", "value": "<to_fill>"}]} 
           }
         }
       ],
@@ -138,7 +138,7 @@ An Output example:
           "seq": 6,
           "type": "TextCompletion",
           "args": {
-            "prompt": "The content we have: ```Today's temperature in San Francisco is @eval(jvm.get("temperature.seq3.int")) which below 25 degrees.``` What indoor activities should we recommend to the users? Please generate a weather report, Populate the following JSON template by replacing "<to_fill>" with appropriate values:{"kvs":[{"key":"Notes.seq5.list", "value": "<to_fill>"}]} 
+            "prompt": "The content we have: ```Today's temperature in San Francisco is @eval(jvm.get("temperature.seq3.int")) which below 25 degrees.``` What indoor activities should we recommend to the users? Please generate a weather report, Based on the content and command, now populate the following JSON template by replacing "<to_fill>" with appropriate values:{"kvs":[{"key":"Notes.seq5.list", "value": "<to_fill>"}]} 
           }
         }
       ]
@@ -147,7 +147,7 @@ An Output example:
       "seq": 7,
       "type": "TextCompletion",
       "args": {
-        "prompt": "Please generate current weather reprot for San Francisco, ```temp = @eval(jvm.get("temperature.seq3.int"))```, ```source_url = @eval(jvm.get("source_url.seq3.str"))```, ```date = @eval(jvm.get("date.seq3.str")}}```, ```notes = @eval(jvm.get("Notes.seq5.list"))```. Populate the following JSON template by replacing "<to_fill>" with appropriate values: {"kvs":[{"key":"WeatherReport.seq7.str", "value": "<to_fill>"}]} 
+        "prompt": "Please generate current weather reprot for San Francisco, ```temp = @eval(jvm.get("temperature.seq3.int"))```, ```source_url = @eval(jvm.get("source_url.seq3.str"))```, ```date = @eval(jvm.get("date.seq3.str")}}```, ```notes = @eval(jvm.get("Notes.seq5.list"))```. Based on the content and command, now populate the following JSON template by replacing "<to_fill>" with appropriate values: {"kvs":[{"key":"WeatherReport.seq7.str", "value": "<to_fill>"}]} 
   ],
   
   "end_seq": 7,  // must have this field

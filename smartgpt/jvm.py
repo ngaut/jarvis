@@ -25,11 +25,11 @@ def get(key):
     global kv_store
     try:
         value = kv_store.get(key, None)
-        if value is not None:
-            try:
-                value = ast.literal_eval(value)
-            except (ValueError, SyntaxError):
-                pass  # value is not a string representation of a list, so leave it as is
+        if value is None:
+            return None
+        if isinstance(value, str) and value.startswith("[") and value.endswith("]"):
+            # This is a list
+            return list(ast.literal_eval(value))
         return value
     except Exception as e:
         logging.fatal(f"get, An error occurred: {e}")
@@ -45,28 +45,14 @@ def set(key, value):
     except Exception as error:
         logging.fatal(f"set, An error occurred: {error}")
 
-def all():
-    global kv_store
-
-    try:
-        kv_dict = {}
-        for key, value in kv_store.items():
-            try:
-                value = ast.literal_eval(value)
-            except (ValueError, SyntaxError):
-                pass  # value is not a string representation of a list, so leave it as is
-            kv_dict[key] = value
-        return kv_dict
-    except Exception as e:
-        logging.fatal(f"all, An error occurred: {e}")
-        return {}
 
 def list_values_with_key_prefix(prefix):
     try:
         values = []
         for key in kv_store.keys():
             if key.startswith(prefix):
-                values.extend(get(key))
+                values.append(get(key))
+        #logging.info(f"list_values_with_key_prefix, values: {values}")
         return values
     except Exception as e:
         logging.fatal(f"list_values_with_key_prefix, An error occurred: {e}")

@@ -123,7 +123,6 @@ class Instruction:
 
         if action_type in ["TextCompletion"]:
             args["prompt"] = self.eval_and_patch_before_exec(args["prompt"])
-            args["prompt"] = f"our goal:{self.goal}\n\n {args['prompt']}"
 
         action_data = {"type": action_type, "action_id": action_id}
         action_data.update(args)
@@ -161,12 +160,16 @@ class Instruction:
         if start != -1 and end != -1:
             resp_format = text[start:end+1]
             logging.info(f"resp_format: {resp_format}\n")
+            # todo: need to enhance the regex to support more complex cases
             pattern = re.compile(r"'key':\s*(.+?),\s*'value':\s*(.+?)")
             matches = pattern.findall(resp_format)
 
             new_resp_format = resp_format
             for match in matches:
                 key = match[0]
+                if key.find("jvm.get") == -1: # not a dynamic key, no need to eval
+                    logging.info(f"key: {key} is not a dynamic key, no need to eval\n")
+                    continue
                 # patch the key
                 # add LAZY_EVAL_PREFIX and ")" to the wrapped key
                 to_eval = LAZY_EVAL_PREFIX + key + ")"
@@ -174,9 +177,9 @@ class Instruction:
                 patched_key = eval_expression(to_eval, lazy_eval_prefix=LAZY_EVAL_PREFIX)
                 # replace the key with the patched one 
                 # todo: may have side effectives.
-                text = text.replace(key, patched_key)
+                text = text.replace(key, patched_key, 1)
                 patch_success = True
-        if patch_success:
+
             # from 'start' to replace single quotes to double quotes 
             text = text[:start] + fix_string_to_json(text[start:])
 

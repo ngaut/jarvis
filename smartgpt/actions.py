@@ -227,7 +227,7 @@ class ExtractInfoAction(Action):
         messages = [
             {
                 "role": "system",
-                "content": "You are a helpful assistant that follow user's command. When constructing your response, please pay attention to <idx> and the postfix of key, idx starts from 0. the postfix of key indicates the type of value, such as: list, str,int and so on",
+                "content": "You are a helpful assistant that follow user's command. the format of key: 'key_<idx>.seqX.<type>', where 'X' is a constant, default value of 'idx' is 0, 'type' is type of the value(which can be one of {int, str, list}), list means list of strings, int means integer, str means string.",
             },
             {"role": "user", "content": self.command},
         ]
