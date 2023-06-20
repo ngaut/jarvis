@@ -37,7 +37,7 @@ Here are the JVM's instructions, with specified arguments, that you should consi
 
 4. **'ExtractInfo'**: This instruction retrieves specific pieces of information from the fetched webpage content. The arguments for this instruction include:
    - args {
-    "command": The string contains a command request for the AI to extract information from the "content" argument and save the extracted information by applying the JSON template which is described in "output_control" argument. 
+    "command": The string contains an objective description for this instruction only, for the AI to extract information from the "content" argument and save the extracted information by applying the JSON template which is described in "output_control" argument.
     "output_control": The output_control must be the command request go get what we want to save by using the JSON template: {"kvs": [{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0, 
     "content": The content from which the information needs to be extracted. Its format must look like "```@eval(jvm.get(key_name))```". 
   }
