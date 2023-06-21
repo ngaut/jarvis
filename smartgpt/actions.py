@@ -257,11 +257,11 @@ class ExtractInfoAction(Action):
 
         model_name = self.model_name
         request_token_count = gpt.count_tokens(messages)
+        max_response_token_count = gpt.max_token_count(self.model_name) - request_token_count
+
         if request_token_count + 1024 > gpt.max_token_count(self.model_name): # leave some space for the response
             max_response_token_count = gpt.max_token_count(gpt.GPT_3_5_TURBO_16K) - request_token_count
             model_name = gpt.GPT_3_5_TURBO_16K
-        else:
-            max_response_token_count = gpt.max_token_count(self.model_name) - request_token_count
 
         try:
             response = gpt.send_message(messages, max_response_token_count, model=model_name)
@@ -395,11 +395,15 @@ class TextCompletionAction(Action):
             {"role": "user", "content": self.prompt},
         ]
 
+        model_name = self.model_name
         request_token_count = gpt.count_tokens(messages)
         max_response_token_count = gpt.max_token_count(self.model_name) - request_token_count
+        if request_token_count + 1024 > gpt.max_token_count(self.model_name): # leave some space for the response
+            max_response_token_count = gpt.max_token_count(gpt.GPT_3_5_TURBO_16K) - request_token_count
+            model_name = gpt.GPT_3_5_TURBO_16K
 
         try:
-            response = gpt.send_message(messages, max_response_token_count, model=self.model_name)
+            response = gpt.send_message(messages, max_response_token_count, model=model_name)
             if response is None:
                 return f"TextCompletionAction RESULT: The text completion for `{self.prompt}` appears to have failed."
 
