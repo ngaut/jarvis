@@ -65,3 +65,6 @@ def list_keys_with_prefix(prefix):
     except Exception as e:
         logging.fatal(f"list_keys_with_prefix, An error occurred: {e}")
         return []
+
+def set_loop_idx(value):
+    set("idx", value)

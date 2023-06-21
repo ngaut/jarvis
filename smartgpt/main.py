@@ -10,65 +10,9 @@ import ruamel.yaml as yaml
 from datetime import datetime
 import planner
 import json
+import utils
 
 base_model  = gpt.GPT_3_5_TURBO
-
-LAZY_EVAL_PREFIX = "@eval("
-
-    
-def eval_expression(text, lazy_eval_prefix=LAZY_EVAL_PREFIX):
-    logging.info(f"enter eval_expression\n")
-    # find last occurrence of "@eval("
-    start = text.rfind(lazy_eval_prefix)
-    if start == -1:
-        return None
-
-    prefix_len = len(lazy_eval_prefix)
-    # find the corresponding closing tag with parentheses balance
-    rest = text[start+prefix_len:]
-    balance = 0
-    end = 0
-    for char in rest:
-        if char == '(':
-            balance += 1
-        elif char == ')':
-            if balance == 0:
-                break
-            balance -= 1
-        end += 1
-
-    if balance != 0:
-        logging.critical(f"Error: parentheses are not balanced in {text}")
-        return None
-
-    logging.info(f"eval_and_patch_template_before_exec, {start}-{end} text: {text}\n")
-
-    # adjust the end position relative to the original string
-    end = end + start + prefix_len
-    # evaluate the substring between @eval( and )
-    expression = text[start+prefix_len:end].strip()
-    try:
-        evaluated = eval(expression)
-    except Exception as e:
-        logging.critical(f"Failed to evaluate {expression}. Error: {str(e)}")
-        return None
-
-    # replace the evaluated part in the original string
-    text = text[:start] + str(evaluated) + text[end+1:]
-    logging.info(f"text after patched: {text}\n")
-
-    return text
-
-def fix_string_to_json(s):
-    # fix single quotes to double quotes
-    s = s.replace("'", '"')
-    return s
-
-
-def set_idx_in_jvm(value):
-    jvm.set("idx", value)
-    jvm.set("index", value)
-    jvm.set("i", value)
 
 class Instruction:
     def __init__(self, instruction, act, goal):
@@ -105,13 +49,13 @@ class Instruction:
 
         if action_type == "ExtractInfo":
             # patch instruction
-            args["command"] = self.eval_and_patch_before_exec(args["command"])
-            args["content"] = self.eval_and_patch_before_exec(args["content"])
-            args["output_fmt"] = self.eval_and_patch_before_exec(args["output_fmt"])
+            args["command"] = self.eval_and_patch(args["command"])
+            args["content"] = self.eval_and_patch(args["content"])
+            args["output_fmt"] = self.eval_and_patch(args["output_fmt"])
 
         if action_type == "Fetch":
-            args["url"] = self.eval_and_patch_before_exec(args["url"])
-            args["save_to"] = self.eval_and_patch_before_exec(args["save_to"])
+            args["url"] = self.eval_and_patch(args["url"])
+            args["save_to"] = self.eval_and_patch(args["save_to"])
 
         if action_type == "RunPython":
             # if file_name is empty, use the default file
@@ -123,8 +67,8 @@ class Instruction:
             if timeout is None or timeout == "":
                 args["timeout"] = 30
 
-        if action_type in ["TextCompletion"]:
-            args["prompt"] = self.eval_and_patch_before_exec(args["prompt"])
+        if action_type == "TextCompletion":
+            args["prompt"] = self.eval_and_patch(args["prompt"])
 
         action_data = {"type": action_type, "action_id": action_id}
         action_data.update(args)
@@ -144,13 +88,13 @@ class Instruction:
 
         if action_type != "RunPython":
             # todo: handle error if the result is not a json 
-            self.patch_after_exec(result)
+            self.post_exec(result)
 
     
 
-    def eval_and_patch_before_exec(self, text):
+    def eval_and_patch(self, text):
         while True:
-            tmp_text = eval_expression(text)
+            tmp_text = utils.eval_expression(text)
             if tmp_text is None:
                 break
             text = tmp_text
@@ -174,21 +118,21 @@ class Instruction:
                     continue
                 # patch the key
                 # add LAZY_EVAL_PREFIX and ")" to the wrapped key
-                to_eval = LAZY_EVAL_PREFIX + key + ")"
+                to_eval = utils.wrap_string_to_eval(key)
                 logging.info(f"to_eval: {to_eval}\n")
-                patched_key = eval_expression(to_eval, lazy_eval_prefix=LAZY_EVAL_PREFIX)
+                patched_key = utils.eval_expression(to_eval)
                 # replace the key with the patched one 
                 # todo: may have side effectives.
                 text = text.replace(key, patched_key, 1)
                 patch_success = True
 
             # from 'start' to replace single quotes to double quotes 
-            text = text[:start] + fix_string_to_json(text[start:])
+            text = text[:start] + utils.fix_string_to_json(text[start:])
 
 
         return text
     
-    def patch_after_exec(self, result):
+    def post_exec(self, result):
         # parse result that starts with first '{' and ends with last '}' as json
         start = result.find("{")
         end = result.rfind("}")
@@ -214,7 +158,7 @@ class JVMInterpreter:
             "TextCompletion": actions.TextCompletionAction,
         }
 
-        set_idx_in_jvm(0)
+        jvm.set_loop_idx(0)
 
     def run(self, instrs, goal):
         while self.pc < len(instrs):
@@ -237,7 +181,7 @@ class JVMInterpreter:
             loop_count = loop_count
         elif isinstance(loop_count, str):
             # loop_count needs to be evaluated in the context of jvm
-            loop_count = int(eval_expression(loop_count))
+            loop_count = int(utils.eval_expression(loop_count))
         loop_instructions = instr.instruction.get("args", {}).get("instructions", [])
         logging.info(f"Looping: {loop_instructions}")
 
@@ -246,8 +190,8 @@ class JVMInterpreter:
         old_pc = self.pc
         for i in range(loop_count):
             # Set the loop index in jvm, to adopt gpt behaviour error
-            set_idx_in_jvm(i)
-            logging.info(f"idx: {i}")
+            jvm.set_loop_idx(i)
+            logging.info(f"loop idx: {i}")
             # As each loop execution should start from the first instruction, we reset the program counter
             self.pc = 0
             self.run(loop_instructions, instr.goal)
