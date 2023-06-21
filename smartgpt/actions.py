@@ -243,7 +243,7 @@ class ExtractInfoAction(Action):
             {
                 "role": "system",
                 "content": (
-                    "You are a helpful assistant that follow user's request. the format of key: 'key_<idx>.seqX.<type>', where 'X' is a constant, value of <idx> is eval dynamically, 'type' is type of the value(which can be one of {int, str, list}), list means list of strings, int means integer, str means string."
+                    "You are a helpful assistant that follow user's request. the format of key: 'key_<idx>.seqX.<type>', where 'X' is a constant, value of <idx> is eval dynamically, 'type' is type of the value(which can be one of Python's type {int, str, list}), list means list of strings, int means integer, str means string."
                     f"The user's request has three parts: request, output_fmt, content. You will extract information from the content based on the request and return the result in the format of output_fmt."
                 )
             },

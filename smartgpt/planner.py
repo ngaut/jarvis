@@ -43,15 +43,8 @@ Your response should be structured in a standard JSON format, it includes fields
   "task_list": [
     {
       "task_num": 1,
-      "task": "Loop through the provided links, read the content, and take notes on the key points and features of TiDB Serverless", 
+      "task": "Loop through the links(https://me.0xffff.me/dbaas1.html, https://me.0xffff.me/dbaas2.html), read the content, and take notes on the key points and features of TiDB Serverless",  // task must be clear, detail and complete, no other reference outside of current task description please .
       "objective": "To gather necessary information and understand the fundamental aspects of TiDB Serverless from the provided links.",
-      "input": {
-        "description": "",
-        "links": [
-          "https://me.0xffff.me/dbaas1.html",
-          "https://me.0xffff.me/dbaas2.html"
-        ]
-      },
       "tools": ["Loop", "Fetch", "ExtractInfo", "TextCompletion"],
       "output": {
         "description": "Notes highlighting the key points and features of TiDB Serverless"
@@ -61,7 +54,6 @@ Your response should be structured in a standard JSON format, it includes fields
       "task_num": 2,
       "task": "",
       "objective": "",
-      "input": {},
       "tools": [],
       "output": {}
     },
@@ -95,7 +87,7 @@ def gen_instructions(model: str, replan: bool = False):
     task_outputs = {}
 
     # Filter and translate tasks
-    args['task_list'] = [{k: v for k, v in task.items() if k in ['task_num', 'task', 'objective', 'input', 'output']} for task in args['task_list']]
+    args['task_list'] = [{k: v for k, v in task.items() if k in ['task_num', 'task', 'objective', 'output']} for task in args['task_list']]
     task_num_to_task = {task['task_num']: task['task'] for task in args['task_list']}
     start_seq = 1
     for task in args['task_list']:
