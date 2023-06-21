@@ -34,16 +34,19 @@ GPT_4 = "gpt-4-0613"
 
 # Alternative model
 GPT_3_5_TURBO = "gpt-3.5-turbo-0613"
+GPT_3_5_TURBO_16K = "gpt-3.5-turbo-16k"
 #GPT_3_5_TURBO = "gpt-35-turbo_playground"
 
 GPT_LOCAL = "mpt-7b-chat"
 
 def max_token_count(model:str) -> int:
-    toc_cnt = 4096
+    tc = 4096
     if model == GPT_4:
-        toc_cnt = 8192
+        tc = 8192
+    if model == GPT_3_5_TURBO_16K:
+        tc = 16384
     
-    return toc_cnt - TOKEN_BUFFER
+    return tc - TOKEN_BUFFER
 
 
 def truncate_prompt(prompt: str, max_tokens: int) -> str:
