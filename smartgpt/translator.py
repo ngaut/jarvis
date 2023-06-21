@@ -37,7 +37,9 @@ Here are the JVM's instructions, with specified arguments, that you should consi
 
 4. **'ExtractInfo'**: This instruction retrieves specific pieces of information from the fetched webpage content. The arguments for this instruction include:
    - args {
-    "command": The string contains the context and a command request for the AI to extract information. It starts with "The content we have:```@eval(jvm.get(key_name))```". The last part of the prompt must be the command request go get what we want to save by using the syntax: Based on the content and command, now populate the following JSON template by replacing "<to_fill>" with appropriate values: idx starts from 0, {"kvs":[{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]}" // idx starts from 0
+    "command": The string contains an objective description for this instruction only, for the AI to extract information from the "content" argument and save the extracted information by applying the JSON template which is described in "output_control" argument.
+    "output_control": The output_control must be the command request go get what we want to save by using the JSON template: {"kvs": [{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0, 
+    "content": The content from which the information needs to be extracted. Its format must look like "```@eval(jvm.get(key_name))```". 
   }
 
 5. **'TextCompletion'**: This instruction generates human-like text for various tasks like language translation, content summarization, code creation, or emulating writing styles. The arguments for this instruction include:
@@ -115,7 +117,9 @@ An Output example:
       "seq": 3,
       "type": "ExtractInfo",
       "args": {
-        "command": "The content we have: ```@eval(jvm.get("content_fetched_" + str(jvm.get("idx")) + ".seq2.str"))```, Extract the current temperature and url(keep http or https prefix) in San Francisco from the content. Based on the content and command, now populate the following JSON template by replacing "<to_fill>" with appropriate values:{"kvs":[{"key":"temperature.seq3.int", "value":"<to_fill>"}, {"key":"source_url.seq3.str", "value":"<to_fill>"}, {"key":"date.seq3.str", "value": "<to_fill>"}]} 
+        "command": "Extract the current temperature and url(keep http or https prefix) in San Francisco from the content",
+        "output_control": "{\"kvs\":[{\"key\":\"temperature.seq3.int\", \"value\":\"<to_fill>\"}, {\"key\":\"source_url.seq3.str\", \"value\":\"<to_fill>\"}, {\"key\":\"date.seq3.str\", \"value\": \"<to_fill>\"}]}",
+        "content": "```@eval(jvm.get("content_fetched_" + str(jvm.get("idx")) + ".seq2.str"))```"
       }
     },
     {

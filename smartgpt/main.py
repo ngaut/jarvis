@@ -106,6 +106,8 @@ class Instruction:
         if action_type == "ExtractInfo":
             # patch instruction
             args["command"] = self.eval_and_patch_before_exec(args["command"])
+            args["content"] = self.eval_and_patch_before_exec(args["content"])
+            args["output_control"] = self.eval_and_patch_before_exec(args["output_control"])
 
         if action_type == "Fetch":
             args["url"] = self.eval_and_patch_before_exec(args["url"])
