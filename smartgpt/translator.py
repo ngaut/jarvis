@@ -5,7 +5,7 @@ import gpt
 
 TRANSLATE_PLAN_SYS_PROMPT = """
 As Jarvis, an AI model with the role of translating task into JVM's instructions. You will fully leverage user's hints(if exist), reuse them to generate instructions efficiently.
-Pay attention on on detect description on loop, for each, every etc, it will help you to understand the task better.
+Pay attention on task description on words: 'loop', for 'each', 'every' etc, usually the task should generate loop instructions.
 
 When handling data, bear in mind that dynamic keys are critical to the operation of this AI. They provide the flexibility to manipulate and access data according to specific needs of a variety of tasks. 
 Dynamic keys, must be the format: 'key_<idx>.seqX.<type>', where 'X' could vary based on context, 'idx' is related to the loop index, can be optional if there is no loop, 'type' is type of the value(which can be one of {int, str, list}) allow the AI to structure and access data in a flexible, non-static way.
@@ -32,13 +32,13 @@ Here are the JVM's instructions, with specified arguments, that you should consi
 3. **'Fetch'**: This instruction fetches the content of a URL. The arguments for this instruction include:
    - args {
     "url": The URL from which the content needs to be fetched.
-    "save_to": The key under which the fetched content should be stored in the database. Must be dynamic values when inside the loop instruction to avoid overwriting the same key.
+    "save_to": The key under which the fetched content should be stored in the database. Must be dynamic values with @eval() when inside the loop instruction to avoid overwriting the same key.Do not use python style f-string, it will not work for JVM.
   }
 
 4. **'ExtractInfo'**: This instruction retrieves specific pieces of information from the fetched webpage content. The arguments for this instruction include:
    - args {
-    "command": The string contains an objective description for this instruction only, for the AI to extract information from the "content" argument and save the extracted information by applying the JSON template which is described in "output_control" argument.
-    "output_control": The output_control must be the command request go get what we want to save by using the JSON template: {"kvs": [{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0, 
+    "command": The string contains an objective description for this instruction only.
+    "output_fmt": The output_fmt must be the command request to get what we want to save by using the JSON template: {"kvs": [{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0, 
     "content": The content from which the information needs to be extracted. Its format must look like "```@eval(jvm.get(key_name))```". 
   }
 
@@ -110,15 +110,15 @@ An Output example:
       "args": { 
         "url": "@eval(jvm.get('search_results.seq1.list')[0])", 
         // other tasks can use the key or key prefix 'content_fetched_' to scan the data, this is the key point to handle dynamic data
-        "save_to": "@eval('content_fetched_' + str(jvm.get('idx')) + '.seq2.str')"  // use string concatenation(+) instead of f-string to avoid syntax error
+        "save_to": "@eval('content_fetched_' + str(jvm.get('idx')) + '.seq2.str')"  
       }
     }
     {
       "seq": 3,
       "type": "ExtractInfo",
       "args": {
-        "command": "Extract the current temperature and url(keep http or https prefix) in San Francisco from the content",
-        "output_control": "{\"kvs\":[{\"key\":\"temperature.seq3.int\", \"value\":\"<to_fill>\"}, {\"key\":\"source_url.seq3.str\", \"value\":\"<to_fill>\"}, {\"key\":\"date.seq3.str\", \"value\": \"<to_fill>\"}]}",
+        "command": "Extract the current temperature and url(keep http or https prefix) in San Francisco",
+        "output_fmt": "{"kvs":[{"key":"temperature.seq3.int", "value":"<to_fill>"}, {"key":"source_url.seq3.str", "value":"<to_fill>"}, {"key":"date.seq3.str", "value": "<to_fill>"}]}",
         "content": "```@eval(jvm.get("content_fetched_" + str(jvm.get("idx")) + ".seq2.str"))```"
       }
     },

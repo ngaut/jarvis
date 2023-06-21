@@ -205,7 +205,7 @@ class ExtractInfoAction(Action):
     action_id: int
     command: str
     content: str
-    output_control: str
+    output_fmt: str
     model_name: str = gpt.GPT_3_5_TURBO
 
 
@@ -229,11 +229,16 @@ class ExtractInfoAction(Action):
         messages = [
             {
                 "role": "system",
-                "content": "You are a helpful assistant that follow user's command. the format of key: 'key_<idx>.seqX.<type>', where 'X' is a constant, default value of 'idx' is 0, 'type' is type of the value(which can be one of {int, str, list}), list means list of strings, int means integer, str means string.",
+                "content": (
+                    "You are a helpful assistant that follow user's request. the format of key: 'key_<idx>.seqX.<type>', where 'X' is a constant, value of <idx> is eval dynamically, 'type' is type of the value(which can be one of {int, str, list}), list means list of strings, int means integer, str means string."
+                    f"The user's request has three parts: request, output_fmt, content. You will extract information from the content based on the request and return the result in the format of output_fmt."
+                )
             },
             {
                 "role": "user",
-                "content": f"Command={self.command}\nOutput_control={self.output_control}\nContent={self.content}\n\nExecute the command request based on Content and populate the JSON template given in the Output_control by replacing '<to_fill>' with appropriate values",
+                "content": (
+                    f"request={self.command}\n\noutput_fmt={self.output_fmt}\n\nContent={self.content}"
+                )
             },
         ]
 
