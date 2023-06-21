@@ -103,7 +103,7 @@ def send_message(messages, max_response_tokens: int, model: str) -> str:
             #print(f"\n\n------------------message sent to AI:\n {messages}\n\n")
             response = openai.ChatCompletion.create(model=model, messages=messages, max_tokens=max_response_tokens, temperature=0.7)
             #time.sleep(1)
-            return response.choices[0].message["content"].replace("\\n", "")  # type: ignore
+            return response.choices[0].message["content"]  # type: ignore
         except openai.error.RateLimitError:  # type: ignore
             logging.info("Model %s currently overloaded. Waiting 30 seconds...", model)
             time.sleep(30)
