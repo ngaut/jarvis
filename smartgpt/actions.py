@@ -93,24 +93,40 @@ class FetchAction:
         return f"action_id: {self.id()}, Fetch `{self.url}`."
     
     def get_html(self, url: str) -> str:
-        options = ChromeOptions()
-        options.headless = True
-        browser = ChromeWebDriver(executable_path=ChromeDriverManager().install(), options=options)
-        browser.get(url)
-        html = browser.find_element(By.TAG_NAME, "body").get_attribute("innerHTML")
-        browser.quit()
-        return html
+        # Setting up Chrome Options
+        chrome_options = ChromeOptions()
+        chrome_options.headless = True
 
+        # Installing and setting up Chrome WebDriver with the defined options
+        driver_path = ChromeDriverManager().install()
+
+        # Use context management to ensure the browser is quit
+        with ChromeWebDriver(executable_path=driver_path, options=chrome_options) as browser:
+            # Access the provided URL
+            browser.get(url)
+
+            # Extract HTML content from the body of the web page
+            body_element = browser.find_element(By.TAG_NAME, "body")
+            page_html = body_element.get_attribute("innerHTML")
+
+        return page_html
+    
     def extract_text(self, html: str) -> str:
         soup = BeautifulSoup(html, "html.parser")
         for script in soup(["script", "style"]):
             script.extract()
+
+        # modify a tags to include href in markdown format
+        for a in soup.find_all('a'):
+            url = a.get('href', '')
+            if url:
+                a.string = f"[{a.get_text()}]({url})"
+
         text = soup.get_text()
         lines = (line.strip() for line in text.splitlines())
         chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
         text = "\n".join(chunk for chunk in chunks if chunk)
         return text
-    
 
     def run(self):
         try:
@@ -131,15 +147,12 @@ class FetchAction:
             html = self.get_html(url)
             text = self.extract_text(html)
             logging.info(f"\nFetchAction RESULT:\n{text}")
-            jvm.set(self.save_to, text)
-            
-            save_to_cache(url, text)
 
+            jvm.set(self.save_to, text)
+            save_to_cache(f"{self.url}{self.save_to}", text)
             return "success"
         except Exception as err:
             return f"FetchAction RESULT: An error occurred: {err}"
-
-
 
 @dataclass(frozen=True)
 class SearchOnlineAction:
