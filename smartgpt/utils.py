@@ -9,7 +9,6 @@ def wrap_string_to_eval(text):
 
     
 def eval_expression(text, lazy_eval_prefix=LAZY_EVAL_PREFIX):
-    logging.info(f"enter eval_expression\n")
     # find last occurrence of "@eval("
     start = text.rfind(lazy_eval_prefix)
     if start == -1:

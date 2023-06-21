@@ -117,7 +117,7 @@ An Output example:
       "seq": 3,
       "type": "ExtractInfo",
       "args": {
-        "command": "Extract the current temperature and url(keep http or https prefix) in San Francisco",
+        "command": "Extract the current temperature and url in San Francisco",
         "output_fmt": "{"kvs":[{"key":"temperature.seq3.int", "value":"<to_fill>"}, {"key":"source_url.seq3.str", "value":"<to_fill>"}, {"key":"date.seq3.str", "value": "<to_fill>"}]}",
         "content": "```@eval(jvm.get("content_fetched_" + str(jvm.get("idx")) + ".seq2.str"))```"
       }
@@ -155,7 +155,7 @@ An Output example:
   ],
   
   "end_seq": 7,  // must have this field
-  // explain the overall outcome we had after successed, what was the final result and how to retrive the results(what's the key prefix), As there are other tasks will use the result, give a brief hit to next task.
+  // explain the overall outcome we had after successed, what was the final result and how to retrive the results( specify (key name) or (key prefix and postfix) ), As there are other tasks will use the result, give a brief hit to next task.
   "overall_outcome": "The current weather reprot for San Francisco stored, it can be retrived by @eval(jvm.get('WeatherReport.seq7.str')) , the report includes: the source url of weather data, date of fetching weather, notes on suggestions from AI ", 
 }
 ```
