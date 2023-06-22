@@ -12,7 +12,7 @@ import planner
 import json
 import utils
 
-base_model  = gpt.GPT_3_5_TURBO
+base_model  = gpt.GPT_3_5_TURBO_16K
 
 class Instruction:
     def __init__(self, instruction, act, goal):
@@ -99,7 +99,6 @@ class Instruction:
                 break
             text = tmp_text
 
-        logging.info(f"\n*************text before patched: *********************\n")
         patch_success = False
         start = text.find("{'kvs':")
         end = text.rfind("}")
