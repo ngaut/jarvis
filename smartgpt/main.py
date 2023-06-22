@@ -34,16 +34,16 @@ class Instruction:
 
         if action_type == "SearchOnline": 
             # extract key from: {"kvs":[{"key":"search_results.seq1.list", "value": "<to_fill>"}]}
-            resp_format = args["resp_format"]
-            if resp_format is not None:
+            save_to = args["save_to"]
+            if save_to is not None:
                 # find and decode json to extract key
-                start = resp_format.find("{")
-                end = resp_format.rfind("}")
+                start = save_to.find("{")
+                end = save_to.rfind("}")
                 if start != -1 and end != -1:
-                    resp_format = resp_format[start:end+1]
-                    resp_format = json.loads(resp_format)
+                    save_to = save_to[start:end+1]
+                    save_to = json.loads(save_to)
                     # get the key
-                    key = resp_format["kvs"][0]["key"]
+                    key = save_to["kvs"][0]["key"]
                     # replace the value with the key
                     args["result_key"] = key
 

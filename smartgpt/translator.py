@@ -16,10 +16,10 @@ Dynamic keys are particularly useful in loop structures, where data is iterative
 
 Here are the JVM's instructions, with specified arguments, that you should consider:
 
-1. **'RunPython'**: This instruction handles Python code execution. It's recommended to use this instruction only if the task cannot be achieved by any other means. The arguments for this instruction include:
-   - args {
+1. **'RunPython'**: This instruction handles Python code execution. It's recommended to use this instruction only if the task cannot be achieved by any other means. All validate arguments for this instruction include:
+   - args: {  // do not use any non-existing arguments
     "objective": The string contains an objective description for this instruction only.
-    "code": A string containing the entire Python code to be executed in a single line.
+    "code": A string containing the entire Python code to be executed. inside the code, you can call JVM's functions directly without using @eval() syntax to access and manipulate data, such as jvm.set(), jvm.get() and so on, because jvm module is imported by default.
     "timeout": The maximum amount of time in seconds for the execution of the code.
     "pkg_dependencies": A list of any Python packages that the code depends on.
   }
@@ -28,7 +28,7 @@ Here are the JVM's instructions, with specified arguments, that you should consi
    - args {
     "objective": The string contains an objective description for this instruction only.
     "query": The search query string.
-    "resp_format": The format of the response, which typically involves using the template to store the search result in the database.
+    "save_to": The key under which the search results should be stored in the database. Must be dynamic values with @eval() when inside the loop instruction to avoid overwriting the same key.Do not use python style f-string, it will not work for JVM.
   }
 
 3. **'Fetch'**: This instruction fetches the content of a URL. The arguments for this instruction include:
@@ -46,7 +46,7 @@ Here are the JVM's instructions, with specified arguments, that you should consi
     "content": The content from which the information needs to be extracted. Its format must look like "```@eval(jvm.get(key_name))```". 
   }
 
-5. **'TextCompletion'**: This instruction generates human-like text for various tasks like language translation, content summarization, code creation, or emulating writing styles. The arguments for this instruction include:
+5. **'TextCompletion'**: This instruction is capable of generating contextually relevant and coherent text, suitable for various tasks such as language translation, content summarization, and emulating different writing styles. Crucially, it is also adept at creating, improving, or modifying code, based on provided instructions or guidelines. This includes tasks that implicitly require code alterations, enhancements, or refactoring, even when such terms are not explicitly used. The 'TextCompletion' instruction is particularly useful for tasks necessitating complex, logical, or creative input. The arguments for this instruction include:
    - args {
     "objective": The string contains an objective description for this instruction only.
     "prompt": The string contains the context and a command request for the AI to generate a response. It starts with "The content we have:```@eval(jvm.get(key_name))```". The last part of the prompt must be the command request go get what we want to save by using the syntax: Based on the content and command, now populate the following JSON template by replacing "<to_fill>" with appropriate values: idx starts from 0, {"kvs":[{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]}" 
@@ -106,17 +106,17 @@ An Output example:
     {
       "seq": 1,
       "type": "SearchOnline",
+      "objective": "Find URLs related to current weather in San Francisco",
       "args": {
-        "objective": "Find URLs related to current weather in San Francisco",
         "query": "temperature in San Francisco",
-        "resp_format": Populate the following JSON template by replacing "<to_fill>" with appropriate values: {"kvs":[{"key":"search_results.seq1.list", "value": "<to_fill>"}]}" 
+        "save_to": "@eval('search_results' + str(jvm.get('idx')) + '.seq2.str')" 
       }
     },
     {
       "seq": 2,
       "type": "Fetch",
+      "objective": "Fetch the content from the first URL from the search results",
       "args": { 
-        "objective": "Fetch the content from the first URL from the search results",
         "url": "@eval(jvm.get('search_results.seq1.list')[0])",  // make sure the reference key exists.
         // other tasks can use the key or key prefix 'content_fetched_' to scan the data, this is the key point to handle dynamic data
         "save_to": "@eval('content_fetched_' + str(jvm.get('idx')) + '.seq2.str')"  
@@ -125,8 +125,8 @@ An Output example:
     {
       "seq": 3,
       "type": "ExtractInfo",
+      "objective": "Extract the current temperature in San Francisco from the fetched content",
       "args": {
-        "objective": "Extract the current temperature in San Francisco from the fetched content",
         "command": "Extract the current temperature and url in San Francisco",
         "output_fmt": "{"kvs":[{"key":"temperature.seq3.int", "value":"<to_fill>"}, {"key":"source_url.seq3.str", "value":"<to_fill>"}, {"key":"date.seq3.str", "value": "<to_fill>"}]}",
         "content": "```@eval(jvm.get("content_fetched_" + str(jvm.get("idx")) + ".seq2.str"))```"
@@ -135,16 +135,16 @@ An Output example:
     {
       "seq": 4,
       "type": "If",
+      "objective": "Based on the current temperature, decide if we recommend outdoor or indoor activities",
       "args": {
-        "objective": "Based on the current temperature, decide if we recommend outdoor or indoor activities",
         "condition": "@eval(jvm.get("temperature.seq3.int") > 67)"
       },
       "then": [
         {
           "seq": 5,
           "type": "TextCompletion",
+          "objective": "Generate a text suggesting outdoor activities",
           "args": {
-            "objective": "Generate a text suggesting outdoor activities",
             "prompt": "The content we have: ```Today's temperature in San Francisco is @eval(jvm.get("temperature.seq3.int")).``` It's a good day for outdoor activities. What else should we recommend to the users? Based on the content and command, now populate the following JSON template by replacing "<to_fill>" with appropriate values: {"kvs":[{"key":"Notes.seq5.list", "value": "<to_fill>"}]} 
           }
         }
@@ -153,8 +153,8 @@ An Output example:
         {
           "seq": 6,
           "type": "TextCompletion",
+          "objective": "Generate a text suggesting indoor activities",
           "args": {
-            "objective": "Generate a text suggesting indoor activities",
             "prompt": "The content we have: ```Today's temperature in San Francisco is @eval(jvm.get("temperature.seq3.int")) which below 25 degrees.``` What indoor activities should we recommend to the users? Please generate a weather report, Based on the content and command, now populate the following JSON template by replacing "<to_fill>" with appropriate values:{"kvs":[{"key":"Notes.seq5.list", "value": "<to_fill>"}]} 
           }
         }
@@ -163,8 +163,8 @@ An Output example:
     {
       "seq": 7,
       "type": "TextCompletion",
+      "objective": "Generate a complete weather report for San Francisco using the gathered information",
       "args": {
-        "objective": "Generate a complete weather report for San Francisco using the gathered information",
         "prompt": "Please generate current weather reprot for San Francisco, ```temp = @eval(jvm.get("temperature.seq3.int"))```, ```source_url = @eval(jvm.get("source_url.seq3.str"))```, ```date = @eval(jvm.get("date.seq3.str")}}```, ```notes = @eval(jvm.get("Notes.seq5.list"))```. Based on the content and command, now populate the following JSON template by replacing "<to_fill>" with appropriate values: {"kvs":[{"key":"WeatherReport.seq7.str", "value": "<to_fill>"}]} 
       }
   ],
@@ -196,6 +196,7 @@ def translate_to_instructions(task_info, model: str):
         
     try:
         user_prompt = (
+            f"The overall goal is {task_info['goal']}. But we just need to work out a sub task to finish a sub objective\n"
             f"The objective is to finish the task by writing a series of JVM instructions based on user's hints(if exist)." 
             f"The task in hand: |{task_info['task']}|."
             f"The objective of the task is: {task_info['objective']}|.\n"
