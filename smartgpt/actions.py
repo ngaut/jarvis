@@ -158,7 +158,7 @@ class FetchAction:
 class SearchOnlineAction:
     action_id: int
     query: str
-    result_key: str  # the key that will be used to save content to database
+    save_to: str  # the key that will be used to save content to database
     
     def key(self):
         return "SearchOnline"
@@ -172,7 +172,7 @@ class SearchOnlineAction:
     def run(self):
         try:
             # Check if the query is already in the cache
-            cached_key = self.query + self.result_key
+            cached_key = self.query + self.save_to
             cached_result = get_from_cache(cached_key)
             if cached_result is not None:
                 logging.info(f"\nSearchOnlineAction RESULT(cached)\n")
@@ -197,7 +197,7 @@ class SearchOnlineAction:
             # return a list of links
             result = [item['link'] for item in search_results['items']]
             logging.info(f"SearchOnlineAction RESULT: {result}")
-            jvm.set(self.result_key, result)
+            jvm.set(self.save_to, result)
             
             save_to_cache(cached_key, str(result))
 

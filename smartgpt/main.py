@@ -33,19 +33,7 @@ class Instruction:
         args = dict(self.instruction.get("args"))
 
         if action_type == "SearchOnline": 
-            # extract key from: {"kvs":[{"key":"search_results.seq1.list", "value": "<to_fill>"}]}
-            save_to = args["save_to"]
-            if save_to is not None:
-                # find and decode json to extract key
-                start = save_to.find("{")
-                end = save_to.rfind("}")
-                if start != -1 and end != -1:
-                    save_to = save_to[start:end+1]
-                    save_to = json.loads(save_to)
-                    # get the key
-                    key = save_to["kvs"][0]["key"]
-                    # replace the value with the key
-                    args["result_key"] = key
+            args["save_to"] = self.eval_and_patch(args["save_to"])
 
         if action_type == "ExtractInfo":
             # patch instruction

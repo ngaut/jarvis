@@ -118,7 +118,7 @@ An Output example:
       "objective": "Find URLs related to current weather in San Francisco",
       "args": {
         "query": "temperature in San Francisco",
-        "save_to": "@eval('search_results' + str(jvm.get('idx')) + '.seq2.str')" 
+        "save_to": "@eval('search_results_' + str(jvm.get('idx')) + '.seq1.str')" 
       }
     },
     {
