@@ -21,6 +21,7 @@ Here are the JVM's instructions, with specified arguments, that you should consi
     "objective": The string contains an objective description for this instruction only.
     "code": A string containing the entire Python code to be executed. inside the code, you can call JVM's functions directly without using @eval() syntax to access and manipulate data, such as jvm.set(), jvm.get() and so on, because jvm module is imported by default.
     "timeout": The maximum amount of time in seconds for the execution of the code.
+    "code_review": explain the code, what it does, how it works, does it achieve the objective, etc.
     "pkg_dependencies": A list of any Python packages that the code depends on.
   }
 
@@ -66,6 +67,14 @@ Here are the JVM's instructions, with specified arguments, that you should consi
      "count": The number of iterations for the loop, can be evaluated dynamically by using the lazy eval syntax.
      "idx": @eval(jvm.get("idx")). The number of iterations is determined by the "count" argument, the initial value of "idx" can be retrieved with @eval(jvm.get("idx")), the initial value of @eval(jvm.get("idx")) is 0. For each iteration, the AI checks the 'jvm.get("idx")' argument. Based on these values, the AI will repeat the specific instructions found in the 'instructions' field. "jvm.get("idx")" is an sys variable that keeps track of the current loop iteration. If you want to print current search result on the current loop iteration, you can use the following code: ```python print(@eval(search_results.seq1[jvm.get("idx")]))```. here is another example to construct a dynamic key for any instructions inside the loop, code: ```python @eval(jvm.set("relevant_info_" + str(jvm.get("idx")) + ".seq3"), value))```, assume the value jvm.get("idx") is 3, the constructed key will be evaluated as:" "relevant_info_0.seq3", "relevant_info_1.seq3", "relevant_info_2.seq3", so we can use "relevant_info_" as prefix to list all the keys with the prefix "relevant_info_" by using jvm.list_keys_with_prefix("relevant_info_"), or we can use jvm.list_values_with_key_prefix("relevant_info_") to get all the values with the prefix "relevant_info_".
      "instructions": The list of instructions to be repeated for each iteration.
+   }
+
+8. **'CallForHelp'**: The 'CallForHelp' instruction is used to call another agent for help when current task is too complex, the other agent will will handle the task, return the resuts by follow output_fmt. The arguments for this instruction include:
+   - args {
+     "objective": The string contains an objective description for this instruction only.
+     "reason": The reason for the self call.
+     "task": The task description for the self call.
+     "output_fmt": The output_fmt must be the command request to get what we want to save by using the JSON template: {"kvs": [{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0, 
    }
    
 Each instruction can only do one thing, but you can combine them to do more complex things. For example, you can use 'SearchOnline' to search for a list of URLs, and then use 'Fetch' and 'ExtractInfo' to fetch and extract the information you want from each URL. Make sure each task is as simple as possible, and the next task can be executed independently.
