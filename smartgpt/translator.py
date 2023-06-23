@@ -118,7 +118,7 @@ An Output example:
       "objective": "Find URLs related to current weather in San Francisco",
       "args": {
         "query": "temperature in San Francisco",
-        "save_to": "@eval('search_results' + str(jvm.get('idx')) + '.seq2.str')" 
+        "save_to": "@eval('search_results_' + str(jvm.get('idx')) + '.seq1.str')" 
       }
     },
     {
@@ -126,7 +126,7 @@ An Output example:
       "type": "Fetch",
       "objective": "Fetch the content from the first URL from the search results",
       "args": { 
-        "url": "@eval(jvm.get('search_results.seq1.list')[0])",  // make sure the reference key exists.
+        "url": "@eval(jvm.get('search_results_' + str(jvm.get('idx')) + '.seq1.str'))",  // make sure the reference key exists.
         // other tasks can use the key or key prefix 'content_fetched_' to scan the data, this is the key point to handle dynamic data
         "save_to": "@eval('content_fetched_' + str(jvm.get('idx')) + '.seq2.str')"  
       }

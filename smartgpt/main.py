@@ -36,6 +36,7 @@ class Instruction:
             # extract key from: {"kvs":[{"key":"search_results.seq1.list", "value": "<to_fill>"}]}
             save_to = args["save_to"]
             if save_to is not None:
+                args["result_key"] = self.eval_and_patch(save_to)
                 # find and decode json to extract key
                 start = save_to.find("{")
                 end = save_to.rfind("}")
@@ -45,7 +46,7 @@ class Instruction:
                     # get the key
                     key = save_to["kvs"][0]["key"]
                     # replace the value with the key
-                    args["result_key"] = key
+                    args["result_key"] = self.eval_and_patch(key)
 
         if action_type == "ExtractInfo":
             # patch instruction
