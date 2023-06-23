@@ -1,9 +1,9 @@
-
 from dataclasses import dataclass, field
 
 import io, subprocess, os, inspect, json, logging, time, re
-import gpt, jvm
-from spinner import Spinner
+from smartgpt import gpt
+from smartgpt import jvm
+from smartgpt.spinner import Spinner
 from typing import Union,List, Dict
 from abc import ABC
 from urllib.error import HTTPError

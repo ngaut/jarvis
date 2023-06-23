@@ -2,7 +2,7 @@
 
 
 import logging
-import jvm
+from smartgpt import jvm
 
 
 LAZY_EVAL_PREFIX = "@eval("
@@ -10,7 +10,6 @@ LAZY_EVAL_PREFIX = "@eval("
 def wrap_string_to_eval(text):
     return LAZY_EVAL_PREFIX + text + ")"
 
-    
 def eval_expression(text, lazy_eval_prefix=LAZY_EVAL_PREFIX):
     # find last occurrence of "@eval("
     start = text.rfind(lazy_eval_prefix)

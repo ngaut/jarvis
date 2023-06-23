@@ -1,7 +1,8 @@
 from typing import Optional
 from dotenv import load_dotenv
 from spinner import Spinner
-import gpt, jvm
+import gpt
+from smartgpt import jvm
 import actions
 import ast
 
@@ -133,7 +134,6 @@ class Instruction:
                 logging.info(f"patch_after_exec, set kv: {kv}\n")
                 jvm.set(kv["key"], kv["value"])
 
-        
 class JVMInterpreter:
     def __init__(self):
         self.pc = 0

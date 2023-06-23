@@ -4,6 +4,7 @@ import time, logging
 import gpt
 import json
 import translator
+
 GEN_PLAN__SYS_PROMPT = """
 As Jarvis, your role as an AI model is to generate and structure tasks for execution by an automated agent (auto-agent). 
 Your job is to create the tasks, but not to execute them, which will be done by other agents. 
