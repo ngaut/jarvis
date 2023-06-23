@@ -74,6 +74,7 @@ def gen_instructions(model: str, replan: bool = False):
         plan = plan[plan.find("{") : plan.rfind("}") + 1]
         with open("plan.json", "w") as f:
             f.write(plan)
+        exit(0)
 
     logging.info("Translating plan to instructions...")
     args = json.load(open("plan.json"))

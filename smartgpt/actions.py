@@ -250,7 +250,7 @@ class ExtractInfoAction(Action):
             {
                 "role": "user",
                 "content": (
-                    f"request={self.command}\n\noutput_fmt={self.output_fmt}\n\nContent={self.content}"
+                    f"request={self.command}\n\noutput_fmt={self.output_fmt}\n\nContent=```{self.content}```"
                 )
             },
         ]

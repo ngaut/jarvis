@@ -69,7 +69,7 @@ Here are the JVM's instructions, with specified arguments, that you should consi
      "instructions": The list of instructions to be repeated for each iteration.
    }
 
-8. **'CallHighLevelAgent'**: The 'CallHighLevelAgent' instruction is used to call another high level agent for help when current task is too complex, the other agent will will handle the task, return the resuts by follow output_fmt. The arguments for this instruction include:
+8. **'CallHighLevelAgent'**: The 'CallHighLevelAgent' instruction is used to call another high level agent for help when current task is too complex, the other agent will will handle the task, return the resuts by following output_fmt. The arguments for this instruction include:
    - args {
      "objective": The string contains an objective description for this instruction only.
      "reason": The reason for the self call.
@@ -138,7 +138,7 @@ An Output example:
       "args": {
         "command": "Extract the current temperature and url in San Francisco",
         "output_fmt": "{"kvs":[{"key":"temperature.seq3.int", "value":"<to_fill>"}, {"key":"source_url.seq3.str", "value":"<to_fill>"}, {"key":"date.seq3.str", "value": "<to_fill>"}]}",
-        "content": "```@eval(jvm.get("content_fetched_" + str(jvm.get("idx")) + ".seq2.str"))```"
+        "content": "@eval(jvm.get("content_fetched_" + str(jvm.get("idx")) + ".seq2.str"))"
       }
     },
     {
