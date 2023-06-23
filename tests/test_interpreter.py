@@ -6,6 +6,26 @@ class TestInterpreter(unittest.TestCase):
     def setUp(self):
         self.instruction = JVMInstruction(None, None, None)
 
+    def test_eval_and_patch_1(self):
+        text_input = "{'kvs':[{'key':\"key_points_\" + str(jvm.get(\"idx\")) + \".seq3.list\", 'value':'<to_fill>'}, {'key':'features_' + str(jvm.get('idx')) + '.seq3.list', 'value':'<to_fill>'}]}"
+        expected_output = '{"kvs":[{"key":"key_points_0.seq3.list", "value":"<to_fill>"}, {"key":"features_0.seq3.list", "value":"<to_fill>"}]}'
+
+        # Here we should use mock.patch to simulate the behavior of jvm.get
+        with mock.patch('smartgpt.interpreter.jvm.get', return_value=0):
+            actual_output = self.instruction.eval_and_patch(text_input)
+
+        self.assertEqual(actual_output, expected_output)
+
+    def test_eval_and_patch_2(self):
+        text_input = '{"kvs":[{"key":"key_points_" + str(jvm.get(\'idx\')) + ".seq3.list", "value":"<to_fill>"}, {"key":"features_" + str(jvm.get(\'idx\')) + ".seq3.list", "value":"<to_fill>"}]}'
+        expected_output = '{"kvs":[{"key":"key_points_0.seq3.list", "value":"<to_fill>"}, {"key":"features_0.seq3.list", "value":"<to_fill>"}]}'
+
+        # Here we should use mock.patch to simulate the behavior of jvm.get
+        with mock.patch('smartgpt.interpreter.jvm.get', return_value=0):
+            actual_output = self.instruction.eval_and_patch(text_input)
+
+        self.assertEqual(actual_output, expected_output)
+
     def test_eval_and_patch_no_kvs(self):
         # TODO: Add setup for this test case
         # TODO: Run test case

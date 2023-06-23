@@ -77,37 +77,32 @@ class JVMInstruction:
                 break
             text = tmp_text
 
-        patch_success = False
-        start = text.find("{'kvs':")
-        end = text.rfind("}")
-        if start != -1 and end != -1:
-            resp_format = text[start:end+1]
+        # find the substring starts with {'kvs': or {"kvs": and ends with }]
+        match = re.search(r"\{['\"]kvs['\"]:(.+)\]\}", text)
+
+        if match is not None:
+            resp_format = match.group(0)
             logging.info(f"resp_format: {resp_format}\n")
-            # todo: need to enhance the regex to support more complex cases
-            pattern = re.compile(r"'key':\s*(.+?),\s*'value':\s*(.+?)")
-            matches = pattern.findall(resp_format)
 
-            new_resp_format = resp_format
-            for match in matches:
-                key = match[0]
-                if key.find("jvm.get") == -1: # not a dynamic key, no need to eval
-                    logging.info(f"key: {key} is not a dynamic key, no need to eval\n")
-                    continue
-                # patch the key
-                # add LAZY_EVAL_PREFIX and ")" to the wrapped key
-                to_eval = utils.wrap_string_to_eval(key)
-                logging.info(f"to_eval: {to_eval}\n")
-                patched_key = utils.eval_expression(to_eval)
-                # replace the key with the patched one
-                # todo: may have side effectives.
-                text = text.replace(key, patched_key, 1)
-                patch_success = True
+            def replace(match):
+                key_expr = match.group(2)
 
-            # from 'start' to replace single quotes to double quotes
-            text = text[:start] + utils.fix_string_to_json(text[start:])
+                if "jvm.get" in key_expr:
+                    to_eval = utils.wrap_string_to_eval(key_expr)
+                    logging.info(f"to_eval: {to_eval}")
+                    patched_key = f"'{utils.eval_expression(to_eval)}'"
+                    return f'{match.group(1)}:{patched_key}, {match.group(3)}:{match.group(4)}'
+                else:
+                    logging.info(f"key: {key_expr} is not a dynamic key, no need to eval")
+                    return match.group(0)
+
+            # pattern that handles both single and double quoted strings for 'key', 'value', and their corresponding values
+            pattern = re.compile(r"('key'|\"key\"):\s*('.+?'|\".+?\"),\s*('value'|\"value\"):\s*('.+?'|\".+?\")")
+            text = text.replace(resp_format, utils.fix_string_to_json(pattern.sub(replace, resp_format)))
 
         return text
-    
+
+ 
     def post_exec(self, result):
         # parse result that starts with first '{' and ends with last '}' as json
         start = result.find("{")
