@@ -2,7 +2,8 @@
 from dataclasses import dataclass, field
 
 import io, subprocess, os, inspect, json, logging, time, re
-import gpt, jvm
+import gpt
+from smartgpt import jvm
 from spinner import Spinner
 from typing import Union,List, Dict
 from abc import ABC

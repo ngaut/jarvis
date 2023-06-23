@@ -1,7 +1,8 @@
 from typing import Optional
 from dotenv import load_dotenv
 from spinner import Spinner
-import gpt, jvm
+import gpt
+from smartgpt import jvm
 import actions
 import ast
 
