@@ -134,7 +134,6 @@ class Instruction:
                 logging.info(f"patch_after_exec, set kv: {kv}\n")
                 jvm.set(kv["key"], kv["value"])
 
-        
 class JVMInterpreter:
     def __init__(self):
         self.pc = 0
