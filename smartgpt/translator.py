@@ -69,7 +69,7 @@ Here are the JVM's instructions, with specified arguments, that you should consi
      "instructions": The list of instructions to be repeated for each iteration.
    }
 
-8. **'CallForHelp'**: The 'CallForHelp' instruction is used to call another agent for help when current task is too complex, the other agent will will handle the task, return the resuts by follow output_fmt. The arguments for this instruction include:
+8. **'CallHighLevelAgent'**: The 'CallHighLevelAgent' instruction is used to call another high level agent for help when current task is too complex, the other agent will will handle the task, return the resuts by follow output_fmt. The arguments for this instruction include:
    - args {
      "objective": The string contains an objective description for this instruction only.
      "reason": The reason for the self call.
@@ -206,10 +206,11 @@ def translate_to_instructions(task_info, model: str):
     try:
         user_prompt = (
             f"The overall goal is {task_info['goal']}. But we just need to work out a sub task to finish a sub objective\n"
-            f"The objective is to finish the task by writing a series of JVM instructions based on user's hints(if exist)." 
             f"The task in hand: |{task_info['task']}|."
             f"The objective of the task is: {task_info['objective']}|.\n"
             f"The start_seq is {task_info['start_seq']}.\n"
+            f"Here is the request: create a series of JVM instructions to finish the in hand task and objective, make sure fully utilize the previous tasks' outcome and uer's hints.\n"
+            f"Remember: Every instruction must save its outcome to database for other tasks to use.\n"
         )
         if hints != "":
             user_prompt += f"Here are some hints: {hints}\n"
