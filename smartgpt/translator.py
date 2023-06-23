@@ -69,7 +69,7 @@ Here are the JVM's instructions, with specified arguments, that you should consi
      "instructions": The list of instructions to be repeated for each iteration.
    }
 
-8. **'CallHighLevelAgent'**: The 'CallHighLevelAgent' instruction is used to call another high level agent for help when current task is too complex, the other agent will will handle the task, return the resuts by follow output_fmt. The arguments for this instruction include:
+8. **'CallHighLevelAgent'**: The 'CallHighLevelAgent' instruction is used to call another high level agent for help when current task is too complex, the other agent will will handle the task, return the resuts by following output_fmt. The arguments for this instruction include:
    - args {
      "objective": The string contains an objective description for this instruction only.
      "reason": The reason for the self call.
@@ -98,7 +98,7 @@ key-value API is the only way to pass information between tasks. The database ca
 ## Output Requirements
 
 Your output must be in JSON format, required fields: goal, objective, criticism, hints_from_user, end_seq(means max instruction's seqence number), instructions, thoughts, overall_outcome. 
-When forming the 'overall_outcome',  Explain the overall outcome we had after successed, what is the final result and how to retrive the results( specify key name or (both key prefix and postfix) ), As there are other tasks will use the result, give hints to next task.
+When forming the 'overall_outcome',  Explain the overall outcome we had after successed, what is the final result and how to retrive the results( specify key name or (both key prefix and postfix if the key can't be retrived by jvm.get) ), As there are other tasks will use the result, give hints to next task.
 
 An Output example:
 ```json
@@ -138,7 +138,7 @@ An Output example:
       "args": {
         "command": "Extract the current temperature and url in San Francisco",
         "output_fmt": "{"kvs":[{"key":"temperature.seq3.int", "value":"<to_fill>"}, {"key":"source_url.seq3.str", "value":"<to_fill>"}, {"key":"date.seq3.str", "value": "<to_fill>"}]}",
-        "content": "```@eval(jvm.get("content_fetched_" + str(jvm.get("idx")) + ".seq2.str"))```"
+        "content": "@eval(jvm.get("content_fetched_" + str(jvm.get("idx")) + ".seq2.str"))"
       }
     },
     {
@@ -205,15 +205,16 @@ def translate_to_instructions(task_info, model: str):
         
     try:
         user_prompt = (
-            f"The overall goal is {task_info['goal']}. But we just need to work out a sub task to finish a sub objective\n"
-            f"The task in hand: |{task_info['task']}|."
-            f"The objective of the task is: {task_info['objective']}|.\n"
-            f"The start_seq is {task_info['start_seq']}.\n"
-            f"Here is the request: create a series of JVM instructions to finish the in hand task and objective, make sure fully utilize the previous tasks' outcome and uer's hints.\n"
-            f"Remember: Every instruction must save its outcome to database for other tasks to use.\n"
+            f"The overall goal is {task_info['goal']}, but at the moment, we need to focus on completing a specific sub-task to meet a sub-objective. |\n"
+            f"Let's concentrate on the task at hand: |{task_info['task']}|. |\n"
+            f"The objective of this task is: |{task_info['objective']}|. |\n"
+            f"The starting sequence is |{task_info['start_seq']}|. |\n"
+            f"Your task: | create a series of JVM instructions to complete the task at hand and fulfill the stated objective. Ensure you fully utilize the outcomes of previous tasks and user hints. | \n"
+            f"Remember: | Every instruction must save its outcome to the database so it can be used in subsequent tasks. |\n"
         )
+
         if hints != "":
-            user_prompt += f"Here are some hints: {hints}\n"
+            user_prompt += f"Here are some hints from user: {hints}\n"
         user_prompt += "Please provide your response in JSON format:\n\n```json"
             
         logging.info(f"user prompt:\n{user_prompt}")
