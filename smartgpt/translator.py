@@ -97,7 +97,7 @@ key-value API is the only way to pass information between tasks. The database ca
 
 ## Output Requirements
 
-Your output must be in JSON format, required fields: goal, objective, criticism, end_seq(means max instruction's seqence number), instructions, thoughts, overall_outcome. 
+Your output must be in JSON format, required fields: goal, objective, criticism, hints_from_user, end_seq(means max instruction's seqence number), instructions, thoughts, overall_outcome. 
 When forming the 'overall_outcome',  Explain the overall outcome we had after successed, what is the final result and how to retrive the results( specify key name or (both key prefix and postfix) ), As there are other tasks will use the result, give hints to next task.
 
 An Output example:
@@ -118,7 +118,7 @@ An Output example:
       "objective": "Find URLs related to current weather in San Francisco",
       "args": {
         "query": "temperature in San Francisco",
-        "save_to": "@eval('search_results_' + str(jvm.get('idx')) + '.seq1.str')" 
+        "save_to": "@eval('search_results_' + str(jvm.get('idx')) + '.seq1.list')" 
       }
     },
     {
@@ -128,7 +128,7 @@ An Output example:
       "args": { 
         "url": "@eval(jvm.get('search_results.seq1.list')[0])",  // make sure the reference key exists.
         // other tasks can use the key or key prefix 'content_fetched_' to scan the data, this is the key point to handle dynamic data
-        "save_to": "@eval('content_fetched_' + str(jvm.get('idx')) + '.seq2.str')"  
+        "save_to": "@eval('content_fetched_' + str(jvm.get('idx')) + '.seq2.list')"  
       }
     }
     {
