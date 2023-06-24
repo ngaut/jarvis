@@ -1,16 +1,17 @@
 from typing import Optional
 from dotenv import load_dotenv
-from spinner import Spinner
-import gpt, jvm
-import actions
 import ast
-
 import os, sys, time, re, signal, argparse, logging, pprint
 import ruamel.yaml as yaml
 from datetime import datetime
-import planner
 import json
-import utils
+
+from smartgpt.spinner import Spinner
+from smartgpt import actions
+from smartgpt import planner
+from smartgpt import utils
+from smartgpt import gpt
+from smartgpt import jvm
 
 base_model  = gpt.GPT_3_5_TURBO_16K
 
@@ -78,8 +79,6 @@ class Instruction:
             # todo: handle error if the result is not a json 
             self.post_exec(result)
 
-    
-
     def eval_and_patch(self, text):
         while True:
             tmp_text = utils.eval_expression(text)
@@ -133,7 +132,6 @@ class Instruction:
                 logging.info(f"patch_after_exec, set kv: {kv}\n")
                 jvm.set(kv["key"], kv["value"])
 
-        
 class JVMInterpreter:
     def __init__(self):
         self.pc = 0
@@ -282,9 +280,3 @@ if __name__ == "__main__":
     interpreter = JVMInterpreter()
     logging.info(f"Running instructions from  {plan_with_instrs['instructions'][start_seq]}\n")
     interpreter.run(plan_with_instrs["instructions"][start_seq:], goal=plan_with_instrs["goal"])
-
-
-
-
-
-    
