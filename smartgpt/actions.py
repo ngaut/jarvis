@@ -1,9 +1,5 @@
 from dataclasses import dataclass, field
-
 import io, subprocess, os, inspect, json, logging, time, re
-from smartgpt import gpt
-from smartgpt import jvm
-from smartgpt.spinner import Spinner
 from typing import Union,List, Dict
 from abc import ABC
 from urllib.error import HTTPError
@@ -18,6 +14,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from webdriver_manager.chrome import ChromeDriverManager
+
+from smartgpt import gpt
+from smartgpt import jvm
+from smartgpt.spinner import Spinner
 
 
 _cache = {}

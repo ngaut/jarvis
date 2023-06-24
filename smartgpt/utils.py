@@ -1,7 +1,6 @@
 # Description: Utility functions
-
-
 import logging
+
 from smartgpt import jvm
 
 

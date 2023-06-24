@@ -1,7 +1,8 @@
 import json
 import logging
 import time
-import gpt
+
+from smartgpt import gpt
 
 TRANSLATE_PLAN_SYS_PROMPT = """
 As Jarvis, an AI model with the role of translating task into JVM's instructions. You will fully leverage user's hints(if exist), reuse them to generate instructions efficiently.
