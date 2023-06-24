@@ -81,7 +81,7 @@ class Action(ABC):
 class FetchAction:
     action_id: int
     url: str
-    save_to: str = None  # the key that will be used to save content to database
+    save_to: str = None  # type: ignore # the key that will be used to save content to database
 
     def key(self):
         return "Fetch"
@@ -139,7 +139,8 @@ class FetchAction:
 
     def run(self):
         # Check if the url is already in the cache
-        cached_result = get_from_cache(f"{self.url}{self.save_to}")
+        cached_key = self.url + self.save_to
+        cached_result = get_from_cache(cached_key)
         if cached_result is not None:
             logging.info(f"\nFetchAction RESULT(cached)\n")
             return cached_result
@@ -149,73 +150,74 @@ class FetchAction:
             html = self.get_html(url)
             text = self.extract_text(html)
         except Exception as err:
+            logging.error(f"FetchAction RESULT: An error occurred: {str(err)}")
             return f"FetchAction RESULT: An error occurred: {str(err)}"
         else:
             logging.info(f"\nFetchAction RESULT:\n{text}")
+            result_json = {"kvs": [{"key": self.save_to, "value": text}]}
+            result_json_str = json.dumps(result_json)
 
-            save_to_cache(f"{self.url}{self.save_to}", text)
-
-            result = {"kvs": [{"key": self.save_to, "value": text}]}
-            return json.dumps(result)
+            save_to_cache(cached_key, result_json_str)
+            return result_json_str
 
 @dataclass(frozen=True)
 class WebSearchAction:
     action_id: int
     query: str
-    save_to: str  # the key that will be used to save content to database
-    
+    save_to: str # the key that will be used to save content to database
+
     def key(self):
         return "WebSearch"
 
     def id(self) -> int:
         return self.action_id
-    
+
     def short_string(self):
         return f"action_id: {self.id()}, Search online for `{self.query}`."
 
     def run(self):
-        try:
-            # Check if the query is already in the cache
-            cached_key = self.query + self.save_to
-            cached_result = get_from_cache(cached_key)
-            if cached_result is not None:
-                logging.info(f"\nWebSearchAction RESULT(cached)\n")
-                return cached_result
-            
-            url = "https://www.googleapis.com/customsearch/v1"
-            params = {
-                'q': self.query,
-                'num': 5,
-                'key': "AIzaSyBXp89Jf292xF8eIBQqkCanZiOH58APRww",  
-                'cx': 'f728c501aa4eb451c',
-            }
+        # Check if the query is already in the cache
+        cached_key = self.query + self.save_to
+        cached_result = get_from_cache(cached_key)
+        if cached_result is not None:
+            logging.info(f"\nWebSearchAction RESULT(cached)\n")
+            return cached_result
 
-            response = requests.get(url, params=params)
-            response.raise_for_status()  # raise exception if the request was unsuccessful
+        url = "https://www.googleapis.com/customsearch/v1"
+        params = {
+            'q': self.query,
+            'num': 5,
+            'key': os.getenv("GOOGLE_API_KEY"),  
+            'cx': os.getenv("GOOGLE_SEARCH_ENGINE_ID"),
+        }
 
-            search_results = response.json()
+        for _ in range(3):  # retry for 3 times
+            try:
+                response = requests.get(url, params=params)
+                response.raise_for_status()  # raise exception if the request was unsuccessful
 
-            if not search_results.get('items'):
-                return f"WebSearchAction RESULT: The online search for `{self.query}` appears to have failed."
+                search_results = response.json()
+                if not search_results.get('items'):
+                    logging.error(f"WebSearchAction RESULT: The online search for `{self.query}` appears to have failed.")
+                    continue  # retry on failure
 
-            # return a list of links
-            result = [item['link'] for item in search_results['items']]
-            logging.info(f"WebSearchAction RESULT: {result}")
-            jvm.set(self.save_to, result)
+                # return a list of links
+                result = [item['link'] for item in search_results['items']]
+                logging.info(f"WebSearchAction RESULT: {result}")
 
-            save_to_cache(cached_key, str(result))
+                result_json = {"kvs": [{"key": self.save_to, "value": result}]}
+                result_json_str = json.dumps(result_json)
 
-            return str(result)
-        except requests.exceptions.HTTPError as http_err:
-            if http_err.response.status_code == 429:
-                time.sleep(30)
-                return "WebSearchAction RESULT: Too many requests. Please try again later."
-            else:
-                return f"WebSearchAction RESULT: An HTTP error occurred: {http_err}"
-        except Exception as err:
-            return f"WebSearchAction RESULT: An error occurred: {err}"
-
-
+                save_to_cache(cached_key, result_json_str)
+                return result_json_str
+            except requests.exceptions.HTTPError as http_err:
+                if http_err.response.status_code == 429:
+                    time.sleep(30)
+                else:
+                    logging.error(f"WebSearchAction RESULT: An HTTP error occurred: {http_err}")
+            except Exception as err:
+                logging.error(f"WebSearchAction RESULT: An error occurred: {err}")
+        return "WebSearchAction RESULT: Max retry limit reached."
 
 @dataclass(frozen=True)
 class ExtractInfoAction(Action):

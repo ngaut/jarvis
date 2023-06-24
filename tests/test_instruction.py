@@ -160,5 +160,15 @@ class TestInstruction(unittest.TestCase):
 
         mock_set.assert_has_calls(expected_calls, any_order=True)
 
+    def test_post_exec_websearch_result(self):
+        result = {"kvs": [{"key": "search_url_seq0.list", "value": ["https://wwww.google.com", "https://www.apple.com"]}]}
+        result_json_str = json.dumps(result)
+        expected_calls = [mock.call("search_url_seq0.list", ["https://wwww.google.com", "https://www.apple.com"])]
+
+        with mock.patch('smartgpt.instruction.jvm.set') as mock_set:
+            self.instruction.post_exec(result_json_str)
+
+        mock_set.assert_has_calls(expected_calls, any_order=True)
+
 if __name__ == "__main__":
     unittest.main()
