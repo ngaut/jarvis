@@ -1,9 +1,10 @@
 from typing import Optional
 from dotenv import load_dotenv
 import time, logging
-import gpt
 import json
-import translator
+
+from smartgpt import gpt
+from smartgpt import translator
 
 GEN_PLAN__SYS_PROMPT = """
 As Jarvis, your role as an AI model is to generate and structure tasks for execution by an automated agent (auto-agent). 
