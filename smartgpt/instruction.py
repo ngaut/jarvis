@@ -67,7 +67,7 @@ class JVMInstruction:
         logging.info(f"\nresult of {action_type}: {result}\n")
 
         if action_type != "RunPython":
-            # todo: handle error if the result is not a json 
+            # todo: handle error if the result is not a json
             self.post_exec(result)
 
     def eval_and_patch(self, text):
@@ -102,16 +102,36 @@ class JVMInstruction:
 
         return text
 
-    def post_exec(self, result):
+    def post_exec(self, result: str):
         # parse result that starts with first '{' and ends with last '}' as json
         start = result.find("{")
         end = result.rfind("}")
-        
-        if start != -1 and end != -1:
-            logging.info(f"patch_after_exec**********\n")
-            result = result[start:end+1]
-            result = json.loads(result)
-            # get the key and value pair list
-            for kv in result["kvs"]:
-                logging.info(f"patch_after_exec, set kv: {kv}\n")
-                jvm.set(kv["key"], kv["value"])
+
+        if start == -1 or end == -1:
+            logging.error(f"Cannot find JSON in result: {result}")
+            return
+
+        # Extract JSON and parse it
+        json_str = result[start:end+1]
+        try:
+            json_data = json.loads(json_str)
+        except json.JSONDecodeError as e:
+            logging.error(f"Failed to parse JSON: {json_str}, error: {str(e)}")
+            return
+
+        # Check if "kvs" key exists in the JSON
+        if "kvs" not in json_data:
+            logging.error(f"No 'kvs' key in the JSON: {json_str}")
+            return
+
+        # Iterate over key-value pairs and set them in the jvm
+        for kv in json_data["kvs"]:
+            try:
+                key = kv["key"]
+                value = kv["value"]
+            except KeyError:
+                logging.error(f"Invalid kv item in the JSON: {kv}")
+                continue
+
+            logging.info(f"Setting key-value: {kv} in the JVM")
+            jvm.set(key, value)
