@@ -102,7 +102,6 @@ class JVMInstruction:
 
         return text
 
- 
     def post_exec(self, result):
         # parse result that starts with first '{' and ends with last '}' as json
         start = result.find("{")
