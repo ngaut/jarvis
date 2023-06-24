@@ -24,7 +24,7 @@ class JVMInstruction:
         # clone the args dict!
         args = dict(self.instruction.get("args"))
 
-        if action_type == "SearchOnline": 
+        if action_type == "WebSearch": 
             args["save_to"] = self.eval_and_patch(args["save_to"])
 
         if action_type == "ExtractInfo":

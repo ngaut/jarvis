@@ -23,7 +23,7 @@ Your responsibilities include:
 The tools at your disposal include:
 
 - RunPython: Executes Python code but has a higher operational cost, when you need to use Python code, use this tool.
-- SearchOnline: Conducts online searches and returns URLs that match the query.
+- WebSearch: Conducts online searches and returns URLs that match the query.
 - Fetch: Retrieves content from a URL and saves it to the database.
 - ExtractInfo: Extracts relevant information from fetched content.
 - TextCompletion: Generates human-like text. When 'prompt' refers to previous outputs or data, use @eval(jvm.get('key')) to reference the data explicitly.

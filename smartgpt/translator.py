@@ -26,7 +26,7 @@ Here are the JVM's instructions, with specified arguments, that you should consi
     "pkg_dependencies": A list of any Python packages that the code depends on.
   }
 
-2. **'SearchOnline'**: This instruction returns a list of URLs by using a Google search internally. The arguments for this instruction include:
+2. **'WebSearch'**: This instruction returns a list of URLs by using a Google search internally. The arguments for this instruction include:
    - args {
     "objective": The string contains an objective description for this instruction only.
     "query": The search query string.
@@ -79,7 +79,7 @@ Here are the JVM's instructions, with specified arguments, that you should consi
      "output_fmt": The output_fmt must be the command request to get what we want to save by using the JSON template: {"kvs": [{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0, 
    }
    
-Each instruction can only do one thing, but you can combine them to do more complex things. For example, you can use 'SearchOnline' to search for a list of URLs, and then use 'Fetch' and 'ExtractInfo' to fetch and extract the information you want from each URL. Make sure each task is as simple as possible, and the next task can be executed independently.
+Each instruction can only do one thing, but you can combine them to do more complex things. For example, you can use 'WebSearch' to search for a list of URLs, and then use 'Fetch' and 'ExtractInfo' to fetch and extract the information you want from each URL. Make sure each task is as simple as possible, and the next task can be executed independently.
 Every instruction can save the result to database automatically by using the json template:{"kvs":[{"key":"Notes.seq4", "value": "<to_fill>"}]}, the template will be executed by JVM to finish the persistence operation. No further action is required. 
 
 ## Instruction Sequence
@@ -116,7 +116,7 @@ An Output example:
   "instructions": [
     {
       "seq": 1,
-      "type": "SearchOnline",
+      "type": "WebSearch",
       "objective": "Find URLs related to current weather in San Francisco",
       "args": {
         "query": "temperature in San Francisco",

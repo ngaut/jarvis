@@ -155,13 +155,13 @@ class FetchAction:
             return f"FetchAction RESULT: An error occurred: {err}"
 
 @dataclass(frozen=True)
-class SearchOnlineAction:
+class WebSearchAction:
     action_id: int
     query: str
     save_to: str  # the key that will be used to save content to database
     
     def key(self):
-        return "SearchOnline"
+        return "WebSearch"
 
     def id(self) -> int:
         return self.action_id
@@ -175,7 +175,7 @@ class SearchOnlineAction:
             cached_key = self.query + self.save_to
             cached_result = get_from_cache(cached_key)
             if cached_result is not None:
-                logging.info(f"\nSearchOnlineAction RESULT(cached)\n")
+                logging.info(f"\nWebSearchAction RESULT(cached)\n")
                 return cached_result
             
             url = "https://www.googleapis.com/customsearch/v1"
@@ -192,11 +192,11 @@ class SearchOnlineAction:
             search_results = response.json()
 
             if not search_results.get('items'):
-                return f"SearchOnlineAction RESULT: The online search for `{self.query}` appears to have failed."
+                return f"WebSearchAction RESULT: The online search for `{self.query}` appears to have failed."
             
             # return a list of links
             result = [item['link'] for item in search_results['items']]
-            logging.info(f"SearchOnlineAction RESULT: {result}")
+            logging.info(f"WebSearchAction RESULT: {result}")
             jvm.set(self.save_to, result)
             
             save_to_cache(cached_key, str(result))
@@ -205,11 +205,11 @@ class SearchOnlineAction:
         except requests.exceptions.HTTPError as http_err:
             if http_err.response.status_code == 429:
                 time.sleep(30)
-                return "SearchOnlineAction RESULT: Too many requests. Please try again later."
+                return "WebSearchAction RESULT: Too many requests. Please try again later."
             else:
-                return f"SearchOnlineAction RESULT: An HTTP error occurred: {http_err}"
+                return f"WebSearchAction RESULT: An HTTP error occurred: {http_err}"
         except Exception as err:
-            return f"SearchOnlineAction RESULT: An error occurred: {err}"
+            return f"WebSearchAction RESULT: An error occurred: {err}"
 
 
 
@@ -440,6 +440,6 @@ ACTION_CLASSES = _populate_action_classes([
     FetchAction,
     RunPythonAction,
     ExtractInfoAction,
-    SearchOnlineAction,
+    WebSearchAction,
     TextCompletionAction,
 ])

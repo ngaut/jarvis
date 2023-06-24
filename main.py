@@ -1,7 +1,6 @@
 from typing import Optional
 from dotenv import load_dotenv
-import ast
-import os, sys, time, re, signal, argparse, logging
+import os, sys, re, argparse, logging
 import ruamel.yaml as yaml
 from datetime import datetime
 import json
@@ -20,7 +19,7 @@ class JVMInterpreter:
     def __init__(self):
         self.pc = 0
         self.actions = {
-            "SearchOnline": actions.SearchOnlineAction,
+            "WebSearch": actions.WebSearchAction,
             "Fetch": actions.FetchAction,
             "ExtractInfo": actions.ExtractInfoAction,
             "RunPython": actions.RunPythonAction,
