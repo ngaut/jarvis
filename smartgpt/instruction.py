@@ -24,7 +24,7 @@ class JVMInstruction:
         # clone the args dict!
         args = dict(self.instruction.get("args"))
 
-        if action_type == "WebSearch": 
+        if action_type == "WebSearch":
             args["save_to"] = self.eval_and_patch(args["save_to"])
 
         if action_type == "ExtractInfo":
@@ -48,7 +48,9 @@ class JVMInstruction:
                 args["timeout"] = 30
 
         if action_type == "TextCompletion":
-            args["prompt"] = self.eval_and_patch(args["prompt"])
+            args["command"] = self.eval_and_patch(args["command"])
+            args["content"] = self.eval_and_patch(args["content"])
+            args["save_to"] = self.eval_and_patch(args["save_to"])
 
         action_data = {"type": action_type, "action_id": action_id}
         action_data.update(args)

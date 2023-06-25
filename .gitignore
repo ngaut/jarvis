@@ -3,3 +3,4 @@
 __pycache__
 .env
 workspace
+work_dir_*
