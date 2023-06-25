@@ -247,14 +247,14 @@ class ExtractInfoAction(Action):
                     "You are a helpful assistant that follows user's request. the format of key: 'key_<idx>.seqX.<type>', "
                     "where 'X' is a constant, value of <idx> is evaluated dynamically, 'type' is type of the value"
                     "(which can be one of Python's type {int, str, list}), list means list of strings, int means integer, "
-                    "str means string. The user's request has three parts: request, output_fmt, content. You will extract "
-                    "information from the content based on the request and return the result in the format of output_fmt."
+                    "str means string. The user's request has three parts: Request, Output_fmt, Content. You will extract "
+                    "information from the Content based on the Request and return the result in the format of Output_fmt."
                 )
             },
             {
                 "role": "user",
                 "content": (
-                    f"request={self.command}\n\noutput_fmt={self.output_fmt}\n\nContent=```{self.content}```"
+                    f"Request={self.command}\n\nOutput_fmt={self.output_fmt}\n\nContent=```{self.content}```\n\nExtractInfoResult="
                 )
             },
         ]
@@ -411,7 +411,7 @@ class TextCompletionAction(Action):
             {
                 "role": "user",
                 "content": (
-                    f"Request={self.command}\n\nContent=```{self.content}```"
+                    f"Request={self.command}\n\nContent=```{self.content}```\n\nTextCompletionResult:"
                 )
             }
         ]
@@ -442,7 +442,7 @@ class TextCompletionAction(Action):
         try:
             response = gpt.send_message(messages, max_response_token_count, model=model_name)
             if response is None:
-                return f"TextCompletionAction RESULT: The Text Completion for `{self.command}` appears to have failed."
+                return f"TextCompletionAction RESULT: generating text completion for `{self.command}` appears to have failed."
 
             result_json = {"kvs": [{"key": self.save_to, "value": response}]}
             result_json_str = json.dumps(result_json)

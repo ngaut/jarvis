@@ -6,6 +6,7 @@ from smartgpt.actions import FetchAction
 from smartgpt.actions import WebSearchAction
 from smartgpt.actions import ExtractInfoAction
 from smartgpt.actions import RunPythonAction
+from smartgpt.actions import TextCompletionAction
 
 class TestFetchAction(unittest.TestCase):
     def setUp(self):
@@ -242,6 +243,23 @@ class TestRunPythonAction(unittest.TestCase):
 
         # Check if the output includes the printed numpy array
         self.assertIn("[1 2 3 4 5]", output)
+
+class TestTextCompletion(unittest.TestCase):
+    def setUp(self):
+        self.action = TextCompletionAction(1, "Complete this text", "This is a test", "report_result.seq5.str")
+
+    @patch('smartgpt.gpt.send_message')
+    @patch('smartgpt.actions.save_to_cache')
+    @patch('smartgpt.actions.get_from_cache')
+    def test_run_send_message_error(self, mock_get_from_cache, mock_save_to_cache, mock_send_message):
+        # Test case where the gpt.send_message method returns None, indicating an error
+        mock_get_from_cache.return_value = None
+        mock_send_message.return_value = None
+        result = self.action.run()
+        self.assertIn("appears to have failed.", result)
+        mock_get_from_cache.assert_called_once()
+        mock_save_to_cache.assert_not_called()
+        mock_send_message.assert_called_once()
 
 
 if __name__ == "__main__":
