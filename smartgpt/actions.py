@@ -81,7 +81,7 @@ class Action(ABC):
 class FetchAction:
     action_id: int
     url: str
-    save_to: str = None  # type: ignore # the key that will be used to save content to database
+    save_to: str = None  # the key that will be used to save content to database
 
     def key(self):
         return "Fetch"
