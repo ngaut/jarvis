@@ -97,6 +97,7 @@ def gen_instructions(model: str, replan: bool = False):
         previous_outcome = [task_outputs[i] for i in task_dependency.get(task_num, [])]
         previous_tasks = {i: task_num_to_task[i] for i in task_dependency.get(task_num, [])}
         instrs = translator.translate_to_instructions({
+            "first_task":task_num == 1,
             "goal":args["goal"],
             "task":task['task'], 
             "objective":task['objective'],

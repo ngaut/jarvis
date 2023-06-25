@@ -196,13 +196,16 @@ Remember, your task is to generate instructions that will run on JVM based on th
 
 def translate_to_instructions(task_info, model: str):
     hints = ""
-    previous_tasks = task_info.get("previous_tasks", [])
-    if len(previous_tasks) > 0:
-        hints += f"The previous done tasks: |{previous_tasks}|.\n"
-    previous_outcome = task_info.get("previous_outcome", [])
-    # if not empty array
-    if len(previous_outcome) > 0:
-        hints += f"Outcome list from previous tasks: |{previous_outcome}|.\n"
+    if task_info["first_task"]:
+            hints += "This is the first task, so there are no previous tasks or outcomes.\n"
+    else:
+      previous_tasks = task_info.get("previous_tasks", [])
+      if len(previous_tasks) > 0:
+          hints += f"The previous done tasks: |{previous_tasks}|.\n"
+      previous_outcome = task_info.get("previous_outcome", [])
+      # if not empty array
+      if len(previous_outcome) > 0:
+          hints += f"Outcome list from previous tasks: |{previous_outcome}|.\n"
         
     try:
         user_prompt = (
