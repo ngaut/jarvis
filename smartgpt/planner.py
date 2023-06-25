@@ -30,7 +30,7 @@ The tools at your disposal include:
 - Loop: Repeats instructions for a specific number of iterations.
 - If: Provides conditional control in tasks.
 - Set: Stores a value in the key-value store. The value can be a string, a list, or an integer.
-- CallHighLevelAgent: Calls another advance agent when you are not confident that other tool can solve problem.
+- AdvancePython: Calls another advance agent when you are not confident that other tool can solve problem.
 
 Your responses should be in standard JSON format and include: {goal, main_task_objective, task_list, task_dependency, reasoning_for_each_task, hints_from_user (if any)}. An example is as follows:
 

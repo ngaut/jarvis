@@ -19,7 +19,7 @@ Here are the JVM's instructions, with specified arguments, that you should consi
 
 1. **'RunPython'**: This instruction handles Python code execution. It's recommended to use this instruction only if the task cannot be achieved by any other means. All validate arguments for this instruction include:
    - args: {  // do not use any non-existing arguments
-    "objective": The string contains an objective description for this instruction only.
+    "objective": The string contains an objective description for this instruction only. explain why not use 'AdvancePython' instruction.
     "code": A string containing the entire Python code to be executed. inside the code, you can call JVM's functions directly without using @eval() syntax to access and manipulate data, such as ```python jvm.set("temperature.seq3.int", 67)```, jvm.get() and so on, because jvm module is imported by default.
     "timeout": The maximum amount of time in seconds for the execution of the code.
     "code_review": explain the code, what it does, how it works, does it achieve the objective, etc.
@@ -70,12 +70,12 @@ Here are the JVM's instructions, with specified arguments, that you should consi
      "instructions": The list of instructions to be repeated for each iteration.
    }
 
-8. **'CallHighLevelAgent'**: The 'CallHighLevelAgent' instruction calls another advance agent when you are not confident that other instructions can solve the problem. The arguments for this instruction include:
+8. **'AdvancePython'**: The 'AdvancePython' instruction generate advance Python code. The arguments for this instruction include:
    - args {
      "objective": The string contains an objective description for this instruction only.
      "command": The string describes what we want.
-     "reason": The reason why we need to call another high level agent.
-     "content": The content from which the information needs to be extracted. Its format must look like "```@eval(jvm.get(key_name))```". 
+     "reason": The reason why call another high level agent instead of using other instructions.
+     "content": The content from which the information needs to be retrived. Its format must look like "```@eval(jvm.get(key_name))```". 
      "output_fmt": The output_fmt must be the command request to get what we want to save by using the JSON template: {"kvs": [{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0, 
    }
    
@@ -139,7 +139,7 @@ An Output example:
       "objective": "Extract the current temperature in San Francisco from the fetched content",
       "args": {
         "command": "Extract the current temperature and url in San Francisco",
-        "output_fmt": "{"kvs":[{"key":"temperature.seq3.int", "value":"<to_fill>"}, {"key":"source_url.seq3.str", "value":"<to_fill>"}, {"key":"date.seq3.str", "value": "<to_fill>"}]}",
+        "output_fmt": "{"kvs":[{"key":"temperature.seq3.int", "value":"<to_fill>"}, {"key":"source_url.seq3.str", "value":"<to_fill>"}]}",
         "content": "@eval(jvm.get("content_fetched_" + str(jvm.get("idx")) + ".seq2.str"))"
       }
     },
@@ -176,14 +176,13 @@ An Output example:
       "type": "TextCompletion",
       "objective": "Generate a complete weather report for San Francisco using the gathered information",
       "args": {
-        "prompt": "Please generate current weather reprot for San Francisco, ```temp = @eval(jvm.get("temperature.seq3.int"))```, ```source_url = @eval(jvm.get("source_url.seq3.str"))```, ```date = @eval(jvm.get("date.seq3.str")}}```, ```notes = @eval(jvm.get("Notes.seq5.list"))```. Based on the content and command, now populate the following JSON template by replacing "<to_fill>" with appropriate values: {"kvs":[{"key":"WeatherReport.seq7.str", "value": "<to_fill>"}]} 
+        "prompt": "Please generate current weather reprot for San Francisco, ```temp = @eval(jvm.get("temperature.seq3.int"))```, ```source_url = @eval(jvm.get("source_url.seq3.str"))```,  ```notes = @eval(jvm.get("Notes.seq5.list"))```. Based on the content and command, now populate the following JSON template by replacing "<to_fill>" with appropriate values: {"kvs":[{"key":"WeatherReport.seq7.str", "value": "<to_fill>"}]} 
       }
   ],
 
-  "criticism": // is any data or key that referenced by instruction missing? if yes, what is the reason? what's the suggestion that human expert can give to AI to improve the instructions? any synatx error in instruction's args? any other error?
-
   "end_seq": 7,  
-  "overall_outcome": "The current weather reprot for San Francisco stored, it can be retrived by @eval(jvm.get('WeatherReport.seq7.str')) , the report includes: the source url of weather data, date of fetching weather, notes on suggestions from AI ", 
+
+  "overall_outcome": "The current weather reprot for San Francisco stored, it can be retrived by @eval(jvm.get('WeatherReport.seq7.str')) , the report includes: the source url of weather data, notes on suggestions from AI ", 
 }
 ```
 
