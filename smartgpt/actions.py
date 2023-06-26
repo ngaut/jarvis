@@ -244,7 +244,7 @@ class ExtractInfoAction(Action):
             {
                 "role": "system",
                 "content": (
-                    "You are a helpful assistant that follows user's request. the format of key: 'key_<idx>.seqX.<type>', "
+                    "You are a helpful assistant that follows user's request. The format of key: 'key_<idx>.seqX.<type>', "
                     "where 'X' is a constant, value of <idx> is evaluated dynamically, 'type' is type of the value"
                     "(which can be one of Python's type {int, str, list}), list means list of strings, int means integer, "
                     "str means string. The user's request has three parts: Request, Output_fmt, Content. You will extract "
@@ -291,6 +291,7 @@ class ExtractInfoAction(Action):
             return result
 
         except Exception as err:
+            logging.error(f"ExtractInfoAction RESULT: An error occurred: {str(err)}")
             return f"ExtractInfoAction RESULT: An error occurred: {str(err)}"
 
 @dataclass(frozen=True)
@@ -387,7 +388,7 @@ class TextCompletionAction(Action):
     action_id: int
     command: str
     content: str
-    save_to: str
+    output_fmt: str
     model_name: str = gpt.GPT_3_5_TURBO
 
     def key(self) -> str:
@@ -405,13 +406,16 @@ class TextCompletionAction(Action):
                 "role": "system",
                 "content": (
                     "You are a helpful AI assistant that completes the provided content according to the user's request."
-                    "The user's input has two parts: Request, Content. You need to complete the Content according to the Request."
+                    "The format of key: 'key_<idx>.seqX.<type>', where 'X' is a constant, value of <idx> is evaluated dynamically, "
+                    "'type' is type of the value(which can be one of Python's type {int, str, list}), list means list of strings, "
+                    "int means integer, str means string. The user's request has three parts: Request, Output_fmt, Content. "
+                    "You will do TextComopletion for the Content based on the Request and return the result in the format of Output_fmt."
                 )
             },
             {
                 "role": "user",
                 "content": (
-                    f"Request={self.command}\n\nContent=```{self.content}```\n\nTextCompletionResult:"
+                    f"Request={self.command}\n\nOutput_fmt={self.output_fmt}\n\nContent=```{self.content}```\n\nTextCompletionResult="
                 )
             }
         ]
@@ -444,11 +448,9 @@ class TextCompletionAction(Action):
             if response is None:
                 return f"TextCompletionAction RESULT: generating text completion for `{self.command}` appears to have failed."
 
-            result_json = {"kvs": [{"key": self.save_to, "value": response}]}
-            result_json_str = json.dumps(result_json)
-
-            save_to_cache(cached_key, result_json_str)
-            return result_json_str
+            result = str(response)
+            save_to_cache(cached_key, result)
+            return result
 
         except Exception as err:
             logging.error(f"TextCompletionAction RESULT: An error occurred: {str(err)}")

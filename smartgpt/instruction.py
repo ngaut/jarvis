@@ -50,7 +50,7 @@ class JVMInstruction:
         if action_type == "TextCompletion":
             args["command"] = self.eval_and_patch(args["command"])
             args["content"] = self.eval_and_patch(args["content"])
-            args["save_to"] = self.eval_and_patch(args["save_to"])
+            args["output_fmt"] = self.eval_and_patch(args["output_fmt"])
 
         action_data = {"type": action_type, "action_id": action_id}
         action_data.update(args)

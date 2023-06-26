@@ -70,7 +70,7 @@ class JVMInterpreter:
         prompt = f'Is that true?: "{condition}"? Please respond in the following JSON format: \n{{"result": "true/false", "reasoning": "your reasoning"}}.'
 
         # patch prompt by replacing jvm.get('key') with value using regex
-        # use regex to extract key from result:{jvm.get('key')}    
+        # use regex to extract key from result:{jvm.get('key')}
         pattern = re.compile(r"jvm.get\('(\w+)'\)")
         matches = pattern.findall(prompt)
         for match in matches:
@@ -78,12 +78,20 @@ class JVMInterpreter:
             value = jvm.get(key)
             # replace jvm.get('...') in prompt with value
             prompt = prompt.replace(f"jvm.get('{key}')", value, 1)
-        evaluation_result = actions.TextCompletionAction(0, prompt).run()
+        evaluation_result = actions.TextCompletionAction(0, prompt, "", '{"kvs":[{"key":"result", "value":"<to_fill>"}, {"key":"reasoning", "value":"<to_fill>"]}').run()
+
+        def str_to_bool(s):
+            if s.lower() == 'true':
+                return True
+            elif s.lower() == 'false':
+                return False
+            else:
+                return False
 
         try:
             result_json = json.loads(evaluation_result)
-            condition = result_json.get('result', False)
-            reasoning = result_json.get('reasoning', '')
+            condition = str_to_bool(result_json["kvs"][0]["value"])
+            reasoning = result_json["kvs"][1]["value"]
         except json.JSONDecodeError:
             condition = False
             reasoning = ''
@@ -119,7 +127,7 @@ if __name__ == "__main__":
 
 
     # Logging file name and line number
-       
+
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s',

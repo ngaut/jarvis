@@ -1,4 +1,3 @@
-import json
 import logging
 import time
 
@@ -52,8 +51,8 @@ Here are the JVM's instructions, with specified arguments, that you should consi
    - args {
     "objective": The string contains an objective description for this instruction only.
     "command": The string describes what we want.
+    "output_fmt": The output_fmt must be the command request to get what we want to save by using the JSON template: {"kvs": [{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0,
     "content": Perform text completion processing against this content. Its format must look like "```@eval(jvm.get(key_name))```".
-    "save_to": The key under which the text completion result should be stored in the database. Must be dynamic values with @eval() when inside the loop instruction to avoid overwriting the same key. Do not use python style f-string, it will not work for JVM.
   }
 
 6. **'If'**: The 'If' instruction acts as a conditional control structure within the JVM. The arguments for this instruction include:
@@ -158,9 +157,9 @@ An Output example:
           "type": "TextCompletion",
           "objective": "Generate a text suggesting outdoor activities",
           "args": {
-            "command": "It's a good day for outdoor activities. What else should we recommend to the users?",
+            "command": "It's a good day for outdoor activities. What else should we recommend to the users? Please generate a weather notes",
+            "output_fmt": "{"kvs":[{"key":"weather_notes.seq5.str", "value":"<to_fill>"}]}",
             "content": "```Today's temperature in San Francisco is @eval(jvm.get("temperature.seq3.int")).```",
-            "save_to": "Notes.seq5.str"
           }
         }
       ],
@@ -170,9 +169,9 @@ An Output example:
           "type": "TextCompletion",
           "objective": "Generate a text suggesting indoor activities",
           "args": {
-            "command": "What indoor activities should we recommend to the users? Please generate a weather report",
+            "command": "What indoor activities should we recommend to the users? Please generate a weather notes",
+            "output_fmt": "{"kvs":[{"key":"weather_notes.seq6.str", "value":"<to_fill>"}]}",
             "content": "```Today's temperature in San Francisco is @eval(jvm.get("temperature.seq3.int")) which below 25 degrees.```",
-            "save_to": "Notes.seq6.str"
           }
         }
       ]
@@ -183,8 +182,8 @@ An Output example:
       "objective": "Generate a complete weather report for San Francisco using the gathered information",
       "args": {
         "command": "Please generate current weather reprot for San Francisco",
-        "content": "```temp = @eval(jvm.get("temperature.seq3.int"))```, ```source_url = @eval(jvm.get("source_url.seq3.str"))```, ```date = @eval(jvm.get("date.seq3.str")}}```, ```notes = @eval(jvm.get("Notes.seq5.list"))```",
-        "save_to": "weather_report.seq7.str"
+        "output_fmt": "{"kvs":[{"key":"weather_report.seq7.str", "value":"<to_fill>"}]}",
+        "content": "```temp = @eval(jvm.get("temperature.seq3.int"))```, ```source_url = @eval(jvm.get("source_url.seq3.str"))```, ```date = @eval(jvm.get("date.seq3.str")}}```, ```notes = @eval(jvm.get("weather_notes.seq5.str"))```",
       }
   ],
 
