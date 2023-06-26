@@ -16,10 +16,10 @@ Dynamic keys are particularly useful in loop structures, where data is iterative
 
 Here are the JVM's instructions, with specified arguments, that you should consider:
 
-1. **'RunPython'**: This instruction handles Python code execution. It's recommended to use this instruction only if the task cannot be achieved by any other means. All validate arguments for this instruction include:
+1. **'RunPython'**: This instruction handles simple Python code execution. All validate arguments for this instruction include:
    - args: {  // do not use any non-existing arguments
     "objective": The string contains an objective description for this instruction only. explain why not use 'AdvancePython' instruction.
-    "code": A string containing the entire Python code to be executed. inside the code, you can call JVM's functions directly without using @eval() syntax to access and manipulate data, such as ```python jvm.set("temperature.seq3.int", 67)```, jvm.get() and so on, because jvm module is imported by default.
+    "code": A string containing the entire Python code to be executed. pseudocode or placeholders are not allowed! Inside the code, you can call JVM's functions directly without using @eval() syntax to access and manipulate data, such as ```python jvm.set("temperature.seq3.int", 67)```, jvm.get() and so on, because jvm module is imported by default.
     "timeout": The maximum amount of time in seconds for the execution of the code.
     "code_review": explain the code, what it does, how it works, does it achieve the objective, etc.
     "pkg_dependencies": A list of any Python packages that the code depends on.
@@ -217,10 +217,10 @@ def translate_to_instructions(task_info, model: str):
 
     try:
         user_prompt = (
-            f"The overall goal is {task_info['goal']}, but at the moment, we need to focus on completing a specific sub-task to meet a sub-objective. |\n"
-            f"Let's concentrate on the task at hand: |{task_info['task']}|. |\n"
-            f"The objective of this task is: |{task_info['objective']}|. |\n"
-            f"The starting sequence is |{task_info['start_seq']}|. |\n"
+            f"The overall goal is: |{task_info['goal']}|, but at the moment, we need to focus on completing a specific sub-task to meet a sub-objective. \n"
+            f"Let's concentrate on the task at hand: |{task_info['task']}|\n"
+            f"The objective of this task is: |{task_info['objective']}|\n"
+            f"The starting sequence is |{task_info['start_seq']}|\n"
             f"Your task: | create a series of JVM instructions to complete the task at hand and fulfill the stated objective. Ensure you fully utilize the outcomes of previous tasks and user hints. | \n"
             f"Remember: | Every instruction must save its outcome to the database so it can be used in subsequent tasks. |\n"
         )
