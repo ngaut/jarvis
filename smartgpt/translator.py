@@ -76,8 +76,8 @@ Here are the JVM's instructions, with specified arguments, that you should consi
      "objective": The string contains an objective description for this instruction only.
      "command": The string describes what we want.
      "reason": The reason why call another high level agent instead of using other instructions.
-     "content": The content from which the information needs to be retrived. Its format must look like "```@eval(jvm.get(key_name))```". 
-     "output_fmt": The output_fmt must be the command request to get what we want to save by using the JSON template: {"kvs": [{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0, 
+     "content": The content from which the information needs to be retrived. Its format must look like "```@eval(jvm.get(key_name))```".
+     "output_fmt": The output_fmt must be the command request to get what we want to save by using the JSON template: {"kvs": [{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0,
    }
 
 Each instruction can only do one thing, but you can combine them to do more complex things. For example, you can use 'WebSearch' to search for a list of URLs, and then use 'Fetch' and 'ExtractInfo' to fetch and extract the information you want from each URL. Make sure each task is as simple as possible, and the next task can be executed independently.
@@ -183,11 +183,11 @@ An Output example:
       "args": {
         "command": "Please generate current weather reprot for San Francisco",
         "output_fmt": "{"kvs":[{"key":"weather_report.seq7.str", "value":"<to_fill>"}]}",
-        "content": "```temp = @eval(jvm.get("temperature.seq3.int"))```, ```source_url = @eval(jvm.get("source_url.seq3.str"))```, ```notes = @eval(jvm.get("weather_notes.seq5.str"))```",
+        "content": "```temp = @eval(jvm.get("temperature.seq3.int"))```, ```source_url = @eval(jvm.get("source_url.seq3.str"))```, ```notes = @eval(jvm.get("weather_notes.seq5.str") or jvm.get("weather_notes.seq6.str"))```",
       }
   ],
 
-  "end_seq": 7,  
+  "end_seq": 7,
 
   "overall_outcome": "The current weather reprot for San Francisco stored, it can be retrived by @eval(jvm.get('WeatherReport.seq7.str')) , the report includes: the source url of weather data, notes on suggestions from AI ",
 

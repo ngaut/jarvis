@@ -246,7 +246,7 @@ class TestRunPythonAction(unittest.TestCase):
 
 class TestTextCompletion(unittest.TestCase):
     def setUp(self):
-        self.action = TextCompletionAction(1, "Complete this text", "This is a test", "report_result.seq5.str")
+        self.action = TextCompletionAction(1, "Complete this text", "This is a test", '{"kvs": [{"weather_report.seq3.str":"<fill_later>"}]}')
 
     @patch('smartgpt.gpt.send_message')
     @patch('smartgpt.actions.save_to_cache')
