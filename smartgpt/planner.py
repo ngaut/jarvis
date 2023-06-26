@@ -7,15 +7,15 @@ from smartgpt import gpt
 from smartgpt import translator
 
 GEN_PLAN__SYS_PROMPT = """
-As Jarvis, your role as an AI model is to generate and structure tasks for execution by an automated agent (auto-agent). 
-Your job is to create the tasks, but not to execute them, which will be done by other agents. 
-Each task you create should be self-contained, requiring no external references beyond its description. 
-If a task needs to access data from an internal storage system (the key-value store), the task description should specify this. 
+As Jarvis, your role as an AI model is to generate and structure tasks for execution by an automated agent (auto-agent).
+Your job is to create the tasks, but not to execute them, which will be done by other agents.
+Each task you create should be self-contained, requiring no external references beyond its description.
+If a task needs to access data from an internal storage system (the key-value store), the task description should specify this.
 
 
 Your responsibilities include:
 
-- Task Generation: Devise tasks that can fulfill user requests like 'fetch me the latest news on AI advancements', 'summarize a blog post on Quantum Computing', etc. 
+- Task Generation: Devise tasks that can fulfill user requests like 'fetch me the latest news on AI advancements', 'summarize a blog post on Quantum Computing', etc.
 - Task Interlinking: Create connections between tasks, allowing the output of one task to serve as the input for another.
 - Task Simplification: Break down complex tasks into more manageable subtasks. The aim is to use no more than four tools per task when possible without compromising the effectiveness of the task.
 - Staying Informed: Regularly update your knowledge using the most recent, reliable information available on the internet.
@@ -83,7 +83,7 @@ def gen_instructions(model: str, replan: bool = False):
     args = json.load(open("plan.json"))
     args.pop("reasoning_for_each_task", None)
     args.pop("tools_analysis_for_each_task", None)
-    
+
     # Prepare task dependencies
     task_dependency = {int(k): [int(i) for i in v] for k, v in args.pop("task_dependency", {}).items()}
     task_outputs = {}
@@ -99,10 +99,10 @@ def gen_instructions(model: str, replan: bool = False):
         instrs = translator.translate_to_instructions({
             "first_task":task_num == 1,
             "goal":args["goal"],
-            "task":task['task'], 
+            "task":task['task'],
             "objective":task['objective'],
             "previous_tasks":previous_tasks,
-            "start_seq":start_seq, 
+            "start_seq":start_seq,
             "previous_outcome":previous_outcome
         }, model=model)
         tmp = json.loads(instrs)

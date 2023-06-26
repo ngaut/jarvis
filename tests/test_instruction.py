@@ -116,6 +116,24 @@ class TestInstruction(unittest.TestCase):
 
         self.assertEqual(actual_output, expected_output)
 
+    def test_eval_and_patch_get_condition_key(self):
+        text_input = '@eval(jvm.get("weather_notes.seq5.str") or jvm.get("weather_notes.seq6.str"))'
+        expected_output = "the weather is sunny and warm (from weather_notes.seq6.str)"
+
+        # Assuming jvm.get("key1") returns None and jvm.get("key2") returns "the weather is sunny and warm"
+        # Considering that @eval() is in a right-to-left order, expected_output needs to pay attention to this
+        # Here we should use mock.patch to simulate the behavior of jvm.get
+        with mock.patch('smartgpt.instruction.jvm.get', side_effect=["the weather is sunny and warm (from weather_notes.seq6.str)", None]):
+            actual_output = self.instruction.eval_and_patch(text_input)
+
+        self.assertEqual(actual_output, expected_output)
+
+        expected_output = "the weather is cloudy and cold (from weather_notes.seq5.str)"
+        with mock.patch('smartgpt.instruction.jvm.get', side_effect=[None, "the weather is cloudy and cold (from weather_notes.seq5.str)"]):
+            actual_output = self.instruction.eval_and_patch(text_input)
+
+        self.assertEqual(actual_output, expected_output)
+
     def test_post_exec_valid_json(self):
         result = '{"kvs":[{"key": "key1", "value": "value1"}, {"key": "key2", "value": "value2"}]}'
         expected_calls = [mock.call("key1", "value1"), mock.call("key2", "value2")]

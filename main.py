@@ -67,18 +67,7 @@ class JVMInterpreter:
 
     def conditional(self, instruction, goal):
         condition = instruction.instruction.get("args", {}).get("condition", None)
-        prompt = f'Is that true?: "{condition}"? Please respond in the following JSON format: \n{{"result": "true/false", "reasoning": "your reasoning"}}.'
-
-        # patch prompt by replacing jvm.get('key') with value using regex
-        # use regex to extract key from result:{jvm.get('key')}
-        pattern = re.compile(r"jvm.get\('(\w+)'\)")
-        matches = pattern.findall(prompt)
-        for match in matches:
-            key = match
-            value = jvm.get(key)
-            # replace jvm.get('...') in prompt with value
-            prompt = prompt.replace(f"jvm.get('{key}')", value, 1)
-        evaluation_result = actions.TextCompletionAction(0, prompt, "", '{"kvs":[{"key":"result", "value":"<to_fill>"}, {"key":"reasoning", "value":"<to_fill>"]}').run()
+        action = actions.TextCompletionAction(0, "Is that true or false?", instruction.eval_and_patch(condition), '{"kvs":[{"key":"result", "value":"<to_fill>"}, {"key":"reasoning", "value":"<to_fill>"]}')
 
         def str_to_bool(s):
             if s.lower() == 'true':
@@ -89,17 +78,18 @@ class JVMInterpreter:
                 return False
 
         try:
-            result_json = json.loads(evaluation_result)
-            condition = str_to_bool(result_json["kvs"][0]["value"])
-            reasoning = result_json["kvs"][1]["value"]
+            evaluation_result = action.run()
+            evaluation_result_json = json.loads(evaluation_result)
+            condition_eval_result = str_to_bool(evaluation_result_json["kvs"][0]["value"])
+            condition_eval_reasoning = evaluation_result_json["kvs"][1]["value"]
         except json.JSONDecodeError:
-            condition = False
-            reasoning = ''
-            print(f"Failed to decode AI model response into JSON: {evaluation_result}")
+            condition_eval_result = False
+            condition_eval_reasoning = ''
+            print(f"Failed to decode AI model response into JSON: {condition}")
 
-        print(f"Condition evaluated to {condition}. Reasoning: {reasoning}")
+        print(f"Condition evaluated to {condition_eval_result}. Reasoning: {condition_eval_reasoning}")
 
-        if condition:
+        if condition_eval_result:
             # instruction.instruction["then"] is a list of instructions
             self.run(instruction.instruction["then"], goal)
         else:
