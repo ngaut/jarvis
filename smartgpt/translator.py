@@ -1,4 +1,3 @@
-import json
 import logging
 import time
 
@@ -8,7 +7,7 @@ TRANSLATE_PLAN_SYS_PROMPT = """
 As Jarvis, an AI model with the role of translating task into JVM's instructions. You will fully leverage user's hints(if any), reuse them to generate instructions efficiently.
 Pay attention on task description on words: 'loop', for 'each', 'every', or plural nouns, etc, usually the task should generate loop instructions.
 
-When handling data, bear in mind that dynamic keys are critical to the operation of this AI. They provide the flexibility to manipulate and access data according to specific needs of a variety of tasks. 
+When handling data, bear in mind that dynamic keys are critical to the operation of this AI. They provide the flexibility to manipulate and access data according to specific needs of a variety of tasks.
 Dynamic keys, must be the format: 'key_<idx>.seqX.<type>', where 'X' could vary based on context, 'idx' is related to the loop index, can be optional if there is no loop, 'type' is type of the value(which can be one of Python's type: {int, str, list}) allow the AI to structure and access data in a flexible, non-static way.
 Dynamic keys are particularly useful in loop structures, where data is iteratively processed or collected. They allow the AI to dynamically create and access individual data entries, thus providing a more granular control over data. Be sure to construct and utilize dynamic keys wisely, allowing for efficient data manipulation and access across various tasks.
 
@@ -44,14 +43,16 @@ Here are the JVM's instructions, with specified arguments, that you should consi
    - args {
     "objective": The string contains an objective description for this instruction only.
     "command": The string describes what we want.
-    "output_fmt": The output_fmt must be the command request to get what we want to save by using the JSON template: {"kvs": [{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0, 
-    "content": The content from which the information needs to be extracted. Its format must look like "```@eval(jvm.get(key_name))```". 
+    "output_fmt": The output_fmt must be the command request to get what we want to save by using the JSON template: {"kvs": [{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0,
+    "content": The content from which the information needs to be extracted. Its format must look like "```@eval(jvm.get(key_name))```".
   }
 
 5. **'TextCompletion'**: This instruction is capable of generating contextually relevant and coherent text, suitable for various tasks such as language translation, content summarization, and emulating different writing styles. Crucially, it is also adept at creating, improving, or modifying code, based on provided instructions or guidelines. This includes tasks that implicitly require code alterations, enhancements, or refactoring, even when such terms are not explicitly used. The 'TextCompletion' instruction is particularly useful for tasks necessitating complex, logical, or creative input. The arguments for this instruction include:
    - args {
     "objective": The string contains an objective description for this instruction only.
-    "prompt": The string contains the context and a command request for the AI to generate a response. It starts with "The content we have:```@eval(jvm.get(key_name))```". The last part of the prompt must be the command request go get what we want to save by using the syntax: Based on the content and command, now populate the following JSON template by replacing "<to_fill>" with appropriate values: idx starts from 0, {"kvs":[{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]}" 
+    "command": The string describes what we want.
+    "output_fmt": The output_fmt must be the command request to get what we want to save by using the JSON template: {"kvs": [{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0,
+    "content": Perform text completion processing against this content. Its format must look like "```@eval(jvm.get(key_name))```".
   }
 
 6. **'If'**: The 'If' instruction acts as a conditional control structure within the JVM. The arguments for this instruction include:
@@ -78,13 +79,13 @@ Here are the JVM's instructions, with specified arguments, that you should consi
      "content": The content from which the information needs to be retrived. Its format must look like "```@eval(jvm.get(key_name))```". 
      "output_fmt": The output_fmt must be the command request to get what we want to save by using the JSON template: {"kvs": [{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0, 
    }
-   
+
 Each instruction can only do one thing, but you can combine them to do more complex things. For example, you can use 'WebSearch' to search for a list of URLs, and then use 'Fetch' and 'ExtractInfo' to fetch and extract the information you want from each URL. Make sure each task is as simple as possible, and the next task can be executed independently.
-Every instruction can save the result to database automatically by using the json template:{"kvs":[{"key":"Notes.seq4", "value": "<to_fill>"}]}, the template will be executed by JVM to finish the persistence operation. No further action is required. 
+Every instruction can save the result to database automatically by using the json template:{"kvs":[{"key":"Notes.seq4", "value": "<to_fill>"}]}, the template will be executed by JVM to finish the persistence operation. No further action is required.
 
 ## Instruction Sequence
 
-Each instruction has an auto increment sequence number, or "seq", indicating its position in the list, the seq starts from start_seq. 
+Each instruction has an auto increment sequence number, or "seq", indicating its position in the list, the seq starts from start_seq.
 
 ## JVM functions that operate on database
 
@@ -99,7 +100,7 @@ key-value API is the only way to pass information between tasks. The database ca
 
 ## Output Requirements
 
-Your output must be in JSON format, required fields: goal, objective, criticism, hints_from_user, end_seq(means max instruction's seqence number), instructions, thoughts, overall_outcome. 
+Your output must be in JSON format, required fields: goal, objective, criticism, hints_from_user, end_seq(means max instruction's seqence number), instructions, thoughts, overall_outcome.
 When forming the 'overall_outcome',  Explain the overall outcome we had after successed, what is the final result and how to retrive the results( specify key name or (both key prefix and postfix if the key can't be retrived by jvm.get) ), As there are other tasks will use the result, give hints to next task.
 
 An Output example:
@@ -108,11 +109,11 @@ An Output example:
   "goal": "Acquire and save the current weather data for San Francisco to file and provide suggestions based on temperature",
   "objective":,
   // user specified hints, we should use this hint to guide the AI to generate the instructions
-  "hints_from_user": 
+  "hints_from_user":
   // user specified start seq
-  "start_seq": 1, 
+  "start_seq": 1,
   // how to fully leverage user's hints(if exists), what is the reason for the order of the tasks, how each task passes data to the next task, analyze prefix of the key from previous task, and how to use the prefix to get the data from database, and so on.
-  "thoughts": 
+  "thoughts":
   "instructions": [
     {
       "seq": 1,
@@ -120,17 +121,17 @@ An Output example:
       "objective": "Find URLs related to current weather in San Francisco",
       "args": {
         "query": "temperature in San Francisco",
-        "save_to": "@eval('search_results_' + str(jvm.get('idx')) + '.seq1.list')" 
+        "save_to": "@eval('search_results_' + str(jvm.get('idx')) + '.seq1.list')"
       }
     },
     {
       "seq": 2,
       "type": "Fetch",
       "objective": "Fetch the content from the first URL from the search results",
-      "args": { 
+      "args": {
         "url": "@eval(jvm.get('search_results.seq1.list')[0])",  // make sure the reference key exists.
         // other tasks can use the key or key prefix 'content_fetched_' to scan the data, this is the key point to handle dynamic data
-        "save_to": "@eval('content_fetched_' + str(jvm.get('idx')) + '.seq2.list')"  
+        "save_to": "@eval('content_fetched_' + str(jvm.get('idx')) + '.seq2.list')"
       }
     }
     {
@@ -156,7 +157,9 @@ An Output example:
           "type": "TextCompletion",
           "objective": "Generate a text suggesting outdoor activities",
           "args": {
-            "prompt": "The content we have: ```Today's temperature in San Francisco is @eval(jvm.get("temperature.seq3.int")).``` It's a good day for outdoor activities. What else should we recommend to the users? Based on the content and command, now populate the following JSON template by replacing "<to_fill>" with appropriate values: {"kvs":[{"key":"Notes.seq5.list", "value": "<to_fill>"}]} 
+            "command": "It's a good day for outdoor activities. What else should we recommend to the users? Please generate a weather notes",
+            "output_fmt": "{"kvs":[{"key":"weather_notes.seq5.str", "value":"<to_fill>"}]}",
+            "content": "```Today's temperature in San Francisco is @eval(jvm.get("temperature.seq3.int")).```",
           }
         }
       ],
@@ -166,7 +169,9 @@ An Output example:
           "type": "TextCompletion",
           "objective": "Generate a text suggesting indoor activities",
           "args": {
-            "prompt": "The content we have: ```Today's temperature in San Francisco is @eval(jvm.get("temperature.seq3.int")) which below 25 degrees.``` What indoor activities should we recommend to the users? Please generate a weather report, Based on the content and command, now populate the following JSON template by replacing "<to_fill>" with appropriate values:{"kvs":[{"key":"Notes.seq5.list", "value": "<to_fill>"}]} 
+            "command": "What indoor activities should we recommend to the users? Please generate a weather notes",
+            "output_fmt": "{"kvs":[{"key":"weather_notes.seq6.str", "value":"<to_fill>"}]}",
+            "content": "```Today's temperature in San Francisco is @eval(jvm.get("temperature.seq3.int")) which below 25 degrees.```",
           }
         }
       ]
@@ -176,18 +181,21 @@ An Output example:
       "type": "TextCompletion",
       "objective": "Generate a complete weather report for San Francisco using the gathered information",
       "args": {
-        "prompt": "Please generate current weather reprot for San Francisco, ```temp = @eval(jvm.get("temperature.seq3.int"))```, ```source_url = @eval(jvm.get("source_url.seq3.str"))```,  ```notes = @eval(jvm.get("Notes.seq5.list"))```. Based on the content and command, now populate the following JSON template by replacing "<to_fill>" with appropriate values: {"kvs":[{"key":"WeatherReport.seq7.str", "value": "<to_fill>"}]} 
+        "command": "Please generate current weather reprot for San Francisco",
+        "output_fmt": "{"kvs":[{"key":"weather_report.seq7.str", "value":"<to_fill>"}]}",
+        "content": "```temp = @eval(jvm.get("temperature.seq3.int"))```, ```source_url = @eval(jvm.get("source_url.seq3.str"))```, ```notes = @eval(jvm.get("weather_notes.seq5.str"))```",
       }
   ],
 
   "end_seq": 7,  
 
-  "overall_outcome": "The current weather reprot for San Francisco stored, it can be retrived by @eval(jvm.get('WeatherReport.seq7.str')) , the report includes: the source url of weather data, notes on suggestions from AI ", 
+  "overall_outcome": "The current weather reprot for San Francisco stored, it can be retrived by @eval(jvm.get('WeatherReport.seq7.str')) , the report includes: the source url of weather data, notes on suggestions from AI ",
+
 }
 ```
 
 ## Lazy evaluation syntax
- 
+
 @eval() is the exclusive syntax to do lazy evaluation. JVM evaluates and replaces this syntax lazily with actual values prior to instruction execution. For instance, "Today's temperature in San Francisco is @eval(jvm.get('temperature'))" which is below 25 degrees" will transform into "Today's temperature in San Francisco is 20 which is below 25 degrees". However, the code field within the RunPython instruction doesn't function as a template; it is executed directly without modification.
 
 Remember, your task is to generate instructions that will run on JVM based on these guidelines, Don't generate Non-exist instructions.
@@ -206,7 +214,7 @@ def translate_to_instructions(task_info, model: str):
       # if not empty array
       if len(previous_outcome) > 0:
           hints += f"Outcome list from previous tasks: |{previous_outcome}|.\n"
-        
+
     try:
         user_prompt = (
             f"The overall goal is {task_info['goal']}, but at the moment, we need to focus on completing a specific sub-task to meet a sub-objective. |\n"
@@ -220,7 +228,7 @@ def translate_to_instructions(task_info, model: str):
         if hints != "":
             user_prompt += f"Here are some hints from user: {hints}\n"
         user_prompt += "Please provide your response in JSON format:\n\n```json"
-            
+
         logging.info(f"user prompt:\n{user_prompt}")
 
         #logging.info(f"================================================")

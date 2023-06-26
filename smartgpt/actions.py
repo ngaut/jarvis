@@ -1,8 +1,11 @@
 from dataclasses import dataclass, field
 import io, subprocess, os, inspect, json, logging, time, re
-from typing import Union, List, Dict
+import shutil
+import venv
+from typing import Union, List, Dict, Tuple
 from abc import ABC
 from urllib.error import HTTPError
+import uuid
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urlunparse
 import requests
@@ -187,7 +190,7 @@ class WebSearchAction:
         params = {
             'q': self.query,
             'num': 5,
-            'key': os.getenv("GOOGLE_API_KEY"),  
+            'key': os.getenv("GOOGLE_API_KEY"),
             'cx': os.getenv("GOOGLE_SEARCH_ENGINE_ID"),
         }
 
@@ -227,47 +230,56 @@ class ExtractInfoAction(Action):
     output_fmt: str
     model_name: str = gpt.GPT_3_5_TURBO
 
-
     def key(self) -> str:
         return "ExtractInfo"
 
     def id(self) -> int:
         return self.action_id
-    
+
     def short_string(self) -> str:
         return f"action_id: {self.id()}, Extract info."
 
-    def run(self) -> str:
-        hash_str = hashlib.md5(self.command.encode()).hexdigest()
-        key = f"{hash_str}"
-        cached_result = get_from_cache(key)
-        if cached_result is not None:
-            logging.info(f"\nExtractInfoAction RESULT(cached)\n")
-            return cached_result
-        
-        messages = [
+    def generate_messages(self) -> List[Dict[str, str]]:
+        return [
             {
                 "role": "system",
                 "content": (
-                    "You are a helpful assistant that follow user's request. the format of key: 'key_<idx>.seqX.<type>', where 'X' is a constant, value of <idx> is eval dynamically, 'type' is type of the value(which can be one of Python's type {int, str, list}), list means list of strings, int means integer, str means string."
-                    f"The user's request has three parts: request, output_fmt, content. You will extract information from the content based on the request and return the result in the format of output_fmt."
+                    "You are a helpful assistant that follows user's request. The format of key: 'key_<idx>.seqX.<type>', "
+                    "where 'X' is a constant, value of <idx> is evaluated dynamically, 'type' is type of the value"
+                    "(which can be one of Python's type {int, str, list}), list means list of strings, int means integer, "
+                    "str means string. The user's request has three parts: Request, Output_fmt, Content. You will extract "
+                    "information from the Content based on the Request and return the result in the format of Output_fmt."
                 )
             },
             {
                 "role": "user",
                 "content": (
-                    f"request={self.command}\n\noutput_fmt={self.output_fmt}\n\nContent=```{self.content}```"
+                    f"Request={self.command}\n\nOutput_fmt={self.output_fmt}\n\nContent=```{self.content}```\n\nExtractInfoResult="
                 )
             },
         ]
 
-        model_name = self.model_name
+    def calculate_token_count(self, messages: List[Dict[str, str]]) -> Tuple[int, str]:
         request_token_count = gpt.count_tokens(messages)
-        max_response_token_count = gpt.max_token_count(self.model_name) - request_token_count
+        max_token_count = gpt.max_token_count(self.model_name)
 
-        if request_token_count + 1024 > gpt.max_token_count(self.model_name): # leave some space for the response
-            max_response_token_count = gpt.max_token_count(gpt.GPT_3_5_TURBO_16K) - request_token_count
-            model_name = gpt.GPT_3_5_TURBO_16K
+        if request_token_count + 1024 > max_token_count:  # leave some space for the response
+            max_token_count = gpt.max_token_count(gpt.GPT_3_5_TURBO_16K)
+            return max_token_count - request_token_count, gpt.GPT_3_5_TURBO_16K
+
+        return max_token_count - request_token_count, self.model_name
+
+    def run(self) -> str:
+        hash_str = hashlib.md5(self.command.encode()).hexdigest()
+        cached_key = f"{hash_str}"
+        cached_result = get_from_cache(cached_key)
+
+        if cached_result is not None:
+            logging.info(f"ExtractInfoAction RESULT(cached) for command \"{self.command}\"\n")
+            return cached_result
+
+        messages = self.generate_messages()
+        max_response_token_count, model_name = self.calculate_token_count(messages)
 
         try:
             response = gpt.send_message(messages, max_response_token_count, model=model_name)
@@ -275,28 +287,31 @@ class ExtractInfoAction(Action):
                 return f"ExtractInfoAction RESULT: Extract information for `{self.command}` appears to have failed."
 
             result = str(response)
-            save_to_cache(key, result)
+            save_to_cache(cached_key, result)
             return result
 
-        except Exception as e:
-            return f"ExtractInfoAction RESULT: An error occurred: {e}"
-
+        except Exception as err:
+            logging.error(f"ExtractInfoAction RESULT: An error occurred: {str(err)}")
+            return f"ExtractInfoAction RESULT: An error occurred: {str(err)}"
 
 @dataclass(frozen=True)
 class RunPythonAction(Action):
     action_id: int
     file_name: str = "tmp.py"
-    timeout: int  = 30 # in seconds
-    code:str = ""
-    pkg_dependencies: list = field(default_factory=list)
-    cmd_args: str = ""    
+    timeout: int = 30 # in seconds
+    code: str = ""
+    pkg_dependencies: List[str] = field(default_factory=list)
+    cmd_args: str = ""
+
+    # Define the directory for the working environment
+    work_dir = f'work_dir_{uuid.uuid4()}'
 
     def key(self) -> str:
         return "RunPython"
 
     def id(self) -> int:
         return self.action_id
-    
+
     def short_string(self) -> str:
         return f"action_id: {self.id()}, Run Python file `{self.file_name} {self.cmd_args}`"
 
@@ -306,74 +321,74 @@ class RunPythonAction(Action):
             return "RunPythonAction failed: The 'file_name' field argument can not be empty"
         if not self.code:
             return "RunPythonAction failed: The 'code' argument can not be empty"
-        
-        # Install code dependencies
-        self._install_dependencies()
 
-        # Write code to file
+        # Create work directory
+        os.makedirs(self.work_dir, exist_ok=True)
+
+         # Create virtual environment inside work directory
+        venv_path = self._create_virtual_env()
+
+        # Install dependencies in virtual environment
+        self._install_dependencies(venv_path)
+
+        # Write code to file inside work directory
         self._write_code_to_file()
 
         # Run the python script and fetch the output
-        output = self._run_script_and_fetch_output()
+        exit_code, stdout_output, stderr_error = self._run_script(venv_path)
+        output = self._construct_output(exit_code, stdout_output, stderr_error)
+
+        # Clean up working directory
+        self._cleanup_work_dir()
+
         return output
 
-    def _install_dependencies(self):
-        for dependency in self.pkg_dependencies:
-            with Spinner(f"Installing {dependency}..."):
-                if dependency != "jvm":
-                    logging.info("Installing %s...", dependency)
-                    os.system(f"pip install {dependency}")
+    def _create_virtual_env(self):
+        venv_dir = os.path.join(self.work_dir, 'venv')
+        venv.EnvBuilder(with_pip=True).create(venv_dir)
+        return os.path.join(venv_dir, 'bin')
 
+    def _install_dependencies(self, venv_path):
+        for dependency in self.pkg_dependencies:
+            subprocess.check_call([os.path.join(venv_path, 'pip'), 'install', dependency])
 
     def _write_code_to_file(self):
-        with io.open(self.file_name, mode="w", encoding="utf-8") as file:
-            file.write("import jvm\n")
+        with open(os.path.join(self.work_dir, self.file_name), mode="w", encoding="utf-8") as file:
             file.write(self.code)
 
-
-    def _run_script_and_fetch_output(self):
+    def _run_script(self, venv_path):
         with subprocess.Popen(
-                f"python {self.file_name} {self.cmd_args}",
-                shell=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                universal_newlines=True,
+            [os.path.join(venv_path, 'python'), os.path.join(self.work_dir, self.file_name)] + self.cmd_args.split(),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
         ) as process:
             try:
-                exit_code = process.wait(timeout=self.timeout)  # Add the timeout argument
-                stdout_output = process.stdout.read() if process.stdout else ""
-                stderr_error = process.stderr.read() if process.stderr else ""
-
-                include_source = False
-                # Use regex to find if there are any possible errors in the output of script
-                if re.search(r"(?i)error|exception|fail|fatal", stdout_output + stderr_error):
-                    include_source = True
-
-                output = self._construct_output(exit_code, stdout_output, stderr_error, include_source)
-                return output
-
+                stdout_output, stderr_error = process.communicate(timeout=self.timeout)
+                return process.returncode, stdout_output, stderr_error
             except subprocess.TimeoutExpired:
                 process.kill()
-                output = f"RunPythonAction failed: The Python script at `{self.file_name} {self.cmd_args}` timed out after {self.timeout} seconds."
-                return output
+                return 1, "", f"RunPythonAction failed: The Python script at `{self.file_name} {self.cmd_args}` timed out after {self.timeout} seconds."
 
-
-    def _construct_output(self, exit_code, stdout_output, stderr_error, include_source):
+    def _construct_output(self, exit_code, stdout_output, stderr_error):
         output = f"\n`python {self.file_name} {self.cmd_args}` returned: \n#exit code {exit_code}\n"
         if stdout_output:
             output += f"#stdout of process:\n{stdout_output}"
         if stderr_error:
             output += f"#stderr of process:\n{stderr_error}"
-        if exit_code != 0 or include_source:
+        if exit_code != 0:
             output += f"\n\nPython script code:\n{self.code}"
-
         return output
 
+    def _cleanup_work_dir(self):
+        shutil.rmtree(self.work_dir, ignore_errors=True)
 
 @dataclass(frozen=True)
 class TextCompletionAction(Action):
     action_id: int
-    prompt: str
+    command: str
+    content: str
+    output_fmt: str
     model_name: str = gpt.GPT_3_5_TURBO
 
     def key(self) -> str:
@@ -383,41 +398,63 @@ class TextCompletionAction(Action):
         return self.action_id
 
     def short_string(self) -> str:
-        return f"action_id: {self.id()}, Text completion for `{self.prompt}`."
+        return f"action_id: {self.id()}, Text Completion for `{self.command}`."
 
-    def run(self) -> str:
-        # use cache if possible
-        hash_str = hashlib.md5(self.prompt.encode()).hexdigest()
-        key = f"{hash_str}"
-        cached_result = get_from_cache(key)
-        if cached_result is not None:
-            logging.info("\nTextCompletionAction RESULT(cached)\n")
-        messages = [
+    def generate_messages(self) -> List[Dict[str, str]]:
+        return [
             {
                 "role": "system",
-                "content": "You are a helpful assistant that uses AI to complete text.When constructing your response, please pay attention to <idx> and the postfix of key, idx starts from 0. the postfix of key indicates the type of value, such as: list, str,int and so on",
+                "content": (
+                    "You are a helpful AI assistant that completes the provided content according to the user's request."
+                    "The format of key: 'key_<idx>.seqX.<type>', where 'X' is a constant, value of <idx> is evaluated dynamically, "
+                    "'type' is type of the value(which can be one of Python's type {int, str, list}), list means list of strings, "
+                    "int means integer, str means string. The user's request has three parts: Request, Output_fmt, Content. "
+                    "You will do TextComopletion for the Content based on the Request and return the result in the format of Output_fmt."
+                )
             },
-            {"role": "user", "content": self.prompt},
+            {
+                "role": "user",
+                "content": (
+                    f"Request={self.command}\n\nOutput_fmt={self.output_fmt}\n\nContent=```{self.content}```\n\nTextCompletionResult="
+                )
+            }
         ]
 
-        model_name = self.model_name
+    def calculate_token_count(self, messages: List[Dict[str, str]]) -> Tuple[int, str]:
         request_token_count = gpt.count_tokens(messages)
-        max_response_token_count = gpt.max_token_count(self.model_name) - request_token_count
-        if request_token_count + 1024 > gpt.max_token_count(self.model_name): # leave some space for the response
-            max_response_token_count = gpt.max_token_count(gpt.GPT_3_5_TURBO_16K) - request_token_count
-            model_name = gpt.GPT_3_5_TURBO_16K
+        max_token_count = gpt.max_token_count(self.model_name)
+
+        if request_token_count + 1024 > max_token_count:  # leave some space for the response
+            max_token_count = gpt.max_token_count(gpt.GPT_3_5_TURBO_16K)
+            return max_token_count - request_token_count, gpt.GPT_3_5_TURBO_16K
+
+        return max_token_count - request_token_count, self.model_name
+
+
+    def run(self) -> str:
+        hash_str = hashlib.md5(self.command.encode()).hexdigest()
+        cached_key = f"{hash_str}"
+        cached_result = get_from_cache(cached_key)
+
+        if cached_result is not None:
+            logging.info(f"TextCompletionAction RESULT(cached) for command \"{self.command}\"\n")
+            return cached_result
+
+        messages = self.generate_messages()
+        max_response_token_count, model_name = self.calculate_token_count(messages)
 
         try:
             response = gpt.send_message(messages, max_response_token_count, model=model_name)
             if response is None:
-                return f"TextCompletionAction RESULT: The text completion for `{self.prompt}` appears to have failed."
+                return f"TextCompletionAction RESULT: generating text completion for `{self.command}` appears to have failed."
 
             result = str(response)
-            save_to_cache(key, result)
+            save_to_cache(cached_key, result)
             return result
 
-        except Exception as e:
-            return f"TextCompletionAction RESULT: An error occurred: {e}"
+        except Exception as err:
+            logging.error(f"TextCompletionAction RESULT: An error occurred: {str(err)}")
+            return f"TextCompletionAction RESULT: An error occurred: {str(err)}"
 
 # Helper function to populate the ACTION_CLASSES dictionary
 def _populate_action_classes(action_classes):
