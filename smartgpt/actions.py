@@ -222,77 +222,6 @@ class WebSearchAction:
                 logging.error(f"WebSearchAction RESULT: An error occurred: {err}")
         return "WebSearchAction RESULT: Max retry limit reached."
 
-@dataclass(frozen=True)
-class ExtractInfoAction(Action):
-    action_id: int
-    command: str
-    content: str
-    output_fmt: str
-    model_name: str = gpt.GPT_3_5_TURBO
-
-    def key(self) -> str:
-        return "ExtractInfo"
-
-    def id(self) -> int:
-        return self.action_id
-
-    def short_string(self) -> str:
-        return f"action_id: {self.id()}, Extract info."
-
-    def generate_messages(self) -> List[Dict[str, str]]:
-        return [
-            {
-                "role": "system",
-                "content": (
-                    "You are a helpful assistant that follows user's request. The format of key: 'key_<idx>.seqX.<type>', "
-                    "where 'X' is a constant, value of <idx> is evaluated dynamically, 'type' is type of the value"
-                    "(which can be one of Python's type {int, str, list}), list means list of strings, int means integer, "
-                    "str means string. The user's request has three parts: Request, Output_fmt, Content. You will extract "
-                    "information from the Content based on the Request and return the result in the format of Output_fmt."
-                )
-            },
-            {
-                "role": "user",
-                "content": (
-                    f"Request={self.command}\n\nOutput_fmt={self.output_fmt}\n\nContent=```{self.content}```\n\nExtractInfoResult="
-                )
-            },
-        ]
-
-    def calculate_token_count(self, messages: List[Dict[str, str]]) -> Tuple[int, str]:
-        request_token_count = gpt.count_tokens(messages)
-        max_token_count = gpt.max_token_count(self.model_name)
-
-        if request_token_count + 1024 > max_token_count:  # leave some space for the response
-            max_token_count = gpt.max_token_count(gpt.GPT_3_5_TURBO_16K)
-            return max_token_count - request_token_count, gpt.GPT_3_5_TURBO_16K
-
-        return max_token_count - request_token_count, self.model_name
-
-    def run(self) -> str:
-        hash_str = hashlib.md5(self.command.encode()).hexdigest()
-        cached_key = f"{hash_str}"
-        cached_result = get_from_cache(cached_key)
-
-        if cached_result is not None:
-            logging.info(f"ExtractInfoAction RESULT(cached) for command \"{self.command}\"\n")
-            return cached_result
-
-        messages = self.generate_messages()
-        max_response_token_count, model_name = self.calculate_token_count(messages)
-
-        try:
-            response = gpt.send_message(messages, max_response_token_count, model=model_name)
-            if response is None:
-                return f"ExtractInfoAction RESULT: Extract information for `{self.command}` appears to have failed."
-
-            result = str(response)
-            save_to_cache(cached_key, result)
-            return result
-
-        except Exception as err:
-            logging.error(f"ExtractInfoAction RESULT: An error occurred: {str(err)}")
-            return f"ExtractInfoAction RESULT: An error occurred: {str(err)}"
 
 @dataclass(frozen=True)
 class RunPythonAction(Action):
@@ -480,7 +409,6 @@ def _populate_action_classes(action_classes):
 ACTION_CLASSES = _populate_action_classes([
     FetchAction,
     RunPythonAction,
-    ExtractInfoAction,
     WebSearchAction,
     TextCompletionAction,
 ])

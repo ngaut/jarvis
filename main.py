@@ -21,7 +21,6 @@ class JVMInterpreter:
         self.actions = {
             "WebSearch": actions.WebSearchAction,
             "Fetch": actions.FetchAction,
-            "ExtractInfo": actions.ExtractInfoAction,
             "RunPython": actions.RunPythonAction,
             "TextCompletion": actions.TextCompletionAction,
         }
