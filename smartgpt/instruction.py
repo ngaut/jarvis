@@ -27,12 +27,6 @@ class JVMInstruction:
         if action_type == "WebSearch":
             args["save_to"] = self.eval_and_patch(args["save_to"])
 
-        if action_type == "ExtractInfo":
-            # patch instruction
-            args["command"] = self.eval_and_patch(args["command"])
-            args["content"] = self.eval_and_patch(args["content"])
-            args["output_fmt"] = self.eval_and_patch(args["output_fmt"])
-
         if action_type == "Fetch":
             args["url"] = self.eval_and_patch(args["url"])
             args["save_to"] = self.eval_and_patch(args["save_to"])
