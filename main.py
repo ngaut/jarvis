@@ -13,7 +13,7 @@ from smartgpt import gpt
 from smartgpt import jvm
 from smartgpt import instruction
 
-base_model  = gpt.GPT_3_5_TURBO_16K
+BASE_MODEL = gpt.GPT_3_5_TURBO_16K
 
 class JVMInterpreter:
     def __init__(self):
@@ -144,7 +144,7 @@ if __name__ == "__main__":
             plan_with_instrs = json.load(f)
     else:
         # Generate a new plan
-        planner.gen_instructions(base_model, replan=args.replan)
+        planner.gen_instructions(BASE_MODEL, replan=args.replan)
         exit(0)
 
     # Find the starting sequence number

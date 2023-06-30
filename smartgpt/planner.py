@@ -23,7 +23,7 @@ This is a good self-contained description because it:
   Specifies where the outcome should be stored.
 ```
 
-Bad Self-Contained Description: 
+Bad Self-Contained Description:
 ```
 Task: "Summarize the document."
 
@@ -49,7 +49,7 @@ The tools at your disposal include:
 - Loop: Repeats instructions for a specific number of iterations.
 - If: Provides conditional control in tasks.
 - Set: Stores a value in the database. The value can be a string, a list, or an integer.
-- ToolAgent: Calls an very smart agent to select the best tool to process the task. It will always return higher quality results.  It is especially useful when the task is complex and cannot be efficiently completed with a single instruction or even a combination of other instructions. If other instructions seem inefficient or inadequate to fulfill the task, consider the 'ToolAgent'. The agent will return a result in the format defined format, allowing subsequent instructions to continue processing the task. 
+- ToolAgent: Calls an very smart agent to select the best tool to process the task. It will always return higher quality results.  It is especially useful when the task is complex and cannot be efficiently completed with a single instruction or even a combination of other instructions. If other instructions seem inefficient or inadequate to fulfill the task, consider the 'ToolAgent'. The agent will return a result in the format defined format, allowing subsequent instructions to continue processing the task.
 
 
 Your responses should be in standard JSON format and include: {goal, main_task_objective, task_list, task_dependency, reasoning_for_each_task, hints_from_user (if any)}. An example is as follows:
@@ -138,7 +138,8 @@ def gen_plan(model: str):
             f"give me a task list, our goal: {goal}\n\n"
             "your json response:```json"
         )
-        resp = gpt.complete_with_system_message(sys_prompt=GEN_PLAN__SYS_PROMPT, user_prompt=user_prompt, model=model)
+
+        resp = gpt.complete(prompt=user_prompt, model=model, system_prompt=GEN_PLAN__SYS_PROMPT)
         logging.info("Response from AI: %s", resp)
         return resp
 

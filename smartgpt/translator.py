@@ -61,7 +61,7 @@ Common arguments for each instruction:
     "save_to": The key under which the fetched content should be stored in the database. Must be dynamic values with @eval() when inside the loop instruction to avoid overwriting the same key.Do not use python style f-string, it will not work for JVM.
   }
 
-4. 'TextCompletion': 
+4. 'TextCompletion':
    - args {
     "command": The string describes what we want.
     "output_fmt": The output_fmt must be the command request to get what we want to save by using the JSON template: {"kvs": [{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0,
@@ -260,7 +260,7 @@ def translate_to_instructions(task_info, model: str):
         #logging.info(f"Translate task: {task_info}")
         #logging.info(f"================================================")
 
-        resp = gpt.complete_with_system_message(sys_prompt=TRANSLATE_PLAN_SYS_PROMPT, user_prompt=user_prompt, model=model)
+        resp = gpt.complete(prompt=user_prompt, model=model, system_prompt=TRANSLATE_PLAN_SYS_PROMPT)
         logging.info("Response from AI: %s", resp)
         return resp[resp.find("{") : resp.rfind("}") + 1]
 
