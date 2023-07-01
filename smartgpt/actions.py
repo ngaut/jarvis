@@ -344,20 +344,21 @@ class TextCompletionAction(Action):
             {
                 "role": "user",
                 "content": (
-                    f"Request={self.command}\n\nOutput_fmt={self.output_fmt}\n\nContent=```{self.content}```\n\nTextCompletionResult="
+                    f"Request={self.command}\n\nOutput_fmt={self.output_fmt}\n\nContent=```{self.content}```\n\n"
+                    "TextCompletionResult="
                 )
             }
         ]
 
-    def calculate_token_count(self, messages: List[Dict[str, str]]) -> Tuple[int, str]:
+    def adjust_token_and_model(self, messages: List[Dict[str, str]]) -> str:
         request_token_count = gpt.count_tokens(messages)
-        max_token_count = gpt.max_token_count(self.model_name)
+        max_token_count = gpt.get_max_tokens(self.model_name)
+        model_name = self.model_name
 
         if request_token_count + 1024 > max_token_count:  # leave some space for the response
-            max_token_count = gpt.max_token_count(gpt.GPT_3_5_TURBO_16K)
-            return max_token_count - request_token_count, gpt.GPT_3_5_TURBO_16K
+            model_name = gpt.GPT_3_5_TURBO_16K
 
-        return max_token_count - request_token_count, self.model_name
+        return model_name
 
 
     def run(self) -> str:
@@ -370,14 +371,13 @@ class TextCompletionAction(Action):
             return cached_result
 
         messages = self.generate_messages()
-        max_response_token_count, model_name = self.calculate_token_count(messages)
+        model_name = self.adjust_token_and_model(messages)
 
         try:
-            response = gpt.send_message(messages, max_response_token_count, model=model_name)
-            if response is None:
-                return f"TextCompletionAction RESULT: generating text completion for `{self.command}` appears to have failed."
+            result = gpt.send_message(messages, model_name)
+            if result is None:
+                raise ValueError(f"Generating text completion for `{self.command}` appears to have failed.")
 
-            result = str(response)
             save_to_cache(cached_key, result)
             return result
 

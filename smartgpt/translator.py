@@ -4,7 +4,7 @@ import time
 from smartgpt import gpt
 
 TRANSLATE_PLAN_SYS_PROMPT = """
-# As Jarvis, an AI model with the role of translating task into JVM(AKA Jarvis virtual machine)'s instructions. 
+# As Jarvis, an AI model with the role of translating task into JVM(AKA Jarvis virtual machine)'s instructions.
 You will fully leverage user's hints(if any), reuse them to generate instructions efficiently.
 "Pay attention to words in the task and objective description like 'loop', 'each', 'every', or plural nouns, etc. Typically, these indicate that the task should generate loop instructions.
 
@@ -22,7 +22,7 @@ Dynamic keys are particularly useful in loop structures, where data is iterative
 These are the fundamental instructions that are frequently used for simple tasks:
 'WebSearch': Returns a list of URLs from a web search engine based on the provided query.
 'Fetch': Fetches the content of a specified URL.
-'TextCompletion': Allows the AI model to generate and complete the task in a more user-friendly and interactive manner. 
+'TextCompletion': Allows the AI model to generate and complete the task in a more user-friendly and interactive manner.
 
 ###Advanced Instructions:
 
@@ -49,16 +49,16 @@ Common arguments for each instruction:
 
 2. 'WebSearch': {
     "query": The search query string.
-    "save_to": The dynamic key('type' is always 'list') under which the search results should be stored in the database. 
+    "save_to": The dynamic key('type' is always 'list') under which the search results should be stored in the database.
   }
 
 3. 'Fetch': {
     "url": The URL from which the content needs to be fetched.
-    "save_to": The dynamic key under which the search results should be stored in the database. 
+    "save_to": The dynamic key under which the search results should be stored in the database.
   }
 
-4. 'TextCompletion': 
-   - args { 
+4. 'TextCompletion':
+   - args {
     "command": The string describes what we want.
     "output_fmt": The output_fmt must be describe(use dynamic key if inside a loop) what to save by using the JSON template: {"kvs": [{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0,
     "content": Perform text completion processing against this content. Its format must look like "```@eval(jvm.get(key_name))```".
@@ -250,7 +250,7 @@ def translate_to_instructions(task_info, model: str):
         #logging.info(f"Translate task: {task_info}")
         #logging.info(f"================================================")
 
-        resp = gpt.complete_with_system_message(sys_prompt=TRANSLATE_PLAN_SYS_PROMPT, user_prompt=user_prompt, model=model)
+        resp = gpt.complete(prompt=user_prompt, model=model, system_prompt=TRANSLATE_PLAN_SYS_PROMPT)
         logging.info("Response from AI: %s", resp)
         return resp[resp.find("{") : resp.rfind("}") + 1]
 
