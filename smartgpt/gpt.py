@@ -108,22 +108,25 @@ def complete(prompt: str, model: str, system_prompt: Optional[str] = None) -> st
     if system_prompt:
         messages.append({"role": "system", "content": system_prompt})
 
-    messages.append({"role": "user", "content": prompt[:get_max_tokens(model)]})
+    return complete_with_messages(prompt, model, messages)
 
+def complete_with_messages(prompt: str, model: str, messages: List[Dict[str, str]]) -> str:
+    messages.append({"role": "user", "content": prompt[:get_max_tokens(model)]})
     return send_message(messages, model)
 
-def start_chat(system_prompt: str, user_prompt: str, model: str) -> List[Dict[str, str]]:
+def start(system_prompt: str, user_prompt: str, model: str) -> List[Dict[str, str]]:
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_prompt},
     ]
 
-    return next_chat(messages, model)
+    return chat(messages, model)
 
-def next_chat(message: List[Dict[str, str]], model: str, prompt=None) -> List[Dict[str, str]]:
+def chat(messages: List[Dict[str, str]], model: str, prompt=None) -> List[Dict[str, str]]:
     if prompt:
-        message.append({"role": "user", "content": prompt})
+        messages.append({"role": "user", "content": prompt})
 
-    response = send_message_stream(message, model)
-    message.append({"role": "assistant", "content": response})
-    return message
+    response = send_message_stream(messages, model)
+
+    messages.append({"role": "assistant", "content": response})
+    return messages

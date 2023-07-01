@@ -5,6 +5,7 @@ import json
 
 from smartgpt import gpt
 from smartgpt import translator
+from smartgpt.clarify import clarify
 
 GEN_PLAN__SYS_PROMPT = """
 As Jarvis, your role as an AI model is to generate and structure tasks for execution by an automated agent (auto-agent).
@@ -49,13 +50,14 @@ The tools at your disposal include:
 - Loop: Repeats instructions for a specific number of iterations.
 - If: Provides conditional control in tasks.
 - Set: Stores a value in the database. The value can be a string, a list, or an integer.
-- ToolAgent: Calls an very smart agent to select the best tool to process the task. It will always return higher quality results.  It is especially useful when the task is complex and cannot be efficiently completed with a single instruction or even a combination of other instructions. If other instructions seem inefficient or inadequate to fulfill the task, consider the 'ToolAgent'. The agent will return a result in the format defined format, allowing subsequent instructions to continue processing the task.
+- ToolAgent: Calls an very smart agent to select the best tool to process the task. It will always return higher quality results. It is especially useful when the task is complex and cannot be efficiently completed with a single instruction or even a combination of other instructions. If other instructions seem inefficient or inadequate to fulfill the task, consider the 'ToolAgent'. The agent will return a result in the format defined format, allowing subsequent instructions to continue processing the task.
 
 
-Your responses should be in standard JSON format and include: {goal, main_task_objective, task_list, task_dependency, reasoning_for_each_task, hints_from_user (if any)}. An example is as follows:
+Your responses should be in standard JSON format and include: {goal, clarification, main_task_objective, task_list, task_dependency, reasoning_for_each_task, hints_from_user (if any)}. An example is as follows:
 
 {
   "goal": "Compose a blog post introducing TiDB Serverless in markdown format, ensuring all sections are linked in an index file.",
+  "clarification": "<YOU FILL>",
   "main_task_objective": "To create a detailed and informative blog post about TiDB Serverless, outlining its key points and features in an engaging manner.",
   "task_list": [
     {
@@ -82,9 +84,7 @@ Your responses should be in standard JSON format and include: {goal, main_task_o
   "hints_from_user": ["Any additional instructions or information provided by the user, which can guide the task generation process"]
 }
 
-
 """
-
 
 def gen_instructions(model: str, replan: bool = False):
     if replan:
@@ -127,19 +127,21 @@ def gen_instructions(model: str, replan: bool = False):
         with open(f"{task_num}.json", "w") as f:
             f.write(instrs)
 
-
 def gen_plan(model: str):
     #input the goal
     goal = input("Please input your goal:\n")
+    clarification_messages = clarify(goal)
 
     try:
         logging.info("========================")
+        messages = [{"role": "system", "content": GEN_PLAN__SYS_PROMPT}] + clarification_messages[1:]
+
         user_prompt = (
-            f"give me a task list, our goal: {goal}\n\n"
-            "your json response:```json"
+            "Now that you have clarified my goal, please generate the task list for me.\n"
+            "Your json response:```json"
         )
 
-        resp = gpt.complete(prompt=user_prompt, model=model, system_prompt=GEN_PLAN__SYS_PROMPT)
+        resp = gpt.complete_with_messages(user_prompt, model, messages)
         logging.info("Response from AI: %s", resp)
         return resp
 
