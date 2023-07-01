@@ -127,21 +127,30 @@ def gen_instructions(model: str, replan: bool = False):
         with open(f"{task_num}.json", "w") as f:
             f.write(instrs)
 
+
+def summarize_goal(messages, model) -> str:
+    # summary the messages to a clear goal
+    messages = [{"role": "system", "content": "You are an AI assistant"}] + messages[1:]
+
+    resp = gpt.complete_with_messages("summary the goal into a single sentence to make it clear and detail", model, messages)
+    return resp
+
 def gen_plan(model: str):
     #input the goal
     goal = input("Please input your goal:\n")
     clarification_messages = clarify(goal)
+    goal = summarize_goal(clarification_messages, model)
 
     try:
         logging.info("========================")
-        messages = [{"role": "system", "content": GEN_PLAN__SYS_PROMPT}] + clarification_messages[1:]
+        logging.info(f"our goal: {goal}")
 
         user_prompt = (
-            "Now that you have clarified my goal, please generate the task list for me.\n"
+            "Please generate the task list that can finish the goal.\n"
             "Your json response:```json"
         )
 
-        resp = gpt.complete_with_messages(user_prompt, model, messages)
+        resp = gpt.complete(user_prompt + f"Your goal is {goal}", model, GEN_PLAN__SYS_PROMPT )
         logging.info("Response from AI: %s", resp)
         return resp
 

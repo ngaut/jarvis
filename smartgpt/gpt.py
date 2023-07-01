@@ -16,6 +16,7 @@ ENCODING = tiktoken.encoding_for_model('gpt-4')
 MODELS = {
     "gpt-4": 8192,
     "gpt-3.5-turbo": 4096,
+    "gpt-3.5-turbo-0613": 4096,
     "gpt-3.5-turbo-16k": 16384,
     "mpt-7b-chat": 4096,
 }
