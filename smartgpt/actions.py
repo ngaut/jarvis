@@ -336,15 +336,15 @@ class TextCompletionAction(Action):
                 "content": (
                     "You are a helpful AI assistant that completes the provided content according to the user's request."
                     "The format of key: 'key_<idx>.seqX.<type>', where 'X' is a constant, value of <idx> is evaluated dynamically, "
-                    "'type' is type of the value(which can be one of Python's type {int, str, list}), list means list of strings, "
-                    "int means integer, str means string. The user's request has three parts: Request, Output_fmt, Content. "
-                    "You will do TextComopletion for the Content based on the Request and return the result in the format of Output_fmt."
+                    "'type' is type of the value(which is one of Python's type {int, str, list}), list means list of strings/integers, "
+                    "int means integer, str means string. The user's request has three parts: Request, output_fmt, Content. "
+                    "You will do TextComopletion for the 'content' based on the 'request' and return the result in the format of 'output_fmt'."
                 )
             },
             {
                 "role": "user",
                 "content": (
-                    f"Request={self.command}\n\nOutput_fmt={self.output_fmt}\n\nContent=```{self.content}```\n\n"
+                    f"request={self.command}\n\noutput_fmt={self.output_fmt}\n\ncontent=```{self.content}```\n\n"
                     "TextCompletionResult="
                 )
             }

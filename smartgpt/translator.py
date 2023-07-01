@@ -58,7 +58,7 @@ Common arguments for each instruction:
    - args {
     "command": The string describes what we want.
     "output_fmt": The output_fmt must be describe(use dynamic key if inside a loop) what to save by using the JSON template: {"kvs": [{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0,
-    "content": Perform text completion processing against this content. Its format must look like "```@eval(jvm.get(key_name))```".
+    "content": Perform text completion processing against this content. We need to feed the content to AI, the format looks like "```@eval(jvm.get(key_name))```".
   }
 
 5. 'If': {
@@ -116,7 +116,7 @@ Do not use f-string, An Output template example:
   "start_seq": 1,
   // how to fully leverage user's hints(if exists), what is the reason for the order of the tasks, how each task passes data to the next task, analyze prefix of the keys from previous tasks, and how to use the prefix to get the data from database, and so on.
   "thoughts":
-  "reasoning_on_apply_instruction_selection_rules":
+  "reasoning_on_apply_instruction_selection_rules": // based on which rule No, the AI selects the instructions
   "instructions": [
     {
       "seq": 1,
