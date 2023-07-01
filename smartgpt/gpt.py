@@ -78,6 +78,31 @@ def send_message(messages: List[Dict[str, str]], model: str) -> str:
             logging.error("Unexpected Error for model %s. Error: %s", model, err)
             raise ValueError(f'OpenAI Error: {err}') from err
 
+def send_message_stream(messages: List[Dict[str, str]], model: str) -> str:
+    while True:
+        try:
+            response = openai.ChatCompletion.create(
+                messages=messages,
+                stream=True,
+                model=model,
+                temperature=0.7)
+
+            chat = []
+            for chunk in response:
+                delta = chunk["choices"][0]["delta"]
+                msg = delta.get("content", "")
+                print(msg, end="")
+                chat.append(msg)
+            print()
+            messages.append({"role": "assistant", "content": "".join(chat)})
+            return messages[-1]["content"]
+
+        except Exception as err:
+            # Handling General Exceptions
+            logging.error("Unexpected Error for model %s. Error: %s", model, err)
+            raise ValueError(f'OpenAI Error: {err}') from err
+
+
 def complete(prompt: str, model: str, system_prompt: Optional[str] = None) -> str:
     messages = []
     if system_prompt:
@@ -86,3 +111,19 @@ def complete(prompt: str, model: str, system_prompt: Optional[str] = None) -> st
     messages.append({"role": "user", "content": prompt[:get_max_tokens(model)]})
 
     return send_message(messages, model)
+
+def start_chat(system_prompt: str, user_prompt: str, model: str) -> List[Dict[str, str]]:
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
+
+    return next_chat(messages, model)
+
+def next_chat(message: List[Dict[str, str]], model: str, prompt=None) -> List[Dict[str, str]]:
+    if prompt:
+        message.append({"role": "user", "content": prompt})
+
+    response = send_message_stream(message, model)
+    message.append({"role": "assistant", "content": response})
+    return message
