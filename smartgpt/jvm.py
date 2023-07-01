@@ -21,19 +21,19 @@ def save_kv_store():
     with open(kv_store_file, 'w') as f:
         json.dump(kv_store, f)
 
-def get(key):
+def get(key, default=None):
     global kv_store
     try:
         value = kv_store.get(key, None)
         if value is None:
-            return None
+            return default
         if isinstance(value, str) and value.startswith("[") and value.endswith("]"):
             # This is a list
             return list(ast.literal_eval(value))
         return value
     except Exception as e:
         logging.fatal(f"get, An error occurred: {e}")
-        return None
+        return default
 
 def set(key, value):
     global kv_store

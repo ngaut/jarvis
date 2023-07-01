@@ -4,7 +4,8 @@ import time
 from smartgpt import gpt
 
 TRANSLATE_PLAN_SYS_PROMPT = """
-As Jarvis, an AI model with the role of translating task into JVM's instructions. You will fully leverage user's hints(if any), reuse them to generate instructions efficiently.
+# As Jarvis, an AI model with the role of translating task into JVM(AKA Jarvis virtual machine)'s instructions. 
+You will fully leverage user's hints(if any), reuse them to generate instructions efficiently.
 "Pay attention to words in the task and objective description like 'loop', 'each', 'every', or plural nouns, etc. Typically, these indicate that the task should generate loop instructions.
 
 You will define milestones for the task, and then generate instructions for each milestone.
@@ -16,31 +17,26 @@ Dynamic keys are particularly useful in loop structures, where data is iterative
 
 ## JVM Instructions
 
-Basic JVM Instructions:
+###Basic Instructions:
 
 These are the fundamental instructions that are frequently used for simple tasks:
-
 'WebSearch': Returns a list of URLs from a web search engine based on the provided query.
-
 'Fetch': Fetches the content of a specified URL.
+'TextCompletion': Allows the AI model to generate and complete the task in a more user-friendly and interactive manner. 
 
-'TextCompletion': Generates contextually relevant and coherent text or code with Large language model, suitable for various tasks such as language translation, content summarization/extraction. This instruction is also adept at creating, improving, translating, or modifying source code.
-
-Advanced JVM Instructions:
+###Advanced Instructions:
 
 These instructions allow more complex operations, control structures, and integrations:
-
 'If': Acts as a conditional control structure within the JVM. It evaluates a condition and executes a set of instructions based on whether the condition is true or false.
-
-'RunPython': Executes Python code. This instruction is used for performing I/O, calling API.
-
 'Loop': Used to repeat a certain set of instructions for a specified number of iterations.
-
+'RunPython': Executes Python code. This instruction is used for performing I/O, calling API.
 'SysExtension': Designed for complex or composed tasks. It returns higher quality results in the format defined in the 'output_fmt' argument, allowing subsequent instructions to continue processing the task.
 
-Here are the JVM instructions with specified arguments that you should consider:
+### Arguments for JVM instructions:
 Common arguments for each instruction:
 - objective: The string contains an objective description for this instruction only.
+- instruction_selection_rules(for advanced instructions):  [1. which instructions have been considered, analyzed. 2. which instructions have been selected. 3. why the selected instructions are better than the other instructions]
+
 
 1. 'RunPython': {  // do not use any non-existing arguments
     "code": A string containing the entire Python code to be executed. Inside the code, you can call JVM's functions directly without using @eval() syntax to access and manipulate data, such as ```python jvm.set("temperature.seq3.int", 67)```, jvm.get() and so on, because jvm module is imported by default.
@@ -53,18 +49,18 @@ Common arguments for each instruction:
 
 2. 'WebSearch': {
     "query": The search query string.
-    "save_to": The key under which the search results should be stored in the database. Must be dynamic values with @eval() when inside the loop instruction to avoid overwriting the same key.Do not use python style f-string, it will not work for JVM.
+    "save_to": The dynamic key('type' is always 'list') under which the search results should be stored in the database. 
   }
 
 3. 'Fetch': {
     "url": The URL from which the content needs to be fetched.
-    "save_to": The key under which the fetched content should be stored in the database. Must be dynamic values with @eval() when inside the loop instruction to avoid overwriting the same key.Do not use python style f-string, it will not work for JVM.
+    "save_to": The dynamic key under which the search results should be stored in the database. 
   }
 
 4. 'TextCompletion': 
-   - args {
+   - args { 
     "command": The string describes what we want.
-    "output_fmt": The output_fmt must be the command request to get what we want to save by using the JSON template: {"kvs": [{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0,
+    "output_fmt": The output_fmt must be describe(use dynamic key if inside a loop) what to save by using the JSON template: {"kvs": [{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0,
     "content": Perform text completion processing against this content. Its format must look like "```@eval(jvm.get(key_name))```".
   }
 
@@ -81,7 +77,7 @@ Common arguments for each instruction:
    }
 
 7. 'SysExtension':  {
-     "reasoning": The string describes why we need to use this instruction.
+     "reasoning": The string describes the complexcity we are facing.
      "command": The string describes what we want. And the way to do it.
      "content": The content from which the information needs to be retrieved. Its format must look like "```@eval(jvm.get(key_name))```".
      "output_fmt": The output_fmt must be the command request to get what we want to save by using the JSON template: {"kvs": [{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0,
@@ -89,16 +85,10 @@ Common arguments for each instruction:
 
 Everything inside output_fmt(key value pairs inside 'kvs') argument of a instruction will be evaluated and persist to database. No further persist action is required.
 
-## Instruction selection
-Rules to select the right instruction(apply the following rules from top to bottom):
-1. Basic instruction
-2. TextCompletion has higher priority than RunPython instruction if both of them can achieve the same objective.
-3. SysExtension has higher priority when the objective is complex and cannot be achieved by any other instructions easily.
-
-
-## Complexity of instruction's objective
-
-How complex is this objective for each instruction's objective? (1-5), choose a number from 1 to 5, 5 is the most complex, if the task complexity is greater or equal to 3, you should use 'DecomposeAndExec' instruction.
+## instruction_selection_rules
+Apply the following rules from top to bottom to select the instruction:
+1. Basic instructions first, if it cannot achieve the objective, then go to the next step.
+2. If the objective can be achieved by TextCompletion or other instructions, use TextCompletion instruction.
 
 
 ## Instruction Sequence
@@ -122,7 +112,7 @@ key-value API is the only way to pass information between tasks. The database ca
 Your output must be in JSON format, required fields: goal, objective, hints_from_user, end_seq(means max instruction's seqence number), instructions, thoughts, overall_outcome.
 When forming the 'overall_outcome',  Explain the overall outcome we had after succeeded, what is the final result and how to retrieve the results( specify key name or (both key prefix and postfix if the key can't be retrieved by jvm.get) ), As there are other tasks will use the result, give hints to next task.
 
-An Output template example:
+Do not use f-string, An Output template example:
 ```json
 {
   "goal": "Get current weather data for San Francisco and provide suggestions based on temperature, save the results to file",
@@ -132,7 +122,6 @@ An Output template example:
   "start_seq": 1,
   // how to fully leverage user's hints(if exists), what is the reason for the order of the tasks, how each task passes data to the next task, analyze prefix of the keys from previous tasks, and how to use the prefix to get the data from database, and so on.
   "thoughts":
-  "instruction_selection_rules":
   "instructions": [
     {
       "seq": 1,
@@ -209,6 +198,7 @@ An Output template example:
       "seq": 8,
       "type": "RunPython",
       "objective": "Save report to a file",
+      "instruction_selection_rules":[1. which instructions have been considered, analyzed. 2. which instructions have been selected. 3. why the selected instructions are better than the other instructions]
       "args": {
         "code": "with open('weather_report.txt', 'w') as f: f.write(jvm.get('weather_report.seq7.str'))"
         "code_review": "the code writes the weather report to a file named weather_report.txt",
