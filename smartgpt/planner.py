@@ -1,11 +1,12 @@
 from typing import Optional
-from dotenv import load_dotenv
-import time, logging
+import time
+import logging
 import yaml
 
 from smartgpt import gpt
 from smartgpt import translator
 from smartgpt import clarify
+from smartgpt import utils
 
 GEN_PLAN__SYS_PROMPT = """
 As Jarvis, your role as an AI model is to generate and structure tasks for execution by an automated agent (auto-agent).
@@ -127,16 +128,17 @@ def gen_plan(model: str):
 
     try:
         goal = clarify.clarify_and_summarize(goal)
+
         logging.info("========================")
         logging.info(f"The goal: {goal}")
 
         user_prompt = (
             f"The goal: {goal}.\n"
             "Please generate the task list that can finish the goal.\n"
-            "Your yaml response:```yaml\n"
+            "Your YAML response:```yaml\n"
         )
 
-        resp = gpt.complete(user_prompt, model, GEN_PLAN__SYS_PROMPT )
+        resp = utils.strip_yaml(gpt.complete(user_prompt, model, GEN_PLAN__SYS_PROMPT))
         logging.info("Response from AI: %s", resp)
         return resp
 

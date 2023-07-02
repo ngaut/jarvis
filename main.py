@@ -1,12 +1,12 @@
-from typing import Optional
+import os
+import sys
+import argparse
+import logging
+import yaml
 from dotenv import load_dotenv
-import os, sys, re, argparse, logging
-import ruamel.yaml as yaml
 
-from smartgpt.spinner import Spinner
 from smartgpt import actions
 from smartgpt import planner
-from smartgpt import utils
 from smartgpt import gpt
 from smartgpt import jvm
 from smartgpt import instruction
@@ -26,19 +26,20 @@ class JVMInterpreter:
         jvm.set_loop_idx(0)
 
     def run(self, instrs, goal):
-        while self.pc < len(instrs):
-            ins = instruction.JVMInstruction(instrs[self.pc], self.actions, goal)
-            action_type = instrs[self.pc].get("type")
-            if action_type == "If":
-                self.conditional(instruction, goal)
-            elif action_type == "Loop":
-                self.loop(ins)
-            else:
-                ins.execute()
-            self.pc += 1
+        if instrs is not None:
+            while self.pc < len(instrs):
+                jvm_instr = instruction.JVMInstruction(instrs[self.pc], self.actions, goal)
+                action_type = instrs[self.pc].get("type")
+                if action_type == "If":
+                    self.conditional(jvm_instr)
+                elif action_type == "Loop":
+                    self.loop(jvm_instr)
+                else:
+                    jvm_instr.execute()
+                self.pc += 1
 
-    def loop(self, instr):
-        args = instr.instruction["args"]
+    def loop(self, jvm_instr: instruction.JVMInstruction):
+        args = jvm_instr.instruction["args"]
         # Extract the count and the list of instructions for the loop
         loop_count = args["count"]
         # if loop_count is integer
@@ -46,10 +47,10 @@ class JVMInterpreter:
             loop_count = loop_count
         elif isinstance(loop_count, str):
             # loop_count needs to be evaluated in the context of jvm
-            loop_count = int(utils.eval_expression(loop_count))
-        loop_instructions = instr.instruction.get("args", {}).get("instructions", [])
-        logging.info(f"Looping: {loop_instructions}")
+            loop_count = int(jvm.eval(loop_count))
 
+        loop_instructions = jvm_instr.instruction.get("args", {}).get("instructions", [])
+        logging.info(f"Looping: {loop_instructions}")
 
         # Execute the loop instructions the given number of times
         old_pc = self.pc
@@ -59,12 +60,23 @@ class JVMInterpreter:
             logging.info(f"loop idx: {i}")
             # As each loop execution should start from the first instruction, we reset the program counter
             self.pc = 0
-            self.run(loop_instructions, instr.goal)
+            self.run(loop_instructions, jvm_instr.goal)
         self.pc = old_pc
 
-    def conditional(self, instruction, goal):
-        condition = instruction.instruction.get("args", {}).get("condition", None)
-        action = actions.TextCompletionAction(0, "Is that true or false?", instruction.eval_and_patch(condition), '{"kvs":[{"key":"result", "value":"<to_fill>"}, {"key":"reasoning", "value":"<to_fill>"]}')
+    def conditional(self, jvm_instr: instruction.JVMInstruction):
+        condition = jvm_instr.instruction.get("args", {}).get("condition", None)
+        condition = jvm_instr.eval_and_patch(condition)
+        output_fmt = {
+            "kvs": [
+                {"key": "result", "value": "<to_fill>"},
+                {"key": "reasoning", "value": "<to_fill>"},
+            ]
+        }
+        evaluation_action = actions.TextCompletionAction(
+            -1,
+            "Is that true or false?",
+            condition,
+            yaml.safe_dump(output_fmt))
 
         def str_to_bool(s):
             if s.lower() == 'true':
@@ -75,25 +87,24 @@ class JVMInterpreter:
                 return False
 
         try:
-            evaluation_result = action.run()
-            res = yaml.safe_loads(evaluation_result)
-            condition_eval_result = str_to_bool(res["kvs"][0]["value"])
-            condition_eval_reasoning = res["kvs"][1]["value"]
-        except Exception as e:
+            evaluation_result = evaluation_action.run()
+            output_res = yaml.safe_load(evaluation_result)
+            condition_eval_result = str_to_bool(output_res["kvs"][0]["value"])
+            condition_eval_reasoning = output_res["kvs"][1]["value"]
+
+        except Exception as err:
             condition_eval_result = False
             condition_eval_reasoning = ''
-            print(f"Failed to decode AI model response: {condition}")
+            logging.critical(f"Failed to decode AI model response: {condition} with error: {err}")
 
-        print(f"Condition evaluated to {condition_eval_result}. Reasoning: {condition_eval_reasoning}")
+        logging.info(f"Condition evaluated to {condition_eval_result}. Reasoning: {condition_eval_reasoning}")
 
         if condition_eval_result:
             # instruction.instruction["then"] is a list of instructions
-            self.run(instruction.instruction["then"], goal)
+            self.run(jvm_instr.instruction["then"], jvm_instr.goal)
         else:
-            instrs = instruction.instruction["else"]
-            if instrs is not None:
-                # maybe use pc to jump is a better idea.
-                self.run(instrs, goal)
+            # maybe use pc to jump is a better idea.
+            self.run(jvm_instr.instruction["else"], jvm_instr.goal)
 
 
 if __name__ == "__main__":
@@ -108,12 +119,13 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    load_dotenv()
+
     # Load configuration from YAML file
     with open(args.config, 'r') as f:
         config = yaml.safe_load(f)
 
     # Logging file name and line number
-
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s',

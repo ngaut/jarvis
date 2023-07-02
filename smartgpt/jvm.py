@@ -69,7 +69,6 @@ def list_keys_with_prefix(prefix):
 def set_loop_idx(value):
     set("idx", value)
 
-
 LAZY_EVAL_PREFIX = "jvm.eval("
 
 def eval(text, lazy_eval_prefix=LAZY_EVAL_PREFIX):
@@ -102,6 +101,7 @@ def eval(text, lazy_eval_prefix=LAZY_EVAL_PREFIX):
     end = end + start + prefix_len
     # evaluate the substring between jvm.eval( and )
     expression = text[start+prefix_len:end].strip()
+
     try:
         evaluated = eval(expression)
     except Exception as e:

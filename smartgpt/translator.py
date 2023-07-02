@@ -58,7 +58,7 @@ Common arguments for each instruction:
 4. 'TextCompletion':
    - args {
     "command": The string describes what we want.
-    "output_fmt": The output_fmt must be describe(use dynamic key if inside a loop) what to save by using the JSON template: {"kvs": [{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0,
+    "output_fmt": The output_fmt must be describe(use dynamic key if inside a loop) what to save by using the YAML template: {"kvs": [{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0.
     "content": Perform text completion processing against this content. We need to feed the content to AI, the format looks like "```jvm.eval(jvm.get(key_name))```".
   }
 
@@ -138,7 +138,7 @@ instructions:
     objective: Get the current temperature in San Francisco from the fetched content
     args:
       command: Get the current temperature and url in San Francisco
-      output_fmt: 
+      output_fmt:
         kvs:
           - key: temperature.seq3.int
             value: <to_fill>
@@ -159,7 +159,7 @@ instructions:
         objective: Generate outdoor activities suggestions
         args:
           command: What outdoor activities should we recommend to the users? Please generate a weather notes
-          output_fmt: 
+          output_fmt:
             kvs:
               - key: weather_notes.seq5.str
                 value: <to_fill>
@@ -171,7 +171,7 @@ instructions:
         objective: Generate indoor activities suggestions
         args:
           command: What indoor activities should we recommend to the users? Please generate a weather notes
-          output_fmt: 
+          output_fmt:
             kvs:
               - key: weather_notes.seq6.str
                 value: <to_fill>
@@ -183,7 +183,7 @@ instructions:
     objective: Generate a complete weather report for San Francisco using the gathered information
     args:
       command: Please generate current weather report for San Francisco
-      output_fmt: 
+      output_fmt:
         kvs:
           - key: weather_report.seq7.str
             value: <to_fill>
@@ -202,7 +202,7 @@ instructions:
 
 end_seq: 8
 
-overall_outcome: "The current weather report for San Francisco stored, it can be retrieved by jvm.eval(jvm.get('WeatherReport.seq7.str')) or file weather_report.txt, the report includes: the source url of weather data, notes on suggestions from AI" 
+overall_outcome: "The current weather report for San Francisco stored, it can be retrieved by jvm.eval(jvm.get('WeatherReport.seq7.str')) or file weather_report.txt, the report includes: the source url of weather data, notes on suggestions from AI"
 
 ```
 
