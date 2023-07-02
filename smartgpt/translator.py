@@ -107,112 +107,87 @@ Your output require fields: goal, objective, hints_from_user, reasoning_on_apply
 When forming the 'overall_outcome',  Explain the overall outcome we had after succeeded, what is the final result and how to retrieve the results( specify key name or (both key prefix and postfix if the key can't be retrieved by jvm.get) ), As there are other tasks will use the result, give hints to next task.
 
 Do not use f-string, An Output template example:
-```json
-{
-  "goal": "Get current weather data for San Francisco and provide suggestions based on temperature, save the results to file",
-  "objective":,
-  "hints_from_user":
-  // user specified start seq
-  "start_seq": 1,
-  // how to fully leverage user's hints(if exists), what is the reason for the order of the tasks, how each task passes data to the next task, analyze prefix of the keys from previous tasks, and how to use the prefix to get the data from database, and so on.
-  "thoughts":
-  "reasoning_on_apply_instruction_selection_rules": // based on which rule No, the AI selects the instructions
-  "instructions": [
-    {
-      "seq": 1,
-      "type": "WebSearch",
-      "inside_loop": false,
-      "objective": "Find URLs related to current weather in San Francisco",
-      "args": {
-        "query": "temperature in San Francisco",
-        "save_to": "@eval('search_results_' + str(jvm.get('idx')) + '.seq1.list')"
-      }
-    },
-    {
-      "seq": 2,
-      "type": "Fetch",
-      "inside_loop": false,
-      "objective": "Fetch the content from the first URL from the search results",
-      "args": {
-        "url": "@eval(jvm.get('search_results.seq1.list')[0])",  // make sure the reference key exists.
-        // other tasks can use the key or key prefix 'content_fetched_' to scan the data, this is the key point to handle dynamic data
-        "save_to": "@eval('content_fetched_' + str(jvm.get('idx')) + '.seq2.list')"
-      }
-    }
-    {
-      "seq": 3,
-      "type": "TextCompletion",
-      "inside_loop": false,
-      "objective": "Get the current temperature in San Francisco from the fetched content",
-      "args": {
-        "command": "Get the current temperature and url in San Francisco",
-        "output_fmt": "{"kvs":[{"key":"temperature.seq3.int", "value":"<to_fill>"}, {"key":"source_url.seq3.str", "value":"<to_fill>"}]}",
-        "content": "@eval(jvm.get("content_fetched_" + str(jvm.get("idx")) + ".seq2.str"))"
-      }
-    },
-    {
-      "seq": 4,
-      "type": "If",
-      "inside_loop": false,
-      "objective": "Evaluate condition to decide if we recommend outdoor or indoor activities",
-      "args": {
-        "condition": "@eval(jvm.get("temperature.seq3.int") > 67)"
-      },
-      "then": [
-        {
-          "seq": 5,
-          "type": "TextCompletion",
-          "inside_loop": false,
-          "objective": "Generate outdoor activities suggestions",
-          "args": {
-            "command": "What outdoor activities should we recommend to the users? Please generate a weather notes",
-            "output_fmt": "{"kvs":[{"key":"weather_notes.seq5.str", "value":"<to_fill>"}]}",
-            "content": "Today's temperature in San Francisco is @eval(jvm.get("temperature.seq3.int"))",
-          }
-        }
-      ],
-      "else": [
-        {
-          "seq": 6,
-          "type": "TextCompletion",
-          "inside_loop": false,
-          "objective": "Generate indoor activities suggestions",
-          "args": {
-            "command": "What indoor activities should we recommend to the users? Please generate a weather notes",
-            "output_fmt": "{"kvs":[{"key":"weather_notes.seq6.str", "value":"<to_fill>"}]}",
-            "content": "Today's temperature in San Francisco is @eval(jvm.get("temperature.seq3.int"))",
-          }
-        }
-      ]
-    },
-    {
-      "seq": 7,
-      "type": "TextCompletion",
-      "inside_loop": false,
-      "objective": "Generate a complete weather report for San Francisco using the gathered information",
-      "args": {
-        "command": "Please generate current weather report for San Francisco",
-        "output_fmt": "{"kvs":[{"key":"weather_report.seq7.str", "value":"<to_fill>"}]}",
-        "content": "temp = @eval(jvm.get("temperature.seq3.int")), source_url = @eval(jvm.get("source_url.seq3.str")), notes = @eval(jvm.get("weather_notes.seq5.str") or jvm.get("weather_notes.seq6.str"))",
-      }
-    },
-    {
-      "seq": 8,
-      "type": "RunPython",
-      "inside_loop": false,
-      "objective": "Save report to a file",
-      "args": {
-        "code": "with open('weather_report.txt', 'w') as f: f.write(jvm.get('weather_report.seq7.str'))"
-        "code_review": "the code writes the weather report to a file named weather_report.txt",
-        "pkg_dependencies": []
-      }
-    }
-  ],
+```yaml
+goal: Get current weather data for San Francisco and provide suggestions based on temperature, save the results to file
+objective: null
+hints_from_user:
+  start_seq: 1  # user specified start seq
+thoughts: null
+reasoning_on_apply_instruction_selection_rules: null  # based on which rule No, the AI selects the instructions
+instructions:
+  - seq: 1
+    type: WebSearch
+    inside_loop: false
+    objective: Find URLs related to current weather in San Francisco
+    args:
+      query: temperature in San Francisco
+      save_to: "@eval('search_results_' + str(jvm.get('idx')) + '.seq1.list')"
 
-  "end_seq": 8,
+  - seq: 2
+    type: Fetch
+    inside_loop: false
+    objective: Fetch the content from the first URL from the search results
+    args:
+      url: "@eval(jvm.get('search_results.seq1.list')[0])"  # make sure the reference key exists.
+      # other tasks can use the key or key prefix 'content_fetched_' to scan the data, this is the key point to handle dynamic data
+      save_to: "@eval('content_fetched_' + str(jvm.get('idx')) + '.seq2.list')"
 
-  "overall_outcome": "The current weather report for San Francisco stored, it can be retrieved by @eval(jvm.get('WeatherReport.seq7.str')) or file weather_report.txt",, the report includes: the source url of weather data, notes on suggestions from AI ",
-}
+  - seq: 3
+    type: TextCompletion
+    inside_loop: false
+    objective: Get the current temperature in San Francisco from the fetched content
+    args:
+      command: Get the current temperature and url in San Francisco
+      output_fmt: "{"kvs":[{"key":"temperature.seq3.int", "value":"<to_fill>"}, {"key":"source_url.seq3.str", "value":"<to_fill>"}]}"
+      content: "@eval(jvm.get('content_fetched_' + str(jvm.get('idx')) + '.seq2.str'))"
+
+  - seq: 4
+    type: If
+    inside_loop: false
+    objective: Evaluate condition to decide if we recommend outdoor or indoor activities
+    args:
+      condition: "@eval(jvm.get('temperature.seq3.int') > 67)"
+    then:
+      - seq: 5
+        type: TextCompletion
+        inside_loop: false
+        objective: Generate outdoor activities suggestions
+        args:
+          command: What outdoor activities should we recommend to the users? Please generate a weather notes
+          output_fmt: "{"kvs":[{"key":"weather_notes.seq5.str", "value":"<to_fill>"}]}"
+          content: Today's temperature in San Francisco is @eval(jvm.get('temperature.seq3.int'))
+    else:
+      - seq: 6
+        type: TextCompletion
+        inside_loop: false
+        objective: Generate indoor activities suggestions
+        args:
+          command: What indoor activities should we recommend to the users? Please generate a weather notes
+          output_fmt: "{"kvs":[{"key":"weather_notes.seq6.str", "value":"<to_fill>"}]}"
+          content: Today's temperature in San Francisco is @eval(jvm.get('temperature.seq3.int'))
+
+  - seq: 7
+    type: TextCompletion
+    inside_loop: false
+    objective: Generate a complete weather report for San Francisco using the gathered information
+    args:
+      command: Please generate current weather report for San Francisco
+      output_fmt: "{"kvs":[{"key":"weather_report.seq7.str", "value":"<to_fill>"}]}"
+      content: temp = @eval(jvm.get('temperature.seq3.int')), source_url = @eval(jvm.get('source_url.seq3.str')), notes = @eval(jvm.get('weather_notes.seq5.str') or jvm.get('weather_notes.seq6.str'))
+
+  - seq: 8
+    type: RunPython
+    inside_loop: false
+    objective: Save report to a file
+    args:
+      code: with open('weather_report.txt', 'w') as f: f.write(jvm.get('weather_report.seq7.str'))
+      code_review: the code writes the weather report to a file named weather_report.txt
+      pkg_dependencies: []
+
+end_seq: 8
+
+overall_outcome: The current weather report for San Francisco stored, it can be retrieved by @eval(jvm.get('WeatherReport.seq7.str')) or file weather_report.txt, the report includes: the source url of weather data, notes on suggestions from AI 
+
 ```
 
 Remember, your task is to generate instructions that will run on JVM based on these guidelines, Don't generate non-exist instructions.
