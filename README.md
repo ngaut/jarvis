@@ -27,8 +27,8 @@ python main.py --continuous --timeout 3 --config=./config.yaml --startseq=0 --ve
 
 Then we can run the generated instructions by executing the following commands:
 ```bash
-python main.py --continuous --timeout 3 --config=./config.yaml --startseq=0 --verbose --json=1.json
-python main.py --continuous --timeout 3 --config=./config.yaml --startseq=0 --verbose --json=2.json
+python main.py --continuous --timeout 3 --config=./config.yaml --startseq=0 --verbose --yaml=1.yaml
+python main.py --continuous --timeout 3 --config=./config.yaml --startseq=0 --verbose --yaml=2.yaml
 ```
 
 
