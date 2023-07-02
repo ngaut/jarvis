@@ -112,7 +112,7 @@ Do not use f-string, An Output template example:
 goal: Get current weather data for San Francisco and provide suggestions based on temperature, save the results to file
 objective: null
 hints_from_user:
-  start_seq: 1  # user specified start seq
+start_seq: 1  # user specified start seq
 thoughts: null
 reasoning_on_apply_instruction_selection_rules: null  # based on which rule No, the AI selects the instructions
 instructions:
@@ -121,16 +121,16 @@ instructions:
     inside_loop: false
     objective: Find URLs related to current weather in San Francisco
     args:
-      query: temperature in San Francisco
-      save_to: jvm.eval('search_results_' + str(jvm.get('idx')) + '.seq1.list')
+      query: "temperature in San Francisco"
+      save_to: "jvm.eval('search_results_' + str(jvm.get('idx')) + '.seq1.list')"
 
   - seq: 2
     type: Fetch
     inside_loop: false
     objective: Fetch the content from the first URL from the search results
     args:
-      url: jvm.eval(jvm.get('search_results.seq1.list')[0])  # make sure the reference key exists.
-      save_to: jvm.eval('content_fetched_' + str(jvm.get('idx')) + '.seq2.list')  # other tasks can use the key or key prefix 'content_fetched_' to scan the data, this is the key point to handle dynamic data
+      url: "jvm.eval(jvm.get('search_results.seq1.list')[0])"  # make sure the reference key exists.
+      save_to: "jvm.eval('content_fetched_' + str(jvm.get('idx')) + '.seq2.list')"  # other tasks can use the key or key prefix 'content_fetched_' to scan the data, this is the key point to handle dynamic data
 
   - seq: 3
     type: TextCompletion
@@ -144,50 +144,50 @@ instructions:
             value: <to_fill>
           - key: source_url.seq3.str
             value: <to_fill>
-      content: jvm.eval(jvm.get('content_fetched_' + str(jvm.get('idx')) + '.seq2.str'))
+      content: "jvm.eval(jvm.get('content_fetched_' + str(jvm.get('idx')) + '.seq2.str'))"
 
   - seq: 4
     type: If
     inside_loop: false
     objective: Evaluate condition to decide if we recommend outdoor or indoor activities
     args:
-      condition: jvm.eval(jvm.get('temperature.seq3.int') > 67)
+      condition: "jvm.eval(jvm.get('temperature.seq3.int') > 67)"
     then:
       - seq: 5
         type: TextCompletion
         inside_loop: false
         objective: Generate outdoor activities suggestions
         args:
-          command: What outdoor activities should we recommend to the users? Please generate a weather notes
+          command: "What outdoor activities should we recommend to the users? Please generate a weather notes"
           output_fmt:
             kvs:
-              - key: weather_notes.seq5.str
-                value: <to_fill>
-          content: Today's temperature in San Francisco is jvm.eval(jvm.get('temperature.seq3.int'))
+              - key: "weather_notes.seq5.str"
+                value: "<to_fill>"
+          content: "Today's temperature in San Francisco is jvm.eval(jvm.get('temperature.seq3.int'))"
     else:
       - seq: 6
         type: TextCompletion
         inside_loop: false
         objective: Generate indoor activities suggestions
         args:
-          command: What indoor activities should we recommend to the users? Please generate a weather notes
+          command: "What indoor activities should we recommend to the users? Please generate a weather notes"
           output_fmt:
             kvs:
-              - key: weather_notes.seq6.str
-                value: <to_fill>
-          content: Today's temperature in San Francisco is jvm.eval(jvm.get('temperature.seq3.int'))
+              - key: "weather_notes.seq6.str"
+                value: "<to_fill>"
+          content: "Today's temperature in San Francisco is jvm.eval(jvm.get('temperature.seq3.int'))"
 
   - seq: 7
     type: TextCompletion
     inside_loop: false
     objective: Generate a complete weather report for San Francisco using the gathered information
     args:
-      command: Please generate current weather report for San Francisco
+      command: "Please generate current weather report for San Francisco"
       output_fmt:
         kvs:
-          - key: weather_report.seq7.str
-            value: <to_fill>
-      content: temp = jvm.eval(jvm.get('temperature.seq3.int')), source_url = jvm.eval(jvm.get('source_url.seq3.str')), notes = jvm.eval(jvm.get('weather_notes.seq5.str') or jvm.get('weather_notes.seq6.str'))
+          - key: "weather_report.seq7.str"
+            value: "<to_fill>"
+      content: "temp = jvm.eval(jvm.get('temperature.seq3.int')), source_url = jvm.eval(jvm.get('source_url.seq3.str')), notes = jvm.eval(jvm.get('weather_notes.seq5.str') or jvm.get('weather_notes.seq6.str'))"
 
   - seq: 8
     type: RunPython
@@ -197,7 +197,7 @@ instructions:
       code: |
         with open('weather_report.txt', 'w') as f:
           f.write(jvm.get('weather_report.seq7.str'))
-      code_review: the code writes the weather report to a file named weather_report.txt  # reviews the python code
+      code_review: "the code writes the weather report to a file named weather_report.txt"  # reviews the python code
       pkg_dependencies: []
 
 end_seq: 8
