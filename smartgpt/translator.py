@@ -2,6 +2,7 @@ import logging
 import time
 
 from smartgpt import gpt
+from smartgpt import utils
 
 TRANSLATE_PLAN_SYS_PROMPT = """
 # As Jarvis, an AI model with the role of translating task into JVM(AKA Jarvis virtual machine)'s instructions.
@@ -36,7 +37,7 @@ Common arguments for each instruction:
 
 
 1. 'RunPython': {  // do not use any non-existing arguments
-    "code": A string containing the entire Python code to be executed. Inside the code, you can call JVM's functions directly without using @eval() syntax to access and manipulate data, such as ```python jvm.set("temperature.seq3.int", 67)```, jvm.get() and so on, because jvm module is imported by default.
+    "code": A string containing the entire Python code to be executed. Inside the code, you can call JVM's functions directly without using jvm.eval() syntax to access and manipulate data, such as ```python jvm.set("temperature.seq3.int", 67)```, jvm.get() and so on, because jvm module is imported by default.
     "code_review": does it achieve the objective? Which part does not follow the coding standards?
     "pkg_dependencies": A list of any Python packages that the code depends on.
   }
@@ -58,7 +59,7 @@ Common arguments for each instruction:
    - args {
     "command": The string describes what we want.
     "output_fmt": The output_fmt must be describe(use dynamic key if inside a loop) what to save by using the JSON template: {"kvs": [{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0,
-    "content": Perform text completion processing against this content. We need to feed the content to AI, the format looks like "```@eval(jvm.get(key_name))```".
+    "content": Perform text completion processing against this content. We need to feed the content to AI, the format looks like "```jvm.eval(jvm.get(key_name))```".
   }
 
 5. 'If': {
@@ -69,7 +70,7 @@ Common arguments for each instruction:
 
 6. 'Loop': {
      "count": The number of iterations for the loop, can be evaluated dynamically by using the lazy eval syntax.
-     "idx": @eval(jvm.get("idx")). The number of iterations is determined by the "count" argument, the initial value of "idx" can be retrieved with @eval(jvm.get("idx")), the initial value of @eval(jvm.get("idx")) is 0. For each iteration, the AI checks the 'jvm.get("idx")' argument. Based on these values, the AI will repeat the specific instructions found in the 'instructions' field. "jvm.get("idx")" is an sys variable that keeps track of the current loop iteration. If you want to print current search result on the current loop iteration, you can use the following code: ```python print(@eval(search_results.seq1[jvm.get("idx")]))```. here is another example to construct a dynamic key for any instructions inside the loop, code: ```python @eval(jvm.set("relevant_info_" + str(jvm.get("idx")) + ".seq3"), value))```, assume the value jvm.get("idx") is 3, the constructed key will be evaluated as:" "relevant_info_0.seq3", "relevant_info_1.seq3", "relevant_info_2.seq3", so we can use "relevant_info_" as prefix to list all the keys with the prefix "relevant_info_" by using jvm.list_keys_with_prefix("relevant_info_"), or we can use jvm.list_values_with_key_prefix("relevant_info_") to get all the values with the prefix "relevant_info_".
+     "idx": jvm.eval(jvm.get("idx")). The number of iterations is determined by the "count" argument, the initial value of "idx" can be retrieved with jvm.eval(jvm.get("idx")), the initial value of jvm.eval(jvm.get("idx")) is 0. For each iteration, the AI checks the 'jvm.get("idx")' argument. Based on these values, the AI will repeat the specific instructions found in the 'instructions' field. "jvm.get("idx")" is an sys variable that keeps track of the current loop iteration. If you want to print current search result on the current loop iteration, you can use the following code: ```python print(jvm.eval(search_results.seq1[jvm.get("idx")]))```. here is another example to construct a dynamic key for any instructions inside the loop, code: ```python jvm.eval(jvm.set("relevant_info_" + str(jvm.get("idx")) + ".seq3"), value))```, assume the value jvm.get("idx") is 3, the constructed key will be evaluated as:" "relevant_info_0.seq3", "relevant_info_1.seq3", "relevant_info_2.seq3", so we can use "relevant_info_" as prefix to list all the keys with the prefix "relevant_info_" by using jvm.list_keys_with_prefix("relevant_info_"), or we can use jvm.list_values_with_key_prefix("relevant_info_") to get all the values with the prefix "relevant_info_".
      "instructions": The list of instructions to be repeated for each iteration.
    }
 
@@ -121,16 +122,15 @@ instructions:
     objective: Find URLs related to current weather in San Francisco
     args:
       query: temperature in San Francisco
-      save_to: "@eval('search_results_' + str(jvm.get('idx')) + '.seq1.list')"
+      save_to: jvm.eval('search_results_' + str(jvm.get('idx')) + '.seq1.list')
 
   - seq: 2
     type: Fetch
     inside_loop: false
     objective: Fetch the content from the first URL from the search results
     args:
-      url: "@eval(jvm.get('search_results.seq1.list')[0])"  # make sure the reference key exists.
-      # other tasks can use the key or key prefix 'content_fetched_' to scan the data, this is the key point to handle dynamic data
-      save_to: "@eval('content_fetched_' + str(jvm.get('idx')) + '.seq2.list')"
+      url: jvm.eval(jvm.get('search_results.seq1.list')[0])  # make sure the reference key exists.
+      save_to: jvm.eval('content_fetched_' + str(jvm.get('idx')) + '.seq2.list')  # other tasks can use the key or key prefix 'content_fetched_' to scan the data, this is the key point to handle dynamic data
 
   - seq: 3
     type: TextCompletion
@@ -138,15 +138,20 @@ instructions:
     objective: Get the current temperature in San Francisco from the fetched content
     args:
       command: Get the current temperature and url in San Francisco
-      output_fmt: "{"kvs":[{"key":"temperature.seq3.int", "value":"<to_fill>"}, {"key":"source_url.seq3.str", "value":"<to_fill>"}]}"
-      content: "@eval(jvm.get('content_fetched_' + str(jvm.get('idx')) + '.seq2.str'))"
+      output_fmt: 
+        kvs:
+          - key: temperature.seq3.int
+            value: <to_fill>
+          - key: source_url.seq3.str
+            value: <to_fill>
+      content: jvm.eval(jvm.get('content_fetched_' + str(jvm.get('idx')) + '.seq2.str'))
 
   - seq: 4
     type: If
     inside_loop: false
     objective: Evaluate condition to decide if we recommend outdoor or indoor activities
     args:
-      condition: "@eval(jvm.get('temperature.seq3.int') > 67)"
+      condition: jvm.eval(jvm.get('temperature.seq3.int') > 67)
     then:
       - seq: 5
         type: TextCompletion
@@ -154,8 +159,11 @@ instructions:
         objective: Generate outdoor activities suggestions
         args:
           command: What outdoor activities should we recommend to the users? Please generate a weather notes
-          output_fmt: "{"kvs":[{"key":"weather_notes.seq5.str", "value":"<to_fill>"}]}"
-          content: Today's temperature in San Francisco is @eval(jvm.get('temperature.seq3.int'))
+          output_fmt: 
+            kvs:
+              - key: weather_notes.seq5.str
+                value: <to_fill>
+          content: Today's temperature in San Francisco is jvm.eval(jvm.get('temperature.seq3.int'))
     else:
       - seq: 6
         type: TextCompletion
@@ -163,8 +171,11 @@ instructions:
         objective: Generate indoor activities suggestions
         args:
           command: What indoor activities should we recommend to the users? Please generate a weather notes
-          output_fmt: "{"kvs":[{"key":"weather_notes.seq6.str", "value":"<to_fill>"}]}"
-          content: Today's temperature in San Francisco is @eval(jvm.get('temperature.seq3.int'))
+          output_fmt: 
+            kvs:
+              - key: weather_notes.seq6.str
+                value: <to_fill>
+          content: Today's temperature in San Francisco is jvm.eval(jvm.get('temperature.seq3.int'))
 
   - seq: 7
     type: TextCompletion
@@ -172,21 +183,26 @@ instructions:
     objective: Generate a complete weather report for San Francisco using the gathered information
     args:
       command: Please generate current weather report for San Francisco
-      output_fmt: "{"kvs":[{"key":"weather_report.seq7.str", "value":"<to_fill>"}]}"
-      content: temp = @eval(jvm.get('temperature.seq3.int')), source_url = @eval(jvm.get('source_url.seq3.str')), notes = @eval(jvm.get('weather_notes.seq5.str') or jvm.get('weather_notes.seq6.str'))
+      output_fmt: 
+        kvs:
+          - key: weather_report.seq7.str
+            value: <to_fill>
+      content: temp = jvm.eval(jvm.get('temperature.seq3.int')), source_url = jvm.eval(jvm.get('source_url.seq3.str')), notes = jvm.eval(jvm.get('weather_notes.seq5.str') or jvm.get('weather_notes.seq6.str'))
 
   - seq: 8
     type: RunPython
     inside_loop: false
     objective: Save report to a file
     args:
-      code: with open('weather_report.txt', 'w') as f: f.write(jvm.get('weather_report.seq7.str'))
-      code_review: the code writes the weather report to a file named weather_report.txt
+      code: |
+        with open('weather_report.txt', 'w') as f:
+          f.write(jvm.get('weather_report.seq7.str'))
+      code_review: the code writes the weather report to a file named weather_report.txt  # reviews the python code
       pkg_dependencies: []
 
 end_seq: 8
 
-overall_outcome: The current weather report for San Francisco stored, it can be retrieved by @eval(jvm.get('WeatherReport.seq7.str')) or file weather_report.txt, the report includes: the source url of weather data, notes on suggestions from AI
+overall_outcome: "The current weather report for San Francisco stored, it can be retrieved by jvm.eval(jvm.get('WeatherReport.seq7.str')) or file weather_report.txt, the report includes: the source url of weather data, notes on suggestions from AI" 
 
 ```
 
@@ -227,8 +243,8 @@ def translate_to_instructions(task_info, model: str):
         #logging.info(f"Translate task: {task_info}")
         #logging.info(f"================================================")
 
-        resp = gpt.complete(prompt=user_prompt, model=model, system_prompt=TRANSLATE_PLAN_SYS_PROMPT)
-        logging.info("Response from AI: %s", resp)
+        resp = utils.strip_yaml(gpt.complete(prompt=user_prompt, model=model, system_prompt=TRANSLATE_PLAN_SYS_PROMPT))
+        logging.info("Response from AI: \n%s", resp)
         return resp
 
     except Exception as err:

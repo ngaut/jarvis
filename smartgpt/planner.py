@@ -46,7 +46,7 @@ The tools at your disposal include:
 - RunPython: Executes Python code but has a higher operational cost, when you need to use Python code, use this tool.
 - WebSearch: Conducts online searches and returns URLs that match the query.
 - Fetch: Retrieves content from a URL and saves it to the database.
-- TextCompletion: Generates human-like text. When 'prompt' refers to previous outputs or data, use @eval(jvm.get('key')) to reference the data explicitly.
+- TextCompletion: Generates human-like text. When 'prompt' refers to previous outputs or data, use jvm.eval(jvm.get('key')) to reference the data explicitly.
 - Loop: Repeats instructions for a specific number of iterations.
 - If: Provides conditional control in tasks.
 - Set: Stores a value in the database. The value can be a string, a list, or an integer.
@@ -81,7 +81,7 @@ hints_from_user: ["Any additional instructions or information provided by the us
 def gen_instructions(model: str, replan: bool = False):
     if replan:
         logging.info("Replanning...")
-        plan = gen_plan(model)
+        plan = utils.strip_yaml(gen_plan(model))
         with open("plan.yaml", "w") as f:
             f.write(plan)
         exit(0)
