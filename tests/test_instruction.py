@@ -36,11 +36,11 @@ class TestInstruction(unittest.TestCase):
         self.assertEqual(actual_output, expected_output)
 
     def test_eval_and_patch_multiple_key_value_pairs(self):
-        text_input = "{'kvs':[{'key': '@eval(jvm.get(\"key1\"))', 'value': 'value1'}, {'key': '@eval(jvm.get(\"key2\"))', 'value': 'value2'}]}"
+        text_input = "{'kvs':[{'key': 'jvm.eval(jvm.get(\"key1\"))', 'value': 'value1'}, {'key': 'jvm.eval(jvm.get(\"key2\"))', 'value': 'value2'}]}"
         expected_output = '{"kvs":[{"key": "new_key2", "value": "value1"}, {"key": "new_key1", "value": "value2"}]}'
 
         # Assuming jvm.get("key1") returns "new_key1" and jvm.get("key2") returns "new_key2"
-        # Considering that @eval() is in a right-to-left order, expected_output needs to pay attention to this
+        # Considering that jvm.eval() is in a right-to-left order, expected_output needs to pay attention to this
         # Here we should use mock.patch to simulate the behavior of jvm.get
         with mock.patch('smartgpt.instruction.jvm.get', side_effect=['new_key1', 'new_key2']):
             actual_output = self.instruction.eval_and_patch(text_input)
@@ -96,7 +96,7 @@ class TestInstruction(unittest.TestCase):
 
     def test_eval_and_patch_complex_expression_single_quotes(self):
         # Test case where the key expression involves complex operations
-        text_input = "{'kvs':[{'key':'@eval(\"key_points_\" + str(jvm.get(\"idx\")) + \"_\" + str(jvm.get(\"id\")) + \".seq3.list\")', 'value':'<to_fill>'}, {'key':\"features_\" + str(jvm.get(\"id\")) + \"_\" + str(jvm.get(\"idx\")) + \".seq3.list\", 'value':'<to_fill>'}]}"
+        text_input = "{'kvs':[{'key':'jvm.eval(\"key_points_\" + str(jvm.get(\"idx\")) + \"_\" + str(jvm.get(\"id\")) + \".seq3.list\")', 'value':'<to_fill>'}, {'key':\"features_\" + str(jvm.get(\"id\")) + \"_\" + str(jvm.get(\"idx\")) + \".seq3.list\", 'value':'<to_fill>'}]}"
         expected_output = '{"kvs":[{"key":"key_points_0_1.seq3.list", "value":"<to_fill>"}, {"key":"features_1_0.seq3.list", "value":"<to_fill>"}]}'
 
         # Here we should use mock.patch to simulate the behavior of jvm.get
@@ -107,7 +107,7 @@ class TestInstruction(unittest.TestCase):
 
     def test_eval_and_patch_complex_expression_double_quotes(self):
         # Test case where the key expression involves complex operations
-        text_input = '{"kvs":[{"key":"@eval(\'key_points_\' + str(jvm.get(\'idx\')) + \'_\' + str(jvm.get(\'id\')) + \'.seq3.list\')", "value":"<to_fill>"}, {"key":\'features_\' + str(jvm.get(\'id\')) + \'_\' + str(jvm.get(\'idx\')) + \'.seq3.list\', "value":"<to_fill>"}]}'
+        text_input = '{"kvs":[{"key":"jvm.eval(\'key_points_\' + str(jvm.get(\'idx\')) + \'_\' + str(jvm.get(\'id\')) + \'.seq3.list\')", "value":"<to_fill>"}, {"key":\'features_\' + str(jvm.get(\'id\')) + \'_\' + str(jvm.get(\'idx\')) + \'.seq3.list\', "value":"<to_fill>"}]}'
         expected_output = '{"kvs":[{"key":"key_points_0_1.seq3.list", "value":"<to_fill>"}, {"key":"features_1_0.seq3.list", "value":"<to_fill>"}]}'
 
         # Here we should use mock.patch to simulate the behavior of jvm.get
@@ -117,11 +117,11 @@ class TestInstruction(unittest.TestCase):
         self.assertEqual(actual_output, expected_output)
 
     def test_eval_and_patch_get_condition_key(self):
-        text_input = '@eval(jvm.get("weather_notes.seq5.str") or jvm.get("weather_notes.seq6.str"))'
+        text_input = 'jvm.eval(jvm.get("weather_notes.seq5.str") or jvm.get("weather_notes.seq6.str"))'
         expected_output = "the weather is sunny and warm (from weather_notes.seq6.str)"
 
         # Assuming jvm.get("key1") returns None and jvm.get("key2") returns "the weather is sunny and warm"
-        # Considering that @eval() is in a right-to-left order, expected_output needs to pay attention to this
+        # Considering that jvm.eval() is in a right-to-left order, expected_output needs to pay attention to this
         # Here we should use mock.patch to simulate the behavior of jvm.get
         with mock.patch('smartgpt.instruction.jvm.get', side_effect=["the weather is sunny and warm (from weather_notes.seq6.str)", None]):
             actual_output = self.instruction.eval_and_patch(text_input)

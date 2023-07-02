@@ -68,3 +68,48 @@ def list_keys_with_prefix(prefix):
 
 def set_loop_idx(value):
     set("idx", value)
+
+
+LAZY_EVAL_PREFIX = "jvm.eval("
+
+def eval(text, lazy_eval_prefix=LAZY_EVAL_PREFIX):
+    # find last occurrence of "jvm.eval("
+    start = text.rfind(lazy_eval_prefix)
+    if start == -1:
+        return None
+
+    prefix_len = len(lazy_eval_prefix)
+    # find the corresponding closing tag with parentheses balance
+    rest = text[start+prefix_len:]
+    balance = 0
+    end = 0
+    for char in rest:
+        if char == '(':
+            balance += 1
+        elif char == ')':
+            if balance == 0:
+                break
+            balance -= 1
+        end += 1
+
+    if balance != 0:
+        logging.critical(f"Error: parentheses are not balanced in {text}")
+        return None
+
+    logging.info(f"eval_and_patch_template_before_exec, {start}-{end} text: {text}\n")
+
+    # adjust the end position relative to the original string
+    end = end + start + prefix_len
+    # evaluate the substring between jvm.eval( and )
+    expression = text[start+prefix_len:end].strip()
+    try:
+        evaluated = eval(expression)
+    except Exception as e:
+        logging.critical(f"Failed to evaluate {expression}. Error: {str(e)}")
+        return None
+
+    # replace the evaluated part in the original string
+    text = text[:start] + str(evaluated) + text[end+1:]
+    logging.info(f"text after patched: {text}\n")
+
+    return text
