@@ -11,6 +11,7 @@ from urllib.parse import urlparse, urlunparse
 import requests
 import time
 import hashlib
+import yaml
 from selenium import webdriver
 from selenium.webdriver.chrome.webdriver import WebDriver as ChromeWebDriver
 from selenium.webdriver.common.by import By
@@ -79,7 +80,6 @@ class Action(ABC):
         """Returns what jarvis should learn from running the action."""
         raise NotImplementedError
 
-# add a new action class
 @dataclass(frozen=True)
 class FetchAction:
     action_id: int
@@ -157,11 +157,10 @@ class FetchAction:
             return f"FetchAction RESULT: An error occurred: {str(err)}"
         else:
             logging.info(f"\nFetchAction RESULT:\n{text}")
-            result_json = {"kvs": [{"key": self.save_to, "value": text}]}
-            result_json_str = json.dumps(result_json)
+            result_str = yaml.safe_dump({"kvs": [{"key": self.save_to, "value": text}]})
 
-            save_to_cache(cached_key, result_json_str)
-            return result_json_str
+            save_to_cache(cached_key, result_str)
+            return result_str
 
 @dataclass(frozen=True)
 class WebSearchAction:
@@ -208,11 +207,10 @@ class WebSearchAction:
                 result = [item['link'] for item in search_results['items']]
                 logging.info(f"WebSearchAction RESULT: {result}")
 
-                result_json = {"kvs": [{"key": self.save_to, "value": result}]}
-                result_json_str = json.dumps(result_json)
+                result_str = yaml.safe_dump({"kvs": [{"key": self.save_to, "value": result}]})
 
-                save_to_cache(cached_key, result_json_str)
-                return result_json_str
+                save_to_cache(cached_key, result_str)
+                return result_str
             except requests.exceptions.HTTPError as http_err:
                 if http_err.response.status_code == 429:
                     time.sleep(30)
@@ -337,7 +335,7 @@ class TextCompletionAction(Action):
                     "You are a helpful AI assistant that completes the provided content according to the user's request."
                     "The format of key: 'key_<idx>.seqX.<type>', where 'X' is a constant, value of <idx> is evaluated dynamically, "
                     "'type' is type of the value(which is one of Python's type {int, str, list}), list means list of strings/integers, "
-                    "int means integer, str means string. The user's request has three parts: Request, output_fmt, Content. "
+                    "int means integer, str means string. The user's request has three parts: request, output_fmt, content. "
                     "You will do TextComopletion for the 'content' based on the 'request' and return the result in the format of 'output_fmt'."
                 )
             },

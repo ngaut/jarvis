@@ -1,4 +1,4 @@
-import json
+import yaml
 import logging
 import re
 
@@ -49,10 +49,6 @@ class JVMInstruction:
         action_data = {"type": action_type, "action_id": action_id}
         action_data.update(args)
 
-        # append action data to file
-        with open("actions.json", "a") as f:
-            f.write(json.dumps(action_data) + "\n")
-
         action = actions.Action.from_dict(action_data)
         if action is None:
             print(f"Failed to create action from data: {action_data}")
@@ -94,30 +90,20 @@ class JVMInstruction:
 
             # pattern that handles both single and double quoted strings for 'key', 'value', and their corresponding values
             pattern = re.compile(r"('key'|\"key\"):\s*('.+?'|\".+?\"),\s*('value'|\"value\"):\s*('.+?'|\".+?\")")
-            text = text.replace(resp_format, utils.fix_string_to_json(pattern.sub(replace, resp_format)))
+            text = text.replace(resp_format, pattern.sub(replace, resp_format))
 
         return text
 
     def post_exec(self, result: str):
-        # parse result that starts with first '{' and ends with last '}' as json
-        start = result.find("{")
-        end = result.rfind("}")
-
-        if start == -1 or end == -1:
-            logging.error(f"Cannot find JSON in result: {result}")
-            return
-
-        # Extract JSON and parse it
-        json_str = result[start:end+1]
         try:
-            json_data = json.loads(json_str)
-        except json.JSONDecodeError as e:
-            logging.error(f"Failed to parse JSON: {json_str}, error: {str(e)}")
+            json_data = yaml.safe_load(result)
+        except yaml.YAMLError as e:
+            logging.error(f"Failed to parse YAML: {result}, error: {str(e)}")
             return
 
         # Check if "kvs" key exists in the JSON
         if "kvs" not in json_data:
-            logging.error(f"No 'kvs' key in the JSON: {json_str}")
+            logging.error(f"No 'kvs' key in the JSON: {result}")
             return
 
         # Iterate over key-value pairs and set them in the jvm

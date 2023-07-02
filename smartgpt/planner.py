@@ -1,7 +1,7 @@
 from typing import Optional
 from dotenv import load_dotenv
 import time, logging
-import json
+import yaml
 
 from smartgpt import gpt
 from smartgpt import translator
@@ -53,36 +53,29 @@ The tools at your disposal include:
 - ToolAgent: Calls an very smart agent to select the best tool to process the task. It will always return higher quality results. It is especially useful when the task is complex and cannot be efficiently completed with a single instruction or even a combination of other instructions. If other instructions seem inefficient or inadequate to fulfill the task, consider the 'ToolAgent'. The agent will return a result in the format defined format, allowing subsequent instructions to continue processing the task.
 
 
-Your responses should be in standard JSON format and include: {goal, clarification, main_task_objective, task_list, task_dependency, reasoning_for_each_task, hints_from_user (if any)}. An example is as follows:
+Your responses should include: {goal, clarification, main_task_objective, task_list, task_dependency, reasoning_for_each_task, hints_from_user (if any)}. An example is as follows:
 
-{
-  "goal": "Compose a blog post introducing TiDB Serverless in markdown format, ensuring all sections are linked in an index file.",
-  "clarification": "<YOU FILL>",
-  "main_task_objective": "To create a detailed and informative blog post about TiDB Serverless, outlining its key points and features in an engaging manner.",
-  "task_list": [
-    {
-      "task_num": 1,
-      "task": "Store the links 'https://me.0xffff.me/dbaas1.html', 'https://me.0xffff.me/dbaas2.html' in database",
-      "objective": "To ensure the source links are accessible to the following tasks.",
-      "tools": ["Set"],
-      "outcome": "The key 'source_links' in the database now contains the required links."
-    },
-    {
-      "task_num": 2,
-      "task": "Retrieve links from database(ref outcome), then loop through each link, fetch the content, and take notes on the key points and features of TiDB Serverless",
-      "objective": "To gather necessary information and understand the fundamental aspects of TiDB Serverless from the provided links.",
-      "tools": ["Loop", "Fetch", "TextCompletion"],
-      "outcome": "A list of notes highlighting the key points and features of TiDB Serverless is available."
-    },
-    // Additional tasks...
-  ],
-  "reasoning_for_each_task": ["explaining how each task leverages other tasks's outcomes"],
-  "task_dependency": {
-    "2": [1],
-    "3": [2],
-  },
-  "hints_from_user": ["Any additional instructions or information provided by the user, which can guide the task generation process"]
-}
+goal: "Compose a blog post introducing TiDB Serverless in markdown format, ensuring all sections are linked in an index file."
+clarification: "<YOU FILL>"
+main_task_objective: "To create a detailed and informative blog post about TiDB Serverless, outlining its key points and features in an engaging manner."
+task_list:
+  - task_num: 1
+    task: "Store the links 'https://me.0xffff.me/dbaas1.html', 'https://me.0xffff.me/dbaas2.html' in database"
+    objective: "To ensure the source links are accessible to the following tasks."
+    tools: ["Set"]
+    outcome: "The key 'source_links' in the database now contains the required links."
+  - task_num: 2
+    task: "Retrieve links from database(ref outcome), then loop through each link, fetch the content, and take notes on the key points and features of TiDB Serverless"
+    objective: "To gather necessary information and understand the fundamental aspects of TiDB Serverless from the provided links."
+    tools: ["Loop", "Fetch", "TextCompletion"]
+    outcome: "A list of notes highlighting the key points and features of TiDB Serverless is available."
+# Additional tasks...
+reasoning_for_each_task: ["explaining how each task leverages other tasks's outcomes"]
+task_dependency:
+  "2": [1]
+  "3": [2]
+hints_from_user: ["Any additional instructions or information provided by the user, which can guide the task generation process"]
+
 
 """
 
@@ -90,13 +83,14 @@ def gen_instructions(model: str, replan: bool = False):
     if replan:
         logging.info("Replanning...")
         plan = gen_plan(model)
-        plan = plan[plan.find("{") : plan.rfind("}") + 1]
-        with open("plan.json", "w") as f:
+        with open("plan.yaml", "w") as f:
             f.write(plan)
         exit(0)
 
-    logging.info("Translating plan to instructions...")
-    args = json.load(open("plan.json"))
+    with open("plan.yaml", 'r') as file:
+        args = yaml.safe_load(file)
+        logging.info(f"Loaded plan: {args}")
+
     args.pop("reasoning_for_each_task", None)
     args.pop("tools_analysis_for_each_task", None)
 
@@ -121,11 +115,12 @@ def gen_instructions(model: str, replan: bool = False):
             "start_seq":start_seq,
             "previous_outcome":previous_outcome
         }, model=model)
-        tmp = json.loads(instrs)
+        tmp = yaml.safe_load(instrs)
         start_seq = int(tmp['end_seq']) + 1
         task_outcome[task_num] = tmp['overall_outcome']
-        with open(f"{task_num}.json", "w") as f:
+        with open(f"{task_num}.yaml", "w") as f:
             f.write(instrs)
+
 
 
 def summarize_goal(messages, model) -> str:
@@ -147,7 +142,7 @@ def gen_plan(model: str):
 
         user_prompt = (
             "Please generate the task list that can finish the goal.\n"
-            "Your json response:```json"
+            "Your yaml response:```yaml\n"
         )
 
         resp = gpt.complete(user_prompt + f"Your goal is {goal}", model, GEN_PLAN__SYS_PROMPT )

@@ -78,13 +78,13 @@ class JVMInterpreter:
 
         try:
             evaluation_result = action.run()
-            evaluation_result_json = json.loads(evaluation_result)
-            condition_eval_result = str_to_bool(evaluation_result_json["kvs"][0]["value"])
-            condition_eval_reasoning = evaluation_result_json["kvs"][1]["value"]
-        except json.JSONDecodeError:
+            res = yaml.safe_loads(evaluation_result)
+            condition_eval_result = str_to_bool(res["kvs"][0]["value"])
+            condition_eval_reasoning = res["kvs"][1]["value"]
+        except Exception as e:
             condition_eval_result = False
             condition_eval_reasoning = ''
-            print(f"Failed to decode AI model response into JSON: {condition}")
+            print(f"Failed to decode AI model response: {condition}")
 
         print(f"Condition evaluated to {condition_eval_result}. Reasoning: {condition_eval_reasoning}")
 
@@ -105,7 +105,7 @@ if __name__ == "__main__":
     parser.add_argument('--continuous', action='store_true', help='Continuous mode')
     parser.add_argument('--verbose', action='store_true', help='Verbose mode')
     parser.add_argument('--replan', action='store_true', help='create a new plan')
-    parser.add_argument('--json', type=str, help='Path to the JSON file to execute plan from')
+    parser.add_argument('--yaml', type=str, help='Path to the yaml file to execute plan from')
     parser.add_argument('--startseq', type=int, default=0, help='Starting sequence number')
 
     args = parser.parse_args()
@@ -137,11 +137,11 @@ if __name__ == "__main__":
     jvm.load_kv_store()
     actions.load_cache()
 
-    # If a JSON file path is provided, load the plan_with_instrs from the JSON file, otherwise generate a new plan_with_instrs
-    if args.json:
+    # If a YAML file path is provided, load the plan_with_instrs from the YAML file, otherwise generate a new plan_with_instrs
+    if args.yaml:
         # Load the plan_with_instrs from the JSON file
-        with open(args.json, 'r') as f:
-            plan_with_instrs = json.load(f)
+        with open(args.yaml, 'r') as f:
+            plan_with_instrs = yaml.safe_load(f)
     else:
         # Generate a new plan
         planner.gen_instructions(BASE_MODEL, replan=args.replan)

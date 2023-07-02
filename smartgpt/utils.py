@@ -50,8 +50,3 @@ def eval_expression(text, lazy_eval_prefix=LAZY_EVAL_PREFIX):
     logging.info(f"text after patched: {text}\n")
 
     return text
-
-def fix_string_to_json(s):
-    # fix single quotes to double quotes
-    s = s.replace("'", '"')
-    return s

@@ -103,7 +103,7 @@ key-value API is the only way to pass information between tasks. The database ca
 
 ## Output Requirements
 
-Your output must be in JSON format, required fields: goal, objective, hints_from_user, reasoning_on_apply_instruction_selection_rules, end_seq(means max instruction's seqence number), instructions, thoughts, overall_outcome.
+Your output require fields: goal, objective, hints_from_user, reasoning_on_apply_instruction_selection_rules, end_seq(means max instruction's seqence number), instructions, thoughts, overall_outcome.
 When forming the 'overall_outcome',  Explain the overall outcome we had after succeeded, what is the final result and how to retrieve the results( specify key name or (both key prefix and postfix if the key can't be retrieved by jvm.get) ), As there are other tasks will use the result, give hints to next task.
 
 Do not use f-string, An Output template example:
@@ -244,7 +244,7 @@ def translate_to_instructions(task_info, model: str):
 
         if hints != "":
             user_prompt += f"Here are some hints from user: {hints}\n"
-        user_prompt += "Please provide your response in JSON format:\n\n```json"
+        user_prompt += "Please provide your response in YAML format:\n\n```yaml\n"
 
         logging.info(f"user prompt:\n{user_prompt}")
 
@@ -254,7 +254,7 @@ def translate_to_instructions(task_info, model: str):
 
         resp = gpt.complete(prompt=user_prompt, model=model, system_prompt=TRANSLATE_PLAN_SYS_PROMPT)
         logging.info("Response from AI: %s", resp)
-        return resp[resp.find("{") : resp.rfind("}") + 1]
+        return resp
 
     except Exception as err:
         logging.error("Error in main: %s", err)
