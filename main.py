@@ -2,8 +2,6 @@ from typing import Optional
 from dotenv import load_dotenv
 import os, sys, re, argparse, logging
 import ruamel.yaml as yaml
-from datetime import datetime
-import json
 
 from smartgpt.spinner import Spinner
 from smartgpt import actions
@@ -114,7 +112,6 @@ if __name__ == "__main__":
     with open(args.config, 'r') as f:
         config = yaml.safe_load(f)
 
-
     # Logging file name and line number
 
     logging.basicConfig(
@@ -123,7 +120,7 @@ if __name__ == "__main__":
         stream=sys.stdout
     )
 
-    logging.info("Welcome to Jarvis, your personal assistant for everyday tasks!\n")
+    print("Welcome to Jarvis, your personal assistant for everyday tasks!\n")
 
     assistant_config = config.get('assistant', {})
     args.timeout = args.timeout or assistant_config.get('timeout', 30)
@@ -139,7 +136,7 @@ if __name__ == "__main__":
 
     # If a YAML file path is provided, load the plan_with_instrs from the YAML file, otherwise generate a new plan_with_instrs
     if args.yaml:
-        # Load the plan_with_instrs from the JSON file
+        # Load the plan_with_instrs from the YAML file
         with open(args.yaml, 'r') as f:
             plan_with_instrs = yaml.safe_load(f)
     else:
@@ -157,6 +154,7 @@ if __name__ == "__main__":
         exit(1)
 
     # Run the instructions starting from start_seq
-    interpreter = JVMInterpreter()
     logging.info(f"Running instructions from  {plan_with_instrs['instructions'][start_seq]}\n")
+
+    interpreter = JVMInterpreter()
     interpreter.run(plan_with_instrs["instructions"][start_seq:], goal=plan_with_instrs["goal"])

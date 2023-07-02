@@ -186,7 +186,7 @@ instructions:
 
 end_seq: 8
 
-overall_outcome: The current weather report for San Francisco stored, it can be retrieved by @eval(jvm.get('WeatherReport.seq7.str')) or file weather_report.txt, the report includes: the source url of weather data, notes on suggestions from AI 
+overall_outcome: The current weather report for San Francisco stored, it can be retrieved by @eval(jvm.get('WeatherReport.seq7.str')) or file weather_report.txt, the report includes: the source url of weather data, notes on suggestions from AI
 
 ```
 
