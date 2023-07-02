@@ -1,5 +1,5 @@
 import hashlib
-import json
+import yaml
 import unittest
 from unittest.mock import patch
 from smartgpt.actions import FetchAction
@@ -45,13 +45,14 @@ class TestFetchAction(unittest.TestCase):
 
     @patch.object(FetchAction, 'get_html', return_value='<html><body><p>Hello World!</p></body></html>')
     def test_run(self, mock_get_html):
-        expected_result = json.dumps({
+        expected_result = yaml.safe_dump({
             "kvs": [
                 {"key": self.action.save_to, "value": "Hello World!"}
             ]
         })
-        self.assertEqual(self.action.run(), expected_result)
+        self.assertEqual(self.action.run(), yaml.safe_load(expected_result, Loader=yaml.FullLoader))
         mock_get_html.assert_called_once()
+
 
 class TestWebSearchAction(unittest.TestCase):
     def setUp(self):
