@@ -69,7 +69,7 @@ Common arguments for each instruction:
   }
 
 6. 'Loop': {
-     "count": The number of iterations for the loop, can be evaluated dynamically by using the lazy eval syntax.
+     "count": The number of iterations for the loop, can be evaluated dynamically by using the lazy eval syntax. Example: "jvm.eval(len(jvm.get('fetched_urls.seq3.list')))"
      "idx": jvm.eval(jvm.get("idx")). The number of iterations is determined by the "count" argument, the initial value of "idx" can be retrieved with jvm.eval(jvm.get("idx")), the initial value of jvm.eval(jvm.get("idx")) is 0. For each iteration, the AI checks the 'jvm.get("idx")' argument. Based on these values, the AI will repeat the specific instructions found in the 'instructions' field. "jvm.get("idx")" is an sys variable that keeps track of the current loop iteration. If you want to print current search result on the current loop iteration, you can use the following code: ```python print(jvm.eval(search_results.seq1[jvm.get("idx")]))```. here is another example to construct a dynamic key for any instructions inside the loop, code: ```python jvm.eval(jvm.set("relevant_info_" + str(jvm.get("idx")) + ".seq3"), value))```, assume the value jvm.get("idx") is 3, the constructed key will be evaluated as:" "relevant_info_0.seq3", "relevant_info_1.seq3", "relevant_info_2.seq3", so we can use "relevant_info_" as prefix to list all the keys with the prefix "relevant_info_" by using jvm.list_keys_with_prefix("relevant_info_"), or we can use jvm.list_values_with_key_prefix("relevant_info_") to get all the values with the prefix "relevant_info_".
      "instructions": The list of instructions to be repeated for each iteration.
    }
@@ -82,7 +82,7 @@ Everything inside output_fmt argument of a instruction will be evaluated and per
 Rule No.1 - Pay attention to words in the task and objective description like 'loop', 'each', 'every', or plural nouns, etc. Typically, these indicate that the task should generate loop instructions.
 Rule No.2 - Basic instructions first, return the result if the objective can be achieved by basic instructions.
 Rule No.3 - If the objective can be achieved by TextCompletion, use TextCompletion instruction, return the result.
-Rule No.4 - If you choose RunPython instruction, consider whether the objective can be achieved by other instructions. If yes, use other instructions, return the result.
+Rule No.4 - If you consider RunPython instruction, consider whether the objective can be achieved by other instructions. If yes, use other instructions, return the result.
 Rule No.5 - Try Advanced instructions, return the result if the objective can be achieved by advanced instructions.
 
 
@@ -122,15 +122,15 @@ instructions:
     objective: Find URLs related to current weather in San Francisco
     args:
       query: temperature in San Francisco
-      save_to: jvm.eval("search_results_" + str(jvm.get("idx")) + ".seq1.list")
+      save_to: "jvm.eval('search_results_' + str(jvm.get('idx')) + '.seq1.list')"
 
   - seq: 2
     type: Fetch
     inside_loop: false
     objective: Fetch the content from the first URL from the search results
     args:
-      url: jvm.eval(jvm.get('search_results.seq1.list')[0])  # make sure the reference key exists.
-      save_to: jvm.eval("content_fetched_" + str(jvm.get("idx")) + ".seq2.list")  # other tasks can use the key or key prefix 'content_fetched_' to scan the data, this is the key point to handle dynamic data
+      url: "jvm.eval(jvm.get('search_results.seq1.list')[0])"  # make sure the reference key exists.
+      save_to: "jvm.eval('content_fetched_' + str(jvm.get('idx')) + '.seq2.list')"  # other tasks can use the key or key prefix 'content_fetched_' to scan the data, this is the key point to handle dynamic data
 
   - seq: 3
     type: TextCompletion
@@ -144,14 +144,14 @@ instructions:
             value: <to_fill>
           - key: source_url.seq3.str
             value: <to_fill>
-      content: jvm.eval(jvm.get("content_fetched_" + str(jvm.get("idx")) + ".seq2.str"))
+      content: "jvm.eval(jvm.get('content_fetched_' + str(jvm.get('idx')) + '.seq2.str'))"
 
   - seq: 4
     type: If
     inside_loop: false
     objective: Evaluate condition to decide if we recommend outdoor or indoor activities
     args:
-      condition: 20 < jvm.eval(jvm.get("temperature.seq3.int")) < 30
+      condition: "20 < jvm.eval(jvm.get('temperature.seq3.int')) < 30"
     then:
       - seq: 5
         type: TextCompletion
@@ -163,7 +163,7 @@ instructions:
             kvs:
               - key: weather_notes.seq5.str
                 value: <to_fill>
-          content: Today's temperature in San Francisco is jvm.eval(jvm.get("temperature.seq3.int"))
+          content: "Today's temperature in San Francisco is jvm.eval(jvm.get('temperature.seq3.int'))"
     else:
       - seq: 6
         type: TextCompletion
@@ -175,7 +175,7 @@ instructions:
             kvs:
               - key: weather_notes.seq6.str
                 value: <to_fill>
-          content: Today's temperature in San Francisco is jvm.eval(jvm.get("temperature.seq3.int"))
+          content: "Today's temperature in San Francisco is jvm.eval(jvm.get('temperature.seq3.int'))"
 
   - seq: 7
     type: TextCompletion
@@ -244,6 +244,7 @@ def translate_to_instructions(task_info, model: str):
         #logging.info(f"================================================")
 
         resp = utils.strip_yaml(gpt.complete(prompt=user_prompt, model=model, system_prompt=TRANSLATE_PLAN_SYS_PROMPT))
+
         logging.info("Response from AI: \n%s", resp)
         return resp
 

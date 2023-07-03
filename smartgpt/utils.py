@@ -14,3 +14,11 @@ def strip_yaml(text):
 
 def sys_eval(text):
     return eval(text)
+
+def str_to_bool(s):
+    if isinstance(s, bool):
+        return s
+    elif isinstance(s, str):
+        return s.lower() == 'true'
+    else:
+        return False

@@ -10,6 +10,7 @@ from smartgpt import planner
 from smartgpt import gpt
 from smartgpt import jvm
 from smartgpt import instruction
+from smartgpt import utils
 
 BASE_MODEL = gpt.GPT_3_5_TURBO_16K
 
@@ -78,18 +79,10 @@ class JVMInterpreter:
             condition,
             yaml.safe_dump(output_fmt))
 
-        def str_to_bool(s):
-            if s.lower() == 'true':
-                return True
-            elif s.lower() == 'false':
-                return False
-            else:
-                return False
-
         try:
             evaluation_result = evaluation_action.run()
             output_res = yaml.safe_load(evaluation_result)
-            condition_eval_result = str_to_bool(output_res["kvs"][0]["value"])
+            condition_eval_result = utils.str_to_bool(output_res["kvs"][0]["value"])
             condition_eval_reasoning = output_res["kvs"][1]["value"]
 
         except Exception as err:
@@ -99,12 +92,18 @@ class JVMInterpreter:
 
         logging.info(f"Condition evaluated to {condition_eval_result}. Reasoning: {condition_eval_reasoning}")
 
+        old_pc = self.pc
         if condition_eval_result:
             # instruction.instruction["then"] is a list of instructions
-            self.run(jvm_instr.instruction["then"], jvm_instr.goal)
+            if "then" in jvm_instr.instruction:
+                self.pc = 0
+                self.run(jvm_instr.instruction["then"], jvm_instr.goal)
         else:
             # maybe use pc to jump is a better idea.
-            self.run(jvm_instr.instruction["else"], jvm_instr.goal)
+            if "else" in jvm_instr.instruction:
+                self.pc = 0
+                self.run(jvm_instr.instruction["else"], jvm_instr.goal)
+        self.pc = old_pc
 
 
 if __name__ == "__main__":
