@@ -74,10 +74,10 @@ class JVMInterpreter:
             ]
         }
         evaluation_action = actions.TextCompletionAction(
-            -1,
-            "Is that true or false?",
-            condition,
-            yaml.safe_dump(output_fmt))
+            action_id = -1,
+            command = "Is that true or false?",
+            content = condition,
+            output_fmt = yaml.safe_dump(output_fmt))
 
         try:
             evaluation_result = evaluation_action.run()
@@ -95,14 +95,14 @@ class JVMInterpreter:
         old_pc = self.pc
         if condition_eval_result:
             # instruction.instruction["then"] is a list of instructions
-            if "then" in jvm_instr.instruction:
+            if "then" in jvm_instr.instruction.get("args", {}):
                 self.pc = 0
-                self.run(jvm_instr.instruction["then"], jvm_instr.goal)
+                self.run(jvm_instr.instruction["args"]["then"], jvm_instr.goal)
         else:
             # maybe use pc to jump is a better idea.
-            if "else" in jvm_instr.instruction:
+            if "else" in jvm_instr.instruction.get("args", {}):
                 self.pc = 0
-                self.run(jvm_instr.instruction["else"], jvm_instr.goal)
+                self.run(jvm_instr.instruction["args"]["else"], jvm_instr.goal)
         self.pc = old_pc
 
 
