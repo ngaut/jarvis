@@ -57,7 +57,7 @@ class JVMInstruction:
         logging.info(f"\nresult of {action_type}: {result}\n")
 
         if action_type != "RunPython":
-            # todo: handle error if the result is not a json
+            # todo: handle error if the result is not a yaml
             self.post_exec(result)
 
     def eval_and_patch(self, text):
@@ -95,13 +95,13 @@ class JVMInstruction:
     def post_exec(self, result: str):
         try:
             data = yaml.safe_load(result)
-        except yaml.YAMLError as e:
-            logging.error(f"Failed to parse YAML: {result}, error: {str(e)}")
+        except yaml.YAMLError as err:
+            logging.error(f"Failed to parse YAML: {result}, error: {str(err)}")
             return
 
-        # Check if "kvs" key exists in the JSON
+        # Check if "kvs" key exists in the YAML
         if "kvs" not in data:
-            logging.error(f"No 'kvs' key in the JSON: {result}")
+            logging.error(f"No 'kvs' key in the YAML: {result}")
             return
 
         # Iterate over key-value pairs and set them in the jvm
@@ -110,7 +110,7 @@ class JVMInstruction:
                 key = kv["key"]
                 value = kv["value"]
             except KeyError:
-                logging.error(f"Invalid kv item in the JSON: {kv}")
+                logging.error(f"Invalid kv item in the YAML: {kv}")
                 continue
 
             logging.info(f"Setting key-value: {kv} in the JVM")

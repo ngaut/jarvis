@@ -50,7 +50,7 @@ class TestFetchAction(unittest.TestCase):
                 {"key": self.action.save_to, "value": "Hello World!"}
             ]
         })
-        self.assertEqual(self.action.run(), yaml.safe_load(expected_result, Loader=yaml.FullLoader))
+        self.assertEqual(self.action.run(), expected_result)
         mock_get_html.assert_called_once()
 
 
@@ -79,7 +79,7 @@ class TestWebSearchAction(unittest.TestCase):
         mock_requests_get.return_value.json.return_value = {"items": [{"link": "https://news.ycombinator.com/"}]}
 
         result = self.action.run()
-        expected_result = json.dumps({"kvs": [{"key": "search_url.seq3.list", "value": ["https://news.ycombinator.com/"]}]})
+        expected_result = yaml.safe_dump({"kvs": [{"key": "search_url.seq3.list", "value": ["https://news.ycombinator.com/"]}]})
 
         self.assertEqual(result, expected_result)
         mock_cache_save.assert_called_once()

@@ -3,6 +3,8 @@ import ast
 import logging
 import json
 
+from smartgpt import utils
+
 # initialize a dictionary when the module is imported
 kv_store_file = "kv_store.json"
 kv_store = {}
@@ -103,7 +105,7 @@ def eval(text, lazy_eval_prefix=LAZY_EVAL_PREFIX):
     expression = text[start+prefix_len:end].strip()
 
     try:
-        evaluated = eval(expression)
+        evaluated = utils.sys_eval(expression)
     except Exception as e:
         logging.critical(f"Failed to evaluate {expression}. Error: {str(e)}")
         return None

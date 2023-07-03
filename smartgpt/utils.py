@@ -1,5 +1,4 @@
 # Description: Utility functions
-import logging
 
 from smartgpt import jvm
 
@@ -12,3 +11,6 @@ def strip_yaml(text):
     if text.endswith("```"):
         return text[:-3]
     return text
+
+def sys_eval(text):
+    return eval(text)

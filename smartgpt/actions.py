@@ -60,7 +60,7 @@ class Action(ABC):
         # Get the constructor parameters for the action class
         constructor_params = inspect.signature(action_class).parameters
 
-        # Create a dictionary of constructor arguments from the JSON data
+        # Create a dictionary of constructor arguments from the data
         constructor_args = {}
         for param_name, _ in constructor_params.items():
             if param_name != "self" and param_name in data:
