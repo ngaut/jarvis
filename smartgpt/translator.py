@@ -58,7 +58,7 @@ Common arguments for each instruction:
 4. 'TextCompletion':
    - args {
     "command": The string describes what we want.
-    "output_fmt": The output_fmt must be describe(use dynamic key if inside a loop) what to save by using the JSON template: {"kvs": [{"key":"key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0,
+    "output_fmt": The output_fmt must be describe(use dynamic key if inside a loop) what to save by using the YAML template: {"kvs": [{"key": "key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0.
     "content": Perform text completion processing against this content. We need to feed the content to AI, the format looks like "```jvm.eval(jvm.get(key_name))```".
   }
 
@@ -79,11 +79,11 @@ Everything inside output_fmt argument of a instruction will be evaluated and per
 
 ## instruction_selection_rules
 
-Rule No1: Pay attention to words in the task and objective description like 'loop', 'each', 'every', or plural nouns, etc. Typically, these indicate that the task should generate loop instructions.
-Rule No2: Basic instructions first, return the result if the objective can be achieved by basic instructions.
-Rule No3: If the objective can be achieved by TextCompletion, use TextCompletion instruction, return the result.
-Rule No4: If you choose RunPython instruction, consider whether the objective can be achieved by other instructions. If yes, use other instructions, return the result.
-Rule No4: Try Advanced instructions, return the result if the objective can be achieved by advanced instructions.
+Rule No.1 - Pay attention to words in the task and objective description like 'loop', 'each', 'every', or plural nouns, etc. Typically, these indicate that the task should generate loop instructions.
+Rule No.2 - Basic instructions first, return the result if the objective can be achieved by basic instructions.
+Rule No.3 - If the objective can be achieved by TextCompletion, use TextCompletion instruction, return the result.
+Rule No.4 - If you choose RunPython instruction, consider whether the objective can be achieved by other instructions. If yes, use other instructions, return the result.
+Rule No.5 - Try Advanced instructions, return the result if the objective can be achieved by advanced instructions.
 
 
 ## Instruction Sequence
@@ -110,11 +110,11 @@ When forming the 'overall_outcome',  Explain the overall outcome we had after su
 Do not use f-string, An Output template example:
 ```yaml
 goal: Get current weather data for San Francisco and provide suggestions based on temperature, save the results to file
-objective: null
+objective:  # AI-generated objective content
 hints_from_user:
-  start_seq: 1  # user specified start seq
-thoughts: null
-reasoning_on_apply_instruction_selection_rules: null  # based on which rule No, the AI selects the instructions
+start_seq: 1  # user-specified start_seq
+thoughts:  # thoughts on AI generation
+reasoning_on_apply_instruction_selection_rules:  # based on which rule No, the AI selects the instructions
 instructions:
   - seq: 1
     type: WebSearch
@@ -122,7 +122,7 @@ instructions:
     objective: Find URLs related to current weather in San Francisco
     args:
       query: temperature in San Francisco
-      save_to: jvm.eval('search_results_' + str(jvm.get('idx')) + '.seq1.list')
+      save_to: jvm.eval("search_results_" + str(jvm.get("idx")) + ".seq1.list")
 
   - seq: 2
     type: Fetch
@@ -130,7 +130,7 @@ instructions:
     objective: Fetch the content from the first URL from the search results
     args:
       url: jvm.eval(jvm.get('search_results.seq1.list')[0])  # make sure the reference key exists.
-      save_to: jvm.eval('content_fetched_' + str(jvm.get('idx')) + '.seq2.list')  # other tasks can use the key or key prefix 'content_fetched_' to scan the data, this is the key point to handle dynamic data
+      save_to: jvm.eval("content_fetched_" + str(jvm.get("idx")) + ".seq2.list")  # other tasks can use the key or key prefix 'content_fetched_' to scan the data, this is the key point to handle dynamic data
 
   - seq: 3
     type: TextCompletion
@@ -138,20 +138,20 @@ instructions:
     objective: Get the current temperature in San Francisco from the fetched content
     args:
       command: Get the current temperature and url in San Francisco
-      output_fmt: 
+      output_fmt:
         kvs:
           - key: temperature.seq3.int
             value: <to_fill>
           - key: source_url.seq3.str
             value: <to_fill>
-      content: jvm.eval(jvm.get('content_fetched_' + str(jvm.get('idx')) + '.seq2.str'))
+      content: jvm.eval(jvm.get("content_fetched_" + str(jvm.get("idx")) + ".seq2.str"))
 
   - seq: 4
     type: If
     inside_loop: false
     objective: Evaluate condition to decide if we recommend outdoor or indoor activities
     args:
-      condition: jvm.eval(jvm.get('temperature.seq3.int') > 67)
+      condition: 20 < jvm.eval(jvm.get("temperature.seq3.int")) < 30
     then:
       - seq: 5
         type: TextCompletion
@@ -159,11 +159,11 @@ instructions:
         objective: Generate outdoor activities suggestions
         args:
           command: What outdoor activities should we recommend to the users? Please generate a weather notes
-          output_fmt: 
+          output_fmt:
             kvs:
               - key: weather_notes.seq5.str
                 value: <to_fill>
-          content: Today's temperature in San Francisco is jvm.eval(jvm.get('temperature.seq3.int'))
+          content: Today's temperature in San Francisco is jvm.eval(jvm.get("temperature.seq3.int"))
     else:
       - seq: 6
         type: TextCompletion
@@ -171,11 +171,11 @@ instructions:
         objective: Generate indoor activities suggestions
         args:
           command: What indoor activities should we recommend to the users? Please generate a weather notes
-          output_fmt: 
+          output_fmt:
             kvs:
               - key: weather_notes.seq6.str
                 value: <to_fill>
-          content: Today's temperature in San Francisco is jvm.eval(jvm.get('temperature.seq3.int'))
+          content: Today's temperature in San Francisco is jvm.eval(jvm.get("temperature.seq3.int"))
 
   - seq: 7
     type: TextCompletion
@@ -183,11 +183,11 @@ instructions:
     objective: Generate a complete weather report for San Francisco using the gathered information
     args:
       command: Please generate current weather report for San Francisco
-      output_fmt: 
+      output_fmt:
         kvs:
           - key: weather_report.seq7.str
             value: <to_fill>
-      content: temp = jvm.eval(jvm.get('temperature.seq3.int')), source_url = jvm.eval(jvm.get('source_url.seq3.str')), notes = jvm.eval(jvm.get('weather_notes.seq5.str') or jvm.get('weather_notes.seq6.str'))
+      content: "temp = jvm.eval(jvm.get('temperature.seq3.int')), source_url = jvm.eval(jvm.get('source_url.seq3.str')), notes = jvm.eval(jvm.get('weather_notes.seq5.str') or jvm.get('weather_notes.seq6.str'))"
 
   - seq: 8
     type: RunPython
@@ -197,12 +197,12 @@ instructions:
       code: |
         with open('weather_report.txt', 'w') as f:
           f.write(jvm.get('weather_report.seq7.str'))
-      code_review: the code writes the weather report to a file named weather_report.txt  # reviews the python code
+      code_review: "the code writes the weather report to a file named weather_report.txt"  # reviews the python code
       pkg_dependencies: []
 
 end_seq: 8
 
-overall_outcome: "The current weather report for San Francisco stored, it can be retrieved by jvm.eval(jvm.get('WeatherReport.seq7.str')) or file weather_report.txt, the report includes: the source url of weather data, notes on suggestions from AI" 
+overall_outcome: "The current weather report for San Francisco stored, it can be retrieved by jvm.eval(jvm.get('WeatherReport.seq7.str')) or file weather_report.txt, the report includes: the source url of weather data, notes on suggestions from AI"
 
 ```
 

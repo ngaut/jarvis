@@ -1,10 +1,8 @@
-import yaml
 import logging
-import re
+import yaml
 
 from smartgpt import actions
 from smartgpt import jvm
-from smartgpt import utils
 
 class JVMInstruction:
     def __init__(self, instruction, act, goal):
@@ -44,7 +42,7 @@ class JVMInstruction:
         if action_type == "TextCompletion":
             args["command"] = self.eval_and_patch(args["command"])
             args["content"] = self.eval_and_patch(args["content"])
-            args["output_fmt"] = self.eval_and_patch(args["output_fmt"])
+            args["output_fmt"] = self.eval_and_patch(yaml.safe_dump(args["output_fmt"]))
 
         action_data = {"type": action_type, "action_id": action_id}
         action_data.update(args)
@@ -59,16 +57,16 @@ class JVMInstruction:
         logging.info(f"\nresult of {action_type}: {result}\n")
 
         if action_type != "RunPython":
-            # todo: handle error if the result is not a json
+            # todo: handle error if the result is not a yaml
             self.post_exec(result)
 
     def eval_and_patch(self, text):
         while True:
-            tmp_text = utils.eval_expression(text)
+            tmp_text = jvm.eval(text)
             if tmp_text is None:
                 break
             text = tmp_text
-
+        """
         # find the substring starts with {'kvs': or {"kvs": and ends with }]
         match = re.search(r"\{['\"]kvs['\"]:(.+)\]\}", text)
 
@@ -91,28 +89,28 @@ class JVMInstruction:
             # pattern that handles both single and double quoted strings for 'key', 'value', and their corresponding values
             pattern = re.compile(r"('key'|\"key\"):\s*('.+?'|\".+?\"),\s*('value'|\"value\"):\s*('.+?'|\".+?\")")
             text = text.replace(resp_format, pattern.sub(replace, resp_format))
-
+        """
         return text
 
     def post_exec(self, result: str):
         try:
-            json_data = yaml.safe_load(result)
-        except yaml.YAMLError as e:
-            logging.error(f"Failed to parse YAML: {result}, error: {str(e)}")
+            data = yaml.safe_load(result)
+        except yaml.YAMLError as err:
+            logging.error(f"Failed to parse YAML: {result}, error: {str(err)}")
             return
 
-        # Check if "kvs" key exists in the JSON
-        if "kvs" not in json_data:
-            logging.error(f"No 'kvs' key in the JSON: {result}")
+        # Check if "kvs" key exists in the YAML
+        if "kvs" not in data:
+            logging.error(f"No 'kvs' key in the YAML: {result}")
             return
 
         # Iterate over key-value pairs and set them in the jvm
-        for kv in json_data["kvs"]:
+        for kv in data["kvs"]:
             try:
                 key = kv["key"]
                 value = kv["value"]
             except KeyError:
-                logging.error(f"Invalid kv item in the JSON: {kv}")
+                logging.error(f"Invalid kv item in the YAML: {kv}")
                 continue
 
             logging.info(f"Setting key-value: {kv} in the JVM")

@@ -22,6 +22,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from smartgpt import gpt
 from smartgpt import jvm
 from smartgpt.spinner import Spinner
+from smartgpt import utils
 
 
 _cache = {}
@@ -47,7 +48,7 @@ class Action(ABC):
     @classmethod
     def from_dict(cls, data: Union[str, dict]):
         if isinstance(data, str):
-            data = json.loads(data)  # Parse the input string into a dictionary
+            data = yaml.safe_load(data)  # Parse the input string into a dictionary
 
         action_type = data.get("type")
 
@@ -59,7 +60,7 @@ class Action(ABC):
         # Get the constructor parameters for the action class
         constructor_params = inspect.signature(action_class).parameters
 
-        # Create a dictionary of constructor arguments from the JSON data
+        # Create a dictionary of constructor arguments from the data
         constructor_args = {}
         for param_name, _ in constructor_params.items():
             if param_name != "self" and param_name in data:
@@ -218,6 +219,7 @@ class WebSearchAction:
                     logging.error(f"WebSearchAction RESULT: An HTTP error occurred: {http_err}")
             except Exception as err:
                 logging.error(f"WebSearchAction RESULT: An error occurred: {err}")
+
         return "WebSearchAction RESULT: Max retry limit reached."
 
 
@@ -342,8 +344,8 @@ class TextCompletionAction(Action):
             {
                 "role": "user",
                 "content": (
-                    f"request={self.command}\n\noutput_fmt={self.output_fmt}\n\ncontent=```{self.content}```\n\n"
-                    "TextCompletionResult="
+                    f"request={self.command}\n\noutput_fmt=```\n{self.output_fmt}\n```\n\ncontent=```\n{self.content}\n```\n\n"
+                    "Please provide your response in YAML format:\n\n```yaml\n"
                 )
             }
         ]
@@ -375,6 +377,7 @@ class TextCompletionAction(Action):
             result = gpt.send_message(messages, model_name)
             if result is None:
                 raise ValueError(f"Generating text completion for `{self.command}` appears to have failed.")
+            result = utils.strip_yaml(result)
 
             save_to_cache(cached_key, result)
             return result

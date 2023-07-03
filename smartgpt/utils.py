@@ -1,8 +1,6 @@
 # Description: Utility functions
-import logging
 
 from smartgpt import jvm
-
 
 
 def wrap_string_to_eval(text):
@@ -14,3 +12,5 @@ def strip_yaml(text):
         return text[:-3]
     return text
 
+def sys_eval(text):
+    return eval(text)

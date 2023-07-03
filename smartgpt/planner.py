@@ -1,11 +1,12 @@
 from typing import Optional
-from dotenv import load_dotenv
-import time, logging
+import time
+import logging
 import yaml
 
 from smartgpt import gpt
 from smartgpt import translator
-from smartgpt.clarify import clarify
+from smartgpt import clarify
+from smartgpt import utils
 
 GEN_PLAN__SYS_PROMPT = """
 As Jarvis, your role as an AI model is to generate and structure tasks for execution by an automated agent (auto-agent).
@@ -53,10 +54,9 @@ The tools at your disposal include:
 - ToolAgent: Calls an very smart agent to select the best tool to process the task. It will always return higher quality results. It is especially useful when the task is complex and cannot be efficiently completed with a single instruction or even a combination of other instructions. If other instructions seem inefficient or inadequate to fulfill the task, consider the 'ToolAgent'. The agent will return a result in the format defined format, allowing subsequent instructions to continue processing the task.
 
 
-Your responses should include: {goal, clarification, main_task_objective, task_list, task_dependency, reasoning_for_each_task, hints_from_user (if any)}. An example is as follows:
+Your responses should include: {goal, main_task_objective, task_list, task_dependency, reasoning_for_each_task, hints_from_user (if any)}. An example is as follows:
 
 goal: "Compose a blog post introducing TiDB Serverless in markdown format, ensuring all sections are linked in an index file."
-clarification: "<YOU FILL>"
 main_task_objective: "To create a detailed and informative blog post about TiDB Serverless, outlining its key points and features in an engaging manner."
 task_list:
   - task_num: 1
@@ -115,37 +115,30 @@ def gen_instructions(model: str, replan: bool = False):
             "start_seq":start_seq,
             "previous_outcome":previous_outcome
         }, model=model)
-        tmp = yaml.safe_load(instrs)
-        start_seq = int(tmp['end_seq']) + 1
-        task_outcome[task_num] = tmp['overall_outcome']
-        with open(f"{task_num}.yaml", "w") as f:
-            f.write(instrs)
-
-
-
-def summarize_goal(messages, model) -> str:
-    # summary the messages to a clear goal
-    messages = [{"role": "system", "content": "You are an AI assistant"}] + messages[1:]
-
-    resp = gpt.complete_with_messages("summary the goal into a single sentence to make it clear and detail", model, messages)
-    return resp
+        if instrs is not None:
+          tmp = yaml.safe_load(instrs)
+          start_seq = int(tmp['end_seq']) + 1
+          task_outcome[task_num] = tmp['overall_outcome']
+          with open(f"{task_num}.yaml", "w") as f:
+              f.write(instrs)
 
 def gen_plan(model: str):
     #input the goal
     goal = input("Please input your goal:\n")
-    clarification_messages = clarify(goal)
-    goal = summarize_goal(clarification_messages, model)
 
     try:
+        goal = clarify.clarify_and_summarize(goal)
+
         logging.info("========================")
-        logging.info(f"our goal: {goal}")
+        logging.info(f"The goal: {goal}")
 
         user_prompt = (
+            f"The goal: {goal}.\n"
             "Please generate the task list that can finish the goal.\n"
-            "Your yaml response:```yaml\n"
+            "Your YAML response:```yaml\n"
         )
 
-        resp = gpt.complete(user_prompt + f"Your goal is {goal}", model, GEN_PLAN__SYS_PROMPT )
+        resp = utils.strip_yaml(gpt.complete(user_prompt, model, GEN_PLAN__SYS_PROMPT))
         logging.info("Response from AI: %s", resp)
         return resp
 

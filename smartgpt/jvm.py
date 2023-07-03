@@ -3,6 +3,8 @@ import ast
 import logging
 import json
 
+from smartgpt import utils
+
 # initialize a dictionary when the module is imported
 kv_store_file = "kv_store.json"
 kv_store = {}
@@ -69,7 +71,6 @@ def list_keys_with_prefix(prefix):
 def set_loop_idx(value):
     set("idx", value)
 
-
 LAZY_EVAL_PREFIX = "jvm.eval("
 
 def eval(text, lazy_eval_prefix=LAZY_EVAL_PREFIX):
@@ -102,8 +103,9 @@ def eval(text, lazy_eval_prefix=LAZY_EVAL_PREFIX):
     end = end + start + prefix_len
     # evaluate the substring between jvm.eval( and )
     expression = text[start+prefix_len:end].strip()
+
     try:
-        evaluated = eval(expression)
+        evaluated = utils.sys_eval(expression)
     except Exception as e:
         logging.critical(f"Failed to evaluate {expression}. Error: {str(e)}")
         return None

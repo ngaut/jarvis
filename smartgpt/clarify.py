@@ -15,7 +15,7 @@ CLARIFY_SYSTEM_PROMPT = (
 
 def clarify(goal: str) -> List[Dict[str, str]]:
     messages = [{"role": "system", "content": CLARIFY_SYSTEM_PROMPT}]
-    user_input = goal
+    user_input = f"The goal: {goal}"
 
     while True:
         print()
@@ -45,10 +45,21 @@ def clarify(goal: str) -> List[Dict[str, str]]:
             "Is anything else unclear? If yes, only answer in the form:\n"
             "```\n"
             "Remaining questions:\n"
-            "[{remaining unclear areas, in a bullet list format}]\n"
+            "{remaining unclear areas, in a bullet list format}\n"
             "{pick one question from the remaining bullet list, and explicitly ask for a response to it}\n"
             "```\n"
             'If everything is sufficiently clear, only answer "Nothing more to clarify.".'
         )
 
     return messages
+
+
+def clarify_and_summarize(goal: str) -> str:
+    # Interactively clarify user goals
+    messages = clarify(goal)
+
+    # Summarize the messages to a clear goal
+    messages = [{"role": "system", "content": "You are an AI assistant to clarify user's goal"}] + messages[1:]
+
+    resp = gpt.complete_with_messages("Summary the goal into a single sentence to make it clear and detailed", CLARIFY_MODEL_NAME, messages)
+    return resp
