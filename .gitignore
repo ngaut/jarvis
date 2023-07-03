@@ -2,5 +2,8 @@
 .DS_Store
 __pycache__
 .env
-workspace
-work_dir_*
+workspace/
+smartgpt.egg-info/
+dist/
+build/
+.vscode/
