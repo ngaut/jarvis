@@ -33,8 +33,8 @@ def get(key, default=None):
             # This is a list
             return list(ast.literal_eval(value))
         return value
-    except Exception as e:
-        logging.fatal(f"get, An error occurred: {e}")
+    except Exception as err:
+        logging.fatal(f"get, An error occurred: {err}")
         return default
 
 def set(key, value):
@@ -44,8 +44,8 @@ def set(key, value):
             value = repr(value)
         kv_store[key] = value
         save_kv_store()
-    except Exception as error:
-        logging.fatal(f"set, An error occurred: {error}")
+    except Exception as err:
+        logging.fatal(f"set, An error occurred: {err}")
 
 
 def list_values_with_key_prefix(prefix):
@@ -56,16 +56,16 @@ def list_values_with_key_prefix(prefix):
                 values.append(get(key))
         #logging.info(f"list_values_with_key_prefix, values: {values}")
         return values
-    except Exception as e:
-        logging.fatal(f"list_values_with_key_prefix, An error occurred: {e}")
+    except Exception as err:
+        logging.fatal(f"list_values_with_key_prefix, An error occurred: {err}")
         return []
 
 def list_keys_with_prefix(prefix):
     try:
         keys = [key for key in kv_store.keys() if key.startswith(prefix)]
         return keys
-    except Exception as e:
-        logging.fatal(f"list_keys_with_prefix, An error occurred: {e}")
+    except Exception as err:
+        logging.fatal(f"list_keys_with_prefix, An error occurred: {err}")
         return []
 
 def set_loop_idx(value):
@@ -106,8 +106,8 @@ def eval(text, lazy_eval_prefix=LAZY_EVAL_PREFIX):
 
     try:
         evaluated = utils.sys_eval(expression)
-    except Exception as e:
-        logging.critical(f"Failed to evaluate {expression}. Error: {str(e)}")
+    except Exception as err:
+        logging.critical(f"Failed to evaluate {expression}. Error: {str(err)}")
         return None
 
     # replace the evaluated part in the original string

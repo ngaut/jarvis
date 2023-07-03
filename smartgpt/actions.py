@@ -226,14 +226,16 @@ class WebSearchAction:
 @dataclass(frozen=True)
 class RunPythonAction(Action):
     action_id: int
-    file_name: str = "tmp.py"
     timeout: int = 30 # in seconds
     code: str = ""
     pkg_dependencies: List[str] = field(default_factory=list)
     cmd_args: str = ""
 
-    # Define the directory for the working environment
-    work_dir = f'work_dir_{uuid.uuid4()}'
+    # Use the current directory as the working environment
+    work_dir = os.path.join(os.getcwd(), "workspace")
+
+    # Generate a random file name for each execution
+    file_name = f'run_{uuid.uuid4()}.py'
 
     def key(self) -> str:
         return "RunPython"
@@ -245,36 +247,30 @@ class RunPythonAction(Action):
         return f"action_id: {self.id()}, Run Python file `{self.file_name} {self.cmd_args}`"
 
     def run(self) -> str:
-        # Make sure filename and code aren't None
-        if not self.file_name:
-            return "RunPythonAction failed: The 'file_name' field argument can not be empty"
+        # Make sure code isn't None
         if not self.code:
             return "RunPythonAction failed: The 'code' argument can not be empty"
 
-        # Create work directory
-        os.makedirs(self.work_dir, exist_ok=True)
-
-         # Create virtual environment inside work directory
-        venv_path = self._create_virtual_env()
+        # Create or use existing virtual environment
+        venv_path = self._create_or_use_virtual_env()
 
         # Install dependencies in virtual environment
+
         self._install_dependencies(venv_path)
 
-        # Write code to file inside work directory
+        # Write code to file
         self._write_code_to_file()
 
         # Run the python script and fetch the output
         exit_code, stdout_output, stderr_error = self._run_script(venv_path)
         output = self._construct_output(exit_code, stdout_output, stderr_error)
 
-        # Clean up working directory
-        self._cleanup_work_dir()
-
         return output
 
-    def _create_virtual_env(self):
+    def _create_or_use_virtual_env(self):
         venv_dir = os.path.join(self.work_dir, 'venv')
-        venv.EnvBuilder(with_pip=True).create(venv_dir)
+        if not os.path.exists(venv_dir):
+            venv.EnvBuilder(with_pip=True).create(venv_dir)
         return os.path.join(venv_dir, 'bin')
 
     def _install_dependencies(self, venv_path):
@@ -283,6 +279,8 @@ class RunPythonAction(Action):
 
     def _write_code_to_file(self):
         with open(os.path.join(self.work_dir, self.file_name), mode="w", encoding="utf-8") as file:
+            file.write("import jvm\n")
+            file.write("jvm.load_kv_store()\n")
             file.write(self.code)
 
     def _run_script(self, venv_path):
@@ -308,9 +306,6 @@ class RunPythonAction(Action):
         if exit_code != 0:
             output += f"\n\nPython script code:\n{self.code}"
         return output
-
-    def _cleanup_work_dir(self):
-        shutil.rmtree(self.work_dir, ignore_errors=True)
 
 @dataclass(frozen=True)
 class TextCompletionAction(Action):
