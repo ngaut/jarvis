@@ -40,9 +40,9 @@ class JVMInstruction:
                 args["timeout"] = 30
 
         if action_type == "TextCompletion":
-            args["command"] = self.eval_and_patch(args["command"])
-            args["content"] = self.eval_and_patch(args["content"])
-            args["output_fmt"] = self.eval_and_patch(yaml.safe_dump(args["output_fmt"]))
+            args["command"] = self.eval_and_patch(args.get("command"))
+            args["content"] = self.eval_and_patch(args.get("content"))
+            args["output_fmt"] = self.eval_and_patch(yaml.safe_dump(args.get("output_fmt")))
 
         action_data = {"type": action_type, "action_id": action_id}
         action_data.update(args)
@@ -60,36 +60,16 @@ class JVMInstruction:
             # todo: handle error if the result is not a yaml
             self.post_exec(result)
 
-    def eval_and_patch(self, text):
+    def eval_and_patch(self, text) -> str:
+        if text is None:
+            return "None"
+
         while True:
             tmp_text = jvm.eval(text)
             if tmp_text is None:
                 break
             text = tmp_text
-        """
-        # find the substring starts with {'kvs': or {"kvs": and ends with }]
-        match = re.search(r"\{['\"]kvs['\"]:(.+)\]\}", text)
 
-        if match is not None:
-            resp_format = match.group(0)
-            logging.info(f"resp_format: {resp_format}\n")
-
-            def replace(match):
-                key_expr = match.group(2)
-
-                if "jvm.get" in key_expr:
-                    to_eval = utils.wrap_string_to_eval(key_expr)
-                    logging.info(f"to_eval: {to_eval}")
-                    patched_key = f"'{utils.eval_expression(to_eval)}'"
-                    return f'{match.group(1)}:{patched_key}, {match.group(3)}:{match.group(4)}'
-                else:
-                    logging.info(f"key: {key_expr} is not a dynamic key, no need to eval")
-                    return match.group(0)
-
-            # pattern that handles both single and double quoted strings for 'key', 'value', and their corresponding values
-            pattern = re.compile(r"('key'|\"key\"):\s*('.+?'|\".+?\"),\s*('value'|\"value\"):\s*('.+?'|\".+?\")")
-            text = text.replace(resp_format, pattern.sub(replace, resp_format))
-        """
         return text
 
     def post_exec(self, result: str):
