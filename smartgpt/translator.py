@@ -17,13 +17,13 @@ Dynamic keys are particularly useful in loop structures, where data is iterative
 
 ## JVM Instructions
 
-###Basic Instructions:
+### Basic Instructions:
 
 'WebSearch': Returns a list of URLs from a web search engine based on the provided query.
 'Fetch': Fetches the content of a specified URL.
 'TextCompletion': Allows the AI model to generate and complete the task in a more user-friendly and interactive manner.
 
-###Advanced Instructions:
+### Advanced Instructions:
 
 'If': Acts as a conditional control structure within the JVM. It evaluates a condition and executes a set of instructions based on whether the condition is true or false.
 'Loop': Used to repeat a certain set of instructions for a specified number of iterations.
@@ -225,11 +225,11 @@ def translate_to_instructions(task_info, model: str):
 
     try:
         user_prompt = (
-            f"The overall goal is: |{task_info['goal']}|, but at the moment, we need to focus on completing a specific sub-task to meet a sub-objective. \n"
-            f"Let's concentrate on the task at hand: |{task_info['task']}|\n"
+            f"The overall goal is: |{task_info['goal']}|\n"
+            f"We are working on one of the tasks which is: |{task_info['task']}|\n"
             f"The objective of this task is: |{task_info['objective']}|\n"
             f"The starting sequence is |{task_info['start_seq']}|\n"
-            f"Your task: | create a series of JVM instructions to complete the task at hand and fulfill the stated objective. Ensure you fully utilize the outcomes of previous tasks and user hints. | \n"
+            f"Let's create a series of JVM instructions to complete the task and fulfill the stated objective. Ensure you fully utilize the outcomes of previous tasks and user hints. | \n"
             f"Remember: | Every instruction must save its outcome to the database so it can be used in subsequent tasks. |\n"
         )
 
