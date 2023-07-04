@@ -11,7 +11,7 @@ You will fully leverage user's hints(if any), reuse them to generate instruction
 You will define milestones for the task, and then generate instructions for each milestone.
 
 When handling data, bear in mind that dynamic keys are critical to the operation of this AI. Dynamic keys provide the flexibility to manipulate and access data. They can cater to the specific needs of a variety of tasks.
-Dynamic keys, must be the format: 'key_<idx>.seqX.<type>', where 'X' could vary based on context, 'idx' is related to the loop index(can be optional if there is no loop), 'type' is type of the value(which is one of Python's type: {int, str, list}) allow the AI to structure and access data in a flexible, non-static way.
+Dynamic keys, must be the format: 'key_<idx>.seqX.<type>', where 'X' could vary based on context, 'idx' is related to the loop index(can be optional if current instruction is not inside a loop), 'type' is type of the value(which is one of Python's type: {int, str, list}) allow the AI to structure and access data in a flexible, non-static way.
 Dynamic keys are particularly useful in loop structures, where data is iteratively processed or collected. They allow the AI to dynamically create and access individual data entries, thus providing a more granular control over data. Be sure to construct and utilize dynamic keys wisely, allowing for efficient data manipulation and access across various tasks.
 
 
@@ -19,21 +19,25 @@ Dynamic keys are particularly useful in loop structures, where data is iterative
 
 ### Basic Instructions:
 
-'WebSearch': Returns a list of URLs from a web search engine based on the provided query.
-'Fetch': Fetches the content of a specified URL.
-'TextCompletion': Allows the AI model to generate and complete the task in a more user-friendly and interactive manner.
+- 'WebSearch': Returns a list of URLs from a web search engine based on the provided query.
+
+- 'Fetch': Fetches the content of a specified URL.
+
+- 'TextCompletion': Allows the AI model to generate, extract and complete the task in a more user-friendly and interactive manner.
 
 ### Advanced Instructions:
 
-'If': Acts as a conditional control structure within the JVM. It evaluates a condition and executes a set of instructions based on whether the condition is true or false.
-'Loop': Used to repeat a certain set of instructions for a specified number of iterations.
-'RunPython': Executes Python code. This instruction is used for performing I/O, calling API.
+- 'If': Acts as a conditional control structure within the JVM. It evaluates a condition and executes a set of instructions based on whether the condition is true or false.
+
+- 'Loop': Used to repeat a certain set of instructions for a specified number of iterations.
+
+- 'RunPython': Executes Python code. This instruction is used for performing I/O, calling API.
 
 ### Arguments for JVM instructions:
 Common arguments for each instruction:
 - objective: The string contains an objective description for this instruction only.
 - inside_loop: Whether this instruction is inside a loop or not.
-- instruction_selection_rules:  [1. which instructions have been considered, analyzed. 2. which instructions have been selected. 3. why the selected instructions are better than the other instructions, what are other options?]
+- rule_num:  which rule(include ID of rule) the instruction has been applied 
 
 
 1. 'RunPython': {  // do not use any non-existing arguments
@@ -44,6 +48,7 @@ Common arguments for each instruction:
   - Coding Standards:
     - Include comments to explain functionality and decision-making processes.
     - Avoid placeholder code.
+    - Avoid use f-strings.
 
 2. 'WebSearch': {
     "query": The search query string.
@@ -77,13 +82,16 @@ Common arguments for each instruction:
 
 Everything inside output_fmt argument of a instruction will be evaluated and persist to database. No further persist/save action is required.
 
+
 ## instruction_selection_rules
 
-Rule No.1 - Pay attention to words in the task and objective description like 'loop', 'each', 'every', or plural nouns, etc. Typically, these indicate that the task should generate loop instructions.
-Rule No.2 - Basic instructions first, return the result if the objective can be achieved by basic instructions.
-Rule No.3 - If the objective can be achieved by TextCompletion, use TextCompletion instruction, return the result.
-Rule No.4 - If you consider RunPython instruction, consider whether the objective can be achieved by other instructions. If yes, use other instructions, return the result.
-Rule No.5 - Try Advanced instructions, return the result if the objective can be achieved by advanced instructions.
+Rule 1 - Be mindful of keywords such as 'loop', 'each', 'every', and plural nouns in the task and objective description. Generally, these terms suggest that the task requires loop-based instructions.
+
+Rule 2 - Prioritize basic instructions. If the objective can be achieved using a few simple instructions, utilize them and then return the result.
+
+Rule 3 - Exercise caution when considering the RunPython instruction. Evaluate whether the objective can be accomplished using other instructions. If it can, prefer those over the RunPython instruction and return the result.
+
+Rule 4 - Lastly, consider using advanced instructions. If the objective can be achieved with these, employ them and return the result.
 
 
 ## Instruction Sequence
@@ -104,22 +112,26 @@ key-value API is the only way to pass information between tasks. The database ca
 
 ## Output Requirements
 
-Your output require fields: goal, objective, hints_from_user, reasoning_on_apply_instruction_selection_rules, end_seq(means max instruction's seqence number), instructions, thoughts, overall_outcome.
+Your output require fields: goal, objective, thoughts, hints_from_user, end_seq(means max instruction's seqence number), instructions, overall_outcome.
 When forming the 'overall_outcome',  Explain the overall outcome we had after succeeded, what is the final result and how to retrieve the results( specify key name or (both key prefix and postfix if the key can't be retrieved by jvm.get) ), As there are other tasks will use the result, give hints to next task.
 
-Do not use f-string, An Output template example:
+An Output template example:
 ```yaml
 goal: Get current weather data for San Francisco and provide suggestions based on temperature, save the results to file
+
 objective:  # AI-generated objective content
+
+thoughts:  # AI-generated thoughts content
+
 hints_from_user:
 start_seq: 1  # user-specified start_seq
-thoughts:  # thoughts on AI generation
-reasoning_on_apply_instruction_selection_rules:  # based on which rule No, the AI selects the instructions
+
 instructions:
   - seq: 1
     type: WebSearch
     inside_loop: false
     objective: Find URLs related to current weather in San Francisco
+    rule_num: 2
     args:
       query: temperature in San Francisco
       save_to: "jvm.eval('search_results_' + str(jvm.get('idx')) + '.seq1.list')"
@@ -127,6 +139,7 @@ instructions:
   - seq: 2
     type: Fetch
     inside_loop: false
+    rule_num: 2
     objective: Fetch the content from the first URL from the search results
     args:
       url: "jvm.eval(jvm.get('search_results.seq1.list')[0])"  # make sure the reference key exists.
@@ -136,6 +149,7 @@ instructions:
     type: TextCompletion
     inside_loop: false
     objective: Get the current temperature in San Francisco from the fetched content
+    rule_num: 3
     args:
       command: Get the current temperature and url in San Francisco
       output_fmt:
@@ -150,6 +164,7 @@ instructions:
     type: If
     inside_loop: false
     objective: Evaluate condition to decide if we recommend outdoor or indoor activities
+    rule_num: 4
     args:
       condition: "20 < jvm.eval(jvm.get('temperature.seq3.int')) < 30"
     then:
@@ -157,6 +172,7 @@ instructions:
         type: TextCompletion
         inside_loop: false
         objective: Generate outdoor activities suggestions
+        rule_num: 3
         args:
           command: What outdoor activities should we recommend to the users? Please generate a weather notes
           output_fmt:
@@ -169,18 +185,20 @@ instructions:
         type: TextCompletion
         inside_loop: false
         objective: Generate indoor activities suggestions
+        rule_num: 3
         args:
           command: What indoor activities should we recommend to the users? Please generate a weather notes
           output_fmt:
             kvs:
               - key: weather_notes.seq6.str
                 value: <to_fill>
-          content: "Today's temperature in San Francisco is jvm.eval(jvm.get('temperature.seq3.int'))"
+          content: "Today's temperature in San Francisco is jvm.eval(jvm.get('temperature.seq3.int'))" 
 
   - seq: 7
     type: TextCompletion
     inside_loop: false
     objective: Generate a complete weather report for San Francisco using the gathered information
+    rule_num: 3
     args:
       command: Please generate current weather report for San Francisco
       output_fmt:
@@ -193,6 +211,7 @@ instructions:
     type: RunPython
     inside_loop: false
     objective: Save report to a file
+    rule_num: 4 # RunPython is the only instruction that can do file IO
     args:
       code: |
         with open('weather_report.txt', 'w') as f:
@@ -229,7 +248,7 @@ def translate_to_instructions(task_info, model: str):
             f"We are working on one of the tasks which is: |{task_info['task']}|\n"
             f"The objective of this task is: |{task_info['objective']}|\n"
             f"The starting sequence is |{task_info['start_seq']}|\n"
-            f"Let's create a series of JVM instructions to complete the task and fulfill the stated objective. Ensure you fully utilize the outcomes of previous tasks and user hints. | \n"
+            f"Our goal is to create a series of JVM instructions to complete the task and fulfill the stated objective. Ensure you fully utilize the outcomes of previous tasks and user hints. | \n"
             f"Remember: | Every instruction must save its outcome to the database so it can be used in subsequent tasks. |\n"
         )
 
