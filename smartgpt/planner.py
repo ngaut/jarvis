@@ -89,10 +89,9 @@ def gen_instructions(model: str, replan: bool = False):
 
     with open("plan.yaml", 'r') as file:
         args = yaml.safe_load(file)
-        logging.info(f"Loaded plan: {args}")
+        logging.debug(f"Loaded plan: {args}")
 
     args.pop("reasoning_for_each_task", None)
-    args.pop("tools_analysis_for_each_task", None)
 
     # Prepare task dependencies
     task_dependency = {int(k): [int(i) for i in v] for k, v in args.pop("task_dependency", {}).items()}

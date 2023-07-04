@@ -123,7 +123,8 @@ objective:  # AI-generated objective content
 
 thoughts:  # AI-generated thoughts content
 
-hints_from_user:
+hints_from_user: # A list of hints from the user
+
 start_seq: 1  # user-specified start_seq
 
 instructions:
@@ -221,7 +222,7 @@ instructions:
 
 end_seq: 8
 
-overall_outcome: "The current weather report for San Francisco stored, it can be retrieved by jvm.eval(jvm.get('WeatherReport.seq7.str')) or file weather_report.txt, the report includes: the source url of weather data, notes on suggestions from AI"
+overall_outcome: "The current weather report for San Francisco stored, it can be retrieved by jvm.eval(jvm.get('WeatherReport.seq7.str')) or file weather_report.txt, the report includes the source url of weather data, notes on suggestions from AI"
 
 ```
 
@@ -236,19 +237,19 @@ def translate_to_instructions(task_info, model: str):
     else:
       previous_tasks = task_info.get("previous_tasks", [])
       if len(previous_tasks) > 0:
-          hints += f"The previous done tasks: |{previous_tasks}|.\n"
+          hints += f"The previous done tasks: | {previous_tasks} |.\n"
       previous_outcome = task_info.get("previous_outcome", [])
       # if not empty array
       if len(previous_outcome) > 0:
-          hints += f"Outcome list from previous tasks: |{previous_outcome}|.\n"
+          hints += f"Outcome list from previous tasks: | {previous_outcome} |.\n"
 
     try:
         user_prompt = (
-            f"The overall goal is: |{task_info['goal']}|\n"
-            f"We are working on one of the tasks which is: |{task_info['task']}|\n"
-            f"The objective of this task is: |{task_info['objective']}|\n"
-            f"The starting sequence is |{task_info['start_seq']}|\n"
-            f"Our goal is to create a series of JVM instructions to complete the task and fulfill the stated objective. Ensure you fully utilize the outcomes of previous tasks and user hints. | \n"
+            f"The overall goal is: | {task_info['goal']} |\n"
+            f"We are working on one of the tasks which is: | {task_info['task']} |\n"
+            f"The objective of this task is: | {task_info['objective']} |\n"
+            f"The starting sequence is | {task_info['start_seq']} |\n"
+            f"Our goal is to create a series of JVM instructions to complete the task and fulfill the stated objective. Ensure you fully utilize the outcomes of previous tasks and user hints. \n"
             f"Remember: | Every instruction must save its outcome to the database so it can be used in subsequent tasks. |\n"
         )
 
