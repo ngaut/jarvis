@@ -60,6 +60,7 @@ def can_import(module_name):
 
 
 DOTENV_EXTENSIONS = os.getenv("DOTENV_EXTENSIONS", "").split(" ")
+ENABLE_SMARTGPT = os.getenv("ENABLE_SMARTGPT", "false").lower() == "true"
 
 # Command line arguments extension
 # Can override any of the above environment variables
@@ -77,6 +78,11 @@ if ENABLE_COMMAND_LINE_ARGS:
 if LLM_MODEL.startswith("human"):
     if can_import("extensions.human_mode"):
         from extensions.human_mode import user_input_await
+
+# Jarvis mode extension
+if ENABLE_SMARTGPT:
+    if can_import("extensions.smartgpt_agent"):
+        from extensions import smartgpt_agent
 
 # Load additional environment variables for enabled extensions
 # TODO: This might override the following command line arguments as well:
@@ -511,6 +517,10 @@ def execution_agent(objective: str, task: str) -> str:
     # print("\n****RELEVANT CONTEXT****\n")
     # print(context)
     # print('')
+
+    if ENABLE_SMARTGPT:
+        return smartgpt_agent.execute_task(objective, task, context)
+
     prompt = f'Perform one task based on the following objective: {objective}.\n'
     if context:
         prompt += 'Take into account these previously completed tasks:' + '\n'.join(context)
