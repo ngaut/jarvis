@@ -3,6 +3,8 @@ import yaml
 
 from smartgpt import actions
 from smartgpt import jvm
+from smartgpt import utils
+
 
 class JVMInstruction:
     def __init__(self, instruction, act, goal):
@@ -95,3 +97,96 @@ class JVMInstruction:
 
             logging.info(f"Setting key-value: {kv} in the JVM")
             jvm.set(key, value)
+
+class JVMInterpreter:
+    def __init__(self):
+        self.pc = 0
+        self.actions = {
+            "WebSearch": actions.WebSearchAction,
+            "Fetch": actions.FetchAction,
+            "RunPython": actions.RunPythonAction,
+            "TextCompletion": actions.TextCompletionAction,
+        }
+
+        jvm.set_loop_idx(0)
+
+    def run(self, instrs, goal):
+        if instrs is not None:
+            while self.pc < len(instrs):
+                jvm_instr = JVMInstruction(instrs[self.pc], self.actions, goal)
+                action_type = instrs[self.pc].get("type")
+                if action_type == "If":
+                    self.conditional(jvm_instr)
+                elif action_type == "Loop":
+                    self.loop(jvm_instr)
+                else:
+                    jvm_instr.execute()
+                self.pc += 1
+
+    def loop(self, jvm_instr: JVMInstruction):
+        args = jvm_instr.instruction.get("args", {})
+        # Extract the count and the list of instructions for the loop
+        loop_count = 0
+        # if loop_count is integer
+        if isinstance(args["count"], int):
+            loop_count = args["count"]
+        elif isinstance(args["count"], str):
+            # loop_count needs to be evaluated in the context of jvm
+            loop_count = jvm.eval(args["count"])
+            loop_count = int(loop_count)
+
+        loop_instructions = args.get("instructions", [])
+        logging.debug(f"Looping: {loop_instructions}")
+
+        # Execute the loop instructions the given number of times
+        old_pc = self.pc
+        for i in range(loop_count):
+            # Set the loop index in jvm, to adopt gpt behaviour error
+            jvm.set_loop_idx(i)
+            logging.info(f"loop idx: {i}")
+            # As each loop execution should start from the first instruction, we reset the program counter
+            self.pc = 0
+            self.run(loop_instructions, jvm_instr.goal)
+        self.pc = old_pc
+
+    def conditional(self, jvm_instr: JVMInstruction):
+        condition = jvm_instr.instruction.get("args", {}).get("condition", None)
+        condition = jvm_instr.eval_and_patch(condition)
+        output_fmt = {
+            "kvs": [
+                {"key": "result", "value": "<to_fill>"},
+                {"key": "reasoning", "value": "<to_fill>"},
+            ]
+        }
+
+        evaluation_action = actions.TextCompletionAction(
+            action_id = -1,
+            command = "Is that true or false?",
+            content = condition,
+            output_fmt = yaml.safe_dump(output_fmt))
+
+        try:
+            evaluation_result = evaluation_action.run()
+            output_res = yaml.safe_load(evaluation_result)
+            condition_eval_result = utils.str_to_bool(output_res["kvs"][0]["value"])
+            condition_eval_reasoning = output_res["kvs"][1]["value"]
+
+        except Exception as err:
+            condition_eval_result = False
+            condition_eval_reasoning = ''
+            logging.critical(f"Failed to decode AI model response: {condition} with error: {err}")
+
+        logging.info(f"Condition evaluated to {condition_eval_result}. Reasoning: {condition_eval_reasoning}")
+
+        old_pc = self.pc
+        if condition_eval_result:
+            # instruction.instruction["then"] is a list of instructions
+            if "then" in jvm_instr.instruction.get("args", {}):
+                self.pc = 0
+                self.run(jvm_instr.instruction["args"]["then"], jvm_instr.goal)
+        else:
+            # maybe use pc to jump is a better idea.
+            if "else" in jvm_instr.instruction.get("args", {}):
+                self.pc = 0
+                self.run(jvm_instr.instruction["args"]["else"], jvm_instr.goal)
+        self.pc = old_pc
