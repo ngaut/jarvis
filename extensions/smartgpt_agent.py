@@ -80,7 +80,7 @@ def call_smartgpt_exec(goal: str) -> str:
 
         # Execute the task
         interpreter = instruction.JVMInterpreter()
-        interpreter.run(plan_with_instrs["instructions"], goal=plan_with_instrs["goal"])
+        interpreter.run(plan_with_instrs["instructions"], task=plan_with_instrs["task"])
 
     # todo: extract the final Outcome from the kv store
     result = "smartgpt task run failed."

@@ -95,31 +95,34 @@ def gen_instructions(model: str, replan: bool = False, goal: Optional[str] = Non
 
     # Prepare task dependencies
     task_dependency = {int(k): [int(i) for i in v] for k, v in args.pop("task_dependency", {}).items()}
-    task_outcome = {}
+    task_outcomes = {}
 
     # Filter and translate tasks
     args['task_list'] = [{k: v for k, v in task.items() if k in ['task_num', 'task', 'objective', 'outcome']} for task in args['task_list']]
-    task_num_to_task = {task['task_num']: task['task'] for task in args['task_list']}
     start_seq = 1
     for task in args['task_list']:
         task_num = task['task_num']
-        previous_outcome = [task_outcome[i] for i in task_dependency.get(task_num, [])]
-        previous_tasks = {i: task_num_to_task[i] for i in task_dependency.get(task_num, [])}
+        previous_outcomes = [task_outcomes[i] for i in task_dependency.get(task_num, [])]
         instrs = translator.translate_to_instructions({
-            "first_task":task_num == 1,
-            "goal":args["goal"],
-            "task":task['task'],
-            "objective":task['objective'],
-            "previous_tasks":previous_tasks,
-            "start_seq":start_seq,
-            "previous_outcome":previous_outcome
+            "first_task": task_num == 1,
+            "goal": args["goal"],
+            "task": task['task'],
+            "objective": task['objective'],
+            "start_seq": start_seq,
+            "previous_outcomes": previous_outcomes
         }, model=model)
+
         if instrs is not None:
           tmp = yaml.safe_load(instrs)
           start_seq = int(tmp['end_seq']) + 1
-          task_outcome[task_num] = tmp['overall_outcome']
+          task_outcomes[task_num] = {
+              "task_num": task_num,
+              "task": tmp['task'],
+              "outcome": tmp['overall_outcome'],
+          }
           with open(f"{task_num}.yaml", "w") as f:
               f.write(instrs)
+
     return len(args['task_list'])
 
 def gen_plan(model: str, goal: Optional[str] = None) -> str:

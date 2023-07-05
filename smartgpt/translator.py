@@ -23,7 +23,7 @@ Dynamic keys are particularly useful in loop structures, where data is iterative
 
 - 'Fetch': Fetches the content of a specified URL.
 
-- 'TextCompletion': Allows the AI model to Generate, Extract and Complete the text in a more user-friendly and interactive manner.
+- 'TextCompletion': Leverages AI to generate content, complete text, or extract information from provided text interactively and user-friendly.
 
 ### Advanced Instructions:
 
@@ -43,18 +43,18 @@ Common arguments for each instruction:
 
 1. 'WebSearch': {
     "query": The search query string.
-    "save_to": The dynamic key('type' is always 'list') under which the search results should be stored in the database.
+    "save_to": The dynamic key('type' is always 'list') under which the URLs of search result should be stored in the database.
   }
 
 2. 'Fetch': {
     "url": The URL from which the content needs to be fetched.
-    "save_to": The dynamic key under which the search results should be stored in the database.
+    "save_to": The dynamic key under which the fetched results should be stored in the database.
   }
 
 3. 'TextCompletion':
    - args {
     "command": The string describes what we want.
-    "output_fmt": The output_fmt must be describe(use dynamic key if inside a loop) what to save by using the YAML template: {"kvs": [{"key": "key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0.
+    "output_fmt": The output_fmt must be describe (use dynamic key if inside a loop) what to save by using the YAML template: {"kvs": [{"key": "key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0.
     "content": Perform text completion processing against this content. We need to feed the content to AI, the format looks like "```jvm.eval(jvm.get(key_name))```".
   }
 
@@ -112,12 +112,12 @@ key-value API is the only way to pass information between tasks. The database ca
 
 ## Output Requirements
 
-Your output require fields: goal, objective, thoughts, hints_from_user, end_seq(means max instruction's seqence number), instructions, overall_outcome.
+Your output MUST have these fields: task, objective, thoughts, hints_from_user, end_seq(indicates the maximum instruction sequence number), instructions, overall_outcome.
 When forming the 'overall_outcome',  Explain the overall outcome we had after succeeded, what is the final result and how to retrieve the results( specify key name or (both key prefix and postfix if the key can't be retrieved by jvm.get) ), As there are other tasks will use the result, give hints to next task.
 
 An Output template example:
 ```yaml
-goal: Get current weather data for San Francisco and provide suggestions based on temperature, save the results to file
+task: Get current weather data for San Francisco and provide suggestions based on temperature, save the results to file
 
 objective:  # AI-generated objective content
 
@@ -239,32 +239,32 @@ Remember, your task is to generate instructions that will run on JVM based on th
 
 
 def translate_to_instructions(task_info, model: str):
-    hints = ""
+    hints = (
+        f" - The current task is only a milestone towards the overall goal ({task_info['goal']}). "
+        "Focus on crafting JVM instructions for the current task, not the overall goal.\n"
+    )
+
     if task_info["first_task"]:
-            hints += "This is the first task, so there are no previous tasks or outcomes.\n"
+        hints += " - This is the first task, so there are no previous tasks or outcomes.\n"
     else:
-      previous_tasks = task_info.get("previous_tasks", [])
-      if len(previous_tasks) > 0:
-          hints += f"The previous done tasks: | {previous_tasks} |.\n"
-      previous_outcome = task_info.get("previous_outcome", [])
-      # if not empty array
-      if len(previous_outcome) > 0:
-          hints += f"Outcome list from previous tasks: | {previous_outcome} |.\n"
+      previous_outcomes = task_info.get("previous_outcomes", [])
+      for item in previous_outcomes:
+          hints += f" - The previous done task #{item['task_num']} ({item['task']}) has an outcome ({item['outcome']}).\n"
 
     try:
         user_prompt = (
-            f"The overall goal is: | {task_info['goal']} |\n"
-            f"We are working on one of the decomposed tasks which is: | {task_info['task']} |\n"
-            f"The current objective of this task is: | {task_info['objective']} |\n"
-            f"The starting sequence is | {task_info['start_seq']} |\n"
-            "You are going to create a series of JVM instructions to complete the current task and fulfill the stated objective. "
-            "Ensure you fully utilize the outcomes of previous tasks and user hints. \n"
-            "Remember: | Every instruction must save its outcome to the database so it can be used in subsequent tasks. |\n"
+            f"You are working on the task which is ({task_info['task']})\n"
+            f"The objective of the task is ({task_info['objective']})\n"
+            f"The starting sequence is ({task_info['start_seq']})\n"
+            "You are going to create a series of JVM instructions to complete the task and fulfill the stated objective.\n"
+            "Ensure you fully utilize the outcomes of previous tasks and user hints.\n"
+            "Remember: Every instruction must save its outcome to the database so it can be used in subsequent tasks.\n\n"
         )
 
         if hints != "":
-            user_prompt += f"Here are some hints from user: {hints}\n"
-        user_prompt += "Please provide your response in YAML format:\n\n```yaml\n"
+            user_prompt += f"Here are some hints from user:\n{hints}\n"
+
+        user_prompt += "Please provide your response in YAML format:\n```yaml\n"
 
         logging.info(f"user prompt:\n{user_prompt}")
 
