@@ -133,7 +133,10 @@ class JVMInterpreter:
         elif isinstance(args["count"], str):
             # loop_count needs to be evaluated in the context of jvm
             loop_count = jvm.eval(args["count"])
-            loop_count = int(loop_count)
+            if loop_count is None:
+                loop_count = 0
+            else:
+                loop_count = int(loop_count)
 
         loop_instructions = args.get("instructions", [])
         logging.debug(f"Looping: {loop_instructions}")

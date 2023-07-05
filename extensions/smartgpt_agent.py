@@ -23,26 +23,33 @@ os.chdir("workspace")
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s',
-    stream=sys.stdout
+    filename='smartgpt.log', # Log output goes to this file
+    filemode='a' # Append to the file instead of overwriting it
 )
 
 def execute_task(objective: str, task: str, context: list) -> str:
     sys_prompt = (
-        f"As a sophisticated AI agent, you are required to perform a task based on the following objective: {objective}.\n"
+        f"As a sophisticated AI agent, you are required to perform a task based on the following objective: {objective}.\n\n"
     )
     if context:
-        sys_prompt += 'Consider these previously completed tasks: ' + '\n - ' + '\n - '.join(context) + '\n'
+        sys_prompt += "Consider these previously completed tasks:\n" + "\n".join(context) + "\n\n"
 
     sys_prompt += (
-        'Before you execute the given task, analyze whether it is complex (like requiring internet access, file I/O, '
-        'or tasks that exceed LLM\'s capabilities). If it is, must respond with: "call_smartgpt_exec(<summarize_the_task_goal>)". '
-        "Otherwise, for a simpler task you should execute it and respond the result."
+        "Before you execute the given task, consider whether it is a complex task "
+        "(like requiring internet access, file I/O, or others that exceed LLM's capabilities). "
+        "If it is yes, you MUST respond with template: 'call_smartgpt_exec(<one_sentence_task_summary, no json>), reasoning: <why_choose_smartgpt>'. "
+        "Otherwise, for the simple task you can execute it and respond directly.\n\n"
     )
 
-    prompt = f'Your current task is: {task}\n Your response: '
+    sys_prompt += (
+        "Note: smartgpt is an automated agent (auto-agent) that can decompose a complex goal into multiple sub-tasks and execute them. "
+        "The call_smartgpt_exec() is the entry point of smartgpt."
+    )
+
+    prompt = f'Your current task is: {task}\nYour response: '
     result = gpt.complete(prompt, BASE_MODEL, sys_prompt)
 
-    match = re.match(r"call_smartgpt_exec\((['\"]?)(.*?)\1\)", result)
+    match = re.match(r"call_smartgpt_exec\(['\"]?(.*?)['\"]?\)", result)
     if match:
         smartgpt_goal = match.group(1)
         return call_smartgpt_exec(smartgpt_goal)
@@ -55,8 +62,10 @@ def call_smartgpt_exec(goal: str) -> str:
     run_id = f"smartgpt.{uuid.uuid4()}"
 
     # Reset kv store
-    jvm.load_kv_store()
+    jvm.reset_kv_store()
     actions.disable_cache()
+
+    goal = f"{goal}, the overall outcome should be written into a file named 'smartgpt.out'."
 
     # Generate a new plan
     planner.gen_instructions(model=BASE_MODEL, replan=True, goal=goal)
@@ -74,7 +83,10 @@ def call_smartgpt_exec(goal: str) -> str:
         interpreter.run(plan_with_instrs["instructions"], goal=plan_with_instrs["goal"])
 
     # todo: extract the final Outcome from the kv store
-    result = ""
+    result = "smartgpt task run failed."
+    if os.path.exists("smartgpt.out"):
+        with open("smartgpt.out", 'r') as f:
+            result = f.read()
 
     # Cleanup
     if not os.path.exists(run_id):
