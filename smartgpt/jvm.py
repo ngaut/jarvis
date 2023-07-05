@@ -16,6 +16,8 @@ def load_kv_store():
     if os.path.exists(kv_store_file):
         with open(kv_store_file, 'r') as f:
             kv_store = json.load(f)
+    else:
+        kv_store = {}
 
 def save_kv_store():
     global kv_store

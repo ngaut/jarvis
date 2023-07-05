@@ -79,17 +79,17 @@ hints_from_user: ["Any additional instructions or information provided by the us
 
 """
 
-def gen_instructions(model: str, replan: bool = False):
+def gen_instructions(model: str, replan: bool = False, goal: Optional[str] = None) -> int:
     if replan:
         logging.info("Replanning...")
-        plan = utils.strip_yaml(gen_plan(model))
+        plan = utils.strip_yaml(gen_plan(model, goal))
         with open("plan.yaml", "w") as f:
             f.write(plan)
-        exit(0)
+        return 0
 
     with open("plan.yaml", 'r') as file:
         args = yaml.safe_load(file)
-        logging.info(f"Loaded plan: {args}")
+        logging.debug(f"Loaded plan: {args}")
 
     args.pop("reasoning_for_each_task", None)
     args.pop("tools_analysis_for_each_task", None)
@@ -121,14 +121,15 @@ def gen_instructions(model: str, replan: bool = False):
           task_outcome[task_num] = tmp['overall_outcome']
           with open(f"{task_num}.yaml", "w") as f:
               f.write(instrs)
+    return len(args['task_list'])
 
-def gen_plan(model: str):
-    #input the goal
-    goal = input("Please input your goal:\n")
+def gen_plan(model: str, goal: Optional[str] = None) -> str:
+    if goal is None:
+      #input the goal
+      input_goal = input("Please input your goal:\n")
+      goal = clarify.clarify_and_summarize(input_goal)
 
     try:
-        goal = clarify.clarify_and_summarize(goal)
-
         logging.info("========================")
         logging.info(f"The goal: {goal}")
 
@@ -145,3 +146,4 @@ def gen_plan(model: str):
     except Exception as err:
         logging.error("Error in main: %s", err)
         time.sleep(1)
+        raise err

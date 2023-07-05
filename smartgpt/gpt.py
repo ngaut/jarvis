@@ -108,6 +108,8 @@ def complete(prompt: str, model: str, system_prompt: Optional[str] = None) -> st
     messages = []
     if system_prompt:
         messages.append({"role": "system", "content": system_prompt})
+    else:
+        messages.append({"role": "system", "content": "You are an AI agent."})
 
     return complete_with_messages(prompt, model, messages)
 

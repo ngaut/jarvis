@@ -25,23 +25,47 @@ from smartgpt.spinner import Spinner
 from smartgpt import utils
 
 
-_cache = {}
+_CACHE = {}
+_ENABLE_CACHE = True
 
 def load_cache():
-    global _cache
-    if os.path.exists("cache.json"):
-        with open("cache.json", "r") as f:
-            _cache = json.load(f)
+    global _CACHE
+    global _ENABLE_CACHE
+
+    if _ENABLE_CACHE:
+        if os.path.exists("cache.json"):
+            with open("cache.json", "r") as f:
+                _CACHE = json.load(f)
+        else:
+            _CACHE = {}
+
+def enable_cache():
+    global _ENABLE_CACHE
+    _ENABLE_CACHE = True
+
+def disable_cache():
+    global _ENABLE_CACHE
+    _ENABLE_CACHE = False
 
 def get_from_cache(key):
-    global _cache
-    return _cache.get(key, None)
+    global _CACHE
+    global _ENABLE_CACHE
+
+    if _ENABLE_CACHE:
+        return _CACHE.get(key, None)
+    else:
+        return None
 
 def save_to_cache(key, value):
-    global _cache
-    _cache[key] = value
+    global _CACHE
+    global _ENABLE_CACHE
+
+    if not _ENABLE_CACHE:
+        return None
+
+    _CACHE[key] = value
     with open("cache.json", "w") as f:
-        json.dump(_cache, f)
+        json.dump(_CACHE, f)
 
 @dataclass(frozen=True)
 class Action(ABC):
