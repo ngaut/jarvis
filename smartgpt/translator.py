@@ -23,7 +23,7 @@ Dynamic keys are particularly useful in loop structures, where data is iterative
 
 - 'Fetch': Fetches the content of a specified URL.
 
-- 'TextCompletion': Allows the AI model to generate, extract and complete the task in a more user-friendly and interactive manner.
+- 'TextCompletion': Leverages AI to generate content, complete text, or extract information from provided text interactively and user-friendly.
 
 ### Advanced Instructions:
 
@@ -37,10 +37,40 @@ Dynamic keys are particularly useful in loop structures, where data is iterative
 Common arguments for each instruction:
 - objective: The string contains an objective description for this instruction only.
 - inside_loop: Whether this instruction is inside a loop or not.
-- rule_num:  which rule(include ID of rule) the instruction has been applied 
+- rule_num: which rule (include ID of rule) the instruction has been applied
+- level: 'basic' or 'advanced'
 
 
-1. 'RunPython': {  // do not use any non-existing arguments
+1. 'WebSearch': {
+    "query": The search query string.
+    "save_to": The dynamic key('type' is always 'list') under which the URLs of search result should be stored in the database.
+  }
+
+2. 'Fetch': {
+    "url": The URL from which the content needs to be fetched.
+    "save_to": The dynamic key under which the fetched results should be stored in the database.
+  }
+
+3. 'TextCompletion':
+   - args {
+    "command": The string describes what we want.
+    "output_fmt": The output_fmt must be describe (use dynamic key if inside a loop) what to save by using the YAML template: {"kvs": [{"key": "key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0.
+    "content": Perform text completion processing against this content. We need to feed the content to AI, the format looks like "```jvm.eval(jvm.get(key_name))```".
+  }
+
+4. 'If': {
+    "condition": The condition to be evaluated.
+    "then": The list of instructions to be executed if the condition is true.
+    "else": The list of instructions to be executed if the condition is false.
+  }
+
+5. 'Loop': {
+     "count": The number of iterations for the loop, can be evaluated dynamically by using the lazy eval syntax. Example: "jvm.eval(len(jvm.get('fetched_urls.seq3.list')))"
+     "idx": jvm.eval(jvm.get("idx")). The number of iterations is determined by the "count" argument, the initial value of "idx" can be retrieved with jvm.eval(jvm.get("idx")), the initial value of jvm.eval(jvm.get("idx")) is 0. For each iteration, the AI checks the 'jvm.get("idx")' argument. Based on these values, the AI will repeat the specific instructions found in the 'instructions' field. "jvm.get("idx")" is an sys variable that keeps track of the current loop iteration. If you want to print current search result on the current loop iteration, you can use the following code: ```python print(jvm.eval(search_results.seq1[jvm.get("idx")]))```. here is another example to construct a dynamic key for any instructions inside the loop, code: ```python jvm.eval(jvm.set("relevant_info_" + str(jvm.get("idx")) + ".seq3"), value))```, assume the value jvm.get("idx") is 3, the constructed key will be evaluated as:" "relevant_info_0.seq3", "relevant_info_1.seq3", "relevant_info_2.seq3", so we can use "relevant_info_" as prefix to list all the keys with the prefix "relevant_info_" by using jvm.list_keys_with_prefix("relevant_info_"), or we can use jvm.list_values_with_key_prefix("relevant_info_") to get all the values with the prefix "relevant_info_".
+     "instructions": The list of instructions to be repeated for each iteration.
+   }
+
+6. 'RunPython': {  // do not use any non-existing arguments
     "code": A string containing the entire Python code to be executed. Inside the code, you can call JVM's functions directly without using jvm.eval() syntax to access and manipulate data, such as ```python jvm.set("temperature.seq3.int", 67)```, jvm.get() and so on, because jvm module is imported by default.
     "code_review": does it achieve the objective? Which part does not follow the coding standards?
     "pkg_dependencies": A list of any Python packages that the code depends on.
@@ -50,36 +80,6 @@ Common arguments for each instruction:
     - Avoid placeholder code.
     - Avoid use f-strings.
 
-2. 'WebSearch': {
-    "query": The search query string.
-    "save_to": The dynamic key('type' is always 'list') under which the search results should be stored in the database.
-  }
-
-3. 'Fetch': {
-    "url": The URL from which the content needs to be fetched.
-    "save_to": The dynamic key under which the search results should be stored in the database.
-  }
-
-4. 'TextCompletion':
-   - args {
-    "command": The string describes what we want.
-    "output_fmt": The output_fmt must be describe(use dynamic key if inside a loop) what to save by using the YAML template: {"kvs": [{"key": "key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0.
-    "content": Perform text completion processing against this content. We need to feed the content to AI, the format looks like "```jvm.eval(jvm.get(key_name))```".
-  }
-
-5. 'If': {
-    "condition": The condition to be evaluated.
-    "then": The list of instructions to be executed if the condition is true.
-    "else": The list of instructions to be executed if the condition is false.
-  }
-
-6. 'Loop': {
-     "count": The number of iterations for the loop, can be evaluated dynamically by using the lazy eval syntax. Example: "jvm.eval(len(jvm.get('fetched_urls.seq3.list')))"
-     "idx": jvm.eval(jvm.get("idx")). The number of iterations is determined by the "count" argument, the initial value of "idx" can be retrieved with jvm.eval(jvm.get("idx")), the initial value of jvm.eval(jvm.get("idx")) is 0. For each iteration, the AI checks the 'jvm.get("idx")' argument. Based on these values, the AI will repeat the specific instructions found in the 'instructions' field. "jvm.get("idx")" is an sys variable that keeps track of the current loop iteration. If you want to print current search result on the current loop iteration, you can use the following code: ```python print(jvm.eval(search_results.seq1[jvm.get("idx")]))```. here is another example to construct a dynamic key for any instructions inside the loop, code: ```python jvm.eval(jvm.set("relevant_info_" + str(jvm.get("idx")) + ".seq3"), value))```, assume the value jvm.get("idx") is 3, the constructed key will be evaluated as:" "relevant_info_0.seq3", "relevant_info_1.seq3", "relevant_info_2.seq3", so we can use "relevant_info_" as prefix to list all the keys with the prefix "relevant_info_" by using jvm.list_keys_with_prefix("relevant_info_"), or we can use jvm.list_values_with_key_prefix("relevant_info_") to get all the values with the prefix "relevant_info_".
-     "instructions": The list of instructions to be repeated for each iteration.
-   }
-
-
 Everything inside output_fmt argument of a instruction will be evaluated and persist to database. No further persist/save action is required.
 
 
@@ -87,9 +87,9 @@ Everything inside output_fmt argument of a instruction will be evaluated and per
 
 Rule 1 - Be mindful of keywords such as 'loop', 'each', 'every', and plural nouns in the task and objective description. Generally, these terms suggest that the task requires loop-based instructions.
 
-Rule 2 - Prioritize basic instructions. If the objective can be achieved using a few simple instructions, utilize them and then return the result.
+Rule 2 - Prioritize basic instructions. If the objective can be achieved using a few basic instructions, utilize them and then return the result.
 
-Rule 3 - Exercise caution when considering the RunPython instruction. Evaluate whether the objective can be accomplished using other instructions. If it can, prefer those over the RunPython instruction and return the result.
+Rule 3 - Exercise caution when considering the RunPython instruction. Evaluate whether the objective can be accomplished using other basic instructions. If it can, prefer those over the RunPython instruction and return the result.
 
 Rule 4 - Lastly, consider using advanced instructions. If the objective can be achieved with these, employ them and return the result.
 
@@ -112,12 +112,12 @@ key-value API is the only way to pass information between tasks. The database ca
 
 ## Output Requirements
 
-Your output require fields: goal, objective, thoughts, hints_from_user, end_seq(means max instruction's seqence number), instructions, overall_outcome.
+Your output MUST have these fields: task, objective, thoughts, hints_from_user, end_seq(indicates the maximum instruction sequence number), instructions, overall_outcome.
 When forming the 'overall_outcome',  Explain the overall outcome we had after succeeded, what is the final result and how to retrieve the results( specify key name or (both key prefix and postfix if the key can't be retrieved by jvm.get) ), As there are other tasks will use the result, give hints to next task.
 
 An Output template example:
 ```yaml
-goal: Get current weather data for San Francisco and provide suggestions based on temperature, save the results to file
+task: Get current weather data for San Francisco and provide suggestions based on temperature, save the results to file
 
 objective:  # AI-generated objective content
 
@@ -133,6 +133,7 @@ instructions:
     inside_loop: false
     objective: Find URLs related to current weather in San Francisco
     rule_num: 2
+    level: basic
     args:
       query: temperature in San Francisco
       save_to: "jvm.eval('search_results_' + str(jvm.get('idx')) + '.seq1.list')"
@@ -141,6 +142,7 @@ instructions:
     type: Fetch
     inside_loop: false
     rule_num: 2
+    level: basic
     objective: Fetch the content from the first URL from the search results
     args:
       url: "jvm.eval(jvm.get('search_results.seq1.list')[0])"  # make sure the reference key exists.
@@ -151,6 +153,7 @@ instructions:
     inside_loop: false
     objective: Get the current temperature in San Francisco from the fetched content
     rule_num: 3
+    level: basic
     args:
       command: Get the current temperature and url in San Francisco
       output_fmt:
@@ -166,6 +169,7 @@ instructions:
     inside_loop: false
     objective: Evaluate condition to decide if we recommend outdoor or indoor activities
     rule_num: 4
+    level: advanced
     args:
       condition: "20 < jvm.eval(jvm.get('temperature.seq3.int')) < 30"
     then:
@@ -174,6 +178,7 @@ instructions:
         inside_loop: false
         objective: Generate outdoor activities suggestions
         rule_num: 3
+        level: basic
         args:
           command: What outdoor activities should we recommend to the users? Please generate a weather notes
           output_fmt:
@@ -187,19 +192,21 @@ instructions:
         inside_loop: false
         objective: Generate indoor activities suggestions
         rule_num: 3
+        level: basic
         args:
           command: What indoor activities should we recommend to the users? Please generate a weather notes
           output_fmt:
             kvs:
               - key: weather_notes.seq6.str
                 value: <to_fill>
-          content: "Today's temperature in San Francisco is jvm.eval(jvm.get('temperature.seq3.int'))" 
+          content: "Today's temperature in San Francisco is jvm.eval(jvm.get('temperature.seq3.int'))"
 
   - seq: 7
     type: TextCompletion
     inside_loop: false
     objective: Generate a complete weather report for San Francisco using the gathered information
     rule_num: 3
+    level: basic
     args:
       command: Please generate current weather report for San Francisco
       output_fmt:
@@ -213,6 +220,7 @@ instructions:
     inside_loop: false
     objective: Save report to a file
     rule_num: 4 # RunPython is the only instruction that can do file IO
+    level: advanced
     args:
       code: |
         with open('weather_report.txt', 'w') as f:
@@ -231,31 +239,32 @@ Remember, your task is to generate instructions that will run on JVM based on th
 
 
 def translate_to_instructions(task_info, model: str):
-    hints = ""
+    hints = (
+        " - The current task is only a milestone towards the overall goal. Focus on crafting JVM instructions for the current task, not the overall goal.\n"
+    )
+
     if task_info["first_task"]:
-            hints += "This is the first task, so there are no previous tasks or outcomes.\n"
+        hints += " - This is the first task, so there are no previous tasks or outcomes.\n"
     else:
-      previous_tasks = task_info.get("previous_tasks", [])
-      if len(previous_tasks) > 0:
-          hints += f"The previous done tasks: | {previous_tasks} |.\n"
-      previous_outcome = task_info.get("previous_outcome", [])
-      # if not empty array
-      if len(previous_outcome) > 0:
-          hints += f"Outcome list from previous tasks: | {previous_outcome} |.\n"
+      previous_outcomes = task_info.get("previous_outcomes", [])
+      for item in previous_outcomes:
+          hints += f" - The previous done task #{item['task_num']} ({item['task']}) has an outcome ({item['outcome']}).\n"
 
     try:
         user_prompt = (
-            f"The overall goal is: | {task_info['goal']} |\n"
-            f"We are working on one of the tasks which is: | {task_info['task']} |\n"
-            f"The objective of this task is: | {task_info['objective']} |\n"
-            f"The starting sequence is | {task_info['start_seq']} |\n"
-            f"Our goal is to create a series of JVM instructions to complete the task and fulfill the stated objective. Ensure you fully utilize the outcomes of previous tasks and user hints. \n"
-            f"Remember: | Every instruction must save its outcome to the database so it can be used in subsequent tasks. |\n"
+            f"The overall goal is ({task_info['goal']})\n"
+            f"You are working on one of the tasks which is ({task_info['task']})\n"
+            f"The objective of this task is ({task_info['objective']})\n"
+            f"The starting sequence is ({task_info['start_seq']})\n"
+            "You are going to create a series of JVM instructions to complete the task and fulfill the stated objective.\n"
+            "Ensure you fully utilize the outcomes of previous tasks and user hints.\n"
+            "Remember: Every instruction must save its outcome to the database so it can be used in subsequent tasks.\n\n"
         )
 
         if hints != "":
-            user_prompt += f"Here are some hints from user: {hints}\n"
-        user_prompt += "Please provide your response in YAML format:\n\n```yaml\n"
+            user_prompt += f"Here are some hints from user:\n{hints}\n"
+
+        user_prompt += "Please provide your response in YAML format:\n```yaml\n"
 
         logging.info(f"user prompt:\n{user_prompt}")
 

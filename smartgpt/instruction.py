@@ -7,10 +7,10 @@ from smartgpt import utils
 
 
 class JVMInstruction:
-    def __init__(self, instruction, act, goal):
+    def __init__(self, instruction, act, task):
         self.instruction = instruction
         self.act = act
-        self.goal = goal
+        self.task = task
 
     def execute(self):
         action_type = self.instruction.get("type")
@@ -45,8 +45,9 @@ class JVMInstruction:
             args["command"] = self.eval_and_patch(args.get("command"))
             args["content"] = self.eval_and_patch(args.get("content"))
             args["output_fmt"] = self.eval_and_patch(yaml.safe_dump(args.get("output_fmt")))
+            args["task"] = self.task
 
-        action_data = {"type": action_type, "action_id": action_id}
+        action_data = { "type": action_type, "action_id": action_id }
         action_data.update(args)
 
         action = actions.Action.from_dict(action_data)
@@ -110,10 +111,10 @@ class JVMInterpreter:
 
         jvm.set_loop_idx(0)
 
-    def run(self, instrs, goal):
+    def run(self, instrs, task):
         if instrs is not None:
             while self.pc < len(instrs):
-                jvm_instr = JVMInstruction(instrs[self.pc], self.actions, goal)
+                jvm_instr = JVMInstruction(instrs[self.pc], self.actions, task)
                 action_type = instrs[self.pc].get("type")
                 if action_type == "If":
                     self.conditional(jvm_instr)
@@ -133,7 +134,10 @@ class JVMInterpreter:
         elif isinstance(args["count"], str):
             # loop_count needs to be evaluated in the context of jvm
             loop_count = jvm.eval(args["count"])
-            loop_count = int(loop_count)
+            if loop_count is None:
+                loop_count = 0
+            else:
+                loop_count = int(loop_count)
 
         loop_instructions = args.get("instructions", [])
         logging.debug(f"Looping: {loop_instructions}")
@@ -146,7 +150,7 @@ class JVMInterpreter:
             logging.info(f"loop idx: {i}")
             # As each loop execution should start from the first instruction, we reset the program counter
             self.pc = 0
-            self.run(loop_instructions, jvm_instr.goal)
+            self.run(loop_instructions, jvm_instr.task)
         self.pc = old_pc
 
     def conditional(self, jvm_instr: JVMInstruction):
@@ -161,6 +165,7 @@ class JVMInterpreter:
 
         evaluation_action = actions.TextCompletionAction(
             action_id = -1,
+            task = "",
             command = "Is that true or false?",
             content = condition,
             output_fmt = yaml.safe_dump(output_fmt))
@@ -183,10 +188,10 @@ class JVMInterpreter:
             # instruction.instruction["then"] is a list of instructions
             if "then" in jvm_instr.instruction.get("args", {}):
                 self.pc = 0
-                self.run(jvm_instr.instruction["args"]["then"], jvm_instr.goal)
+                self.run(jvm_instr.instruction["args"]["then"], jvm_instr.task)
         else:
             # maybe use pc to jump is a better idea.
             if "else" in jvm_instr.instruction.get("args", {}):
                 self.pc = 0
-                self.run(jvm_instr.instruction["args"]["else"], jvm_instr.goal)
+                self.run(jvm_instr.instruction["args"]["else"], jvm_instr.task)
         self.pc = old_pc

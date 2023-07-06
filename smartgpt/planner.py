@@ -79,13 +79,13 @@ hints_from_user: ["Any additional instructions or information provided by the us
 
 """
 
-def gen_instructions(model: str, replan: bool = False):
+def gen_instructions(model: str, replan: bool = False, goal: Optional[str] = None) -> int:
     if replan:
         logging.info("Replanning...")
-        plan = utils.strip_yaml(gen_plan(model))
+        plan = utils.strip_yaml(gen_plan(model, goal))
         with open("plan.yaml", "w") as f:
             f.write(plan)
-        exit(0)
+        return 0
 
     with open("plan.yaml", 'r') as file:
         args = yaml.safe_load(file)
@@ -95,39 +95,43 @@ def gen_instructions(model: str, replan: bool = False):
 
     # Prepare task dependencies
     task_dependency = {int(k): [int(i) for i in v] for k, v in args.pop("task_dependency", {}).items()}
-    task_outcome = {}
+    task_outcomes = {}
 
     # Filter and translate tasks
     args['task_list'] = [{k: v for k, v in task.items() if k in ['task_num', 'task', 'objective', 'outcome']} for task in args['task_list']]
-    task_num_to_task = {task['task_num']: task['task'] for task in args['task_list']}
     start_seq = 1
     for task in args['task_list']:
         task_num = task['task_num']
-        previous_outcome = [task_outcome[i] for i in task_dependency.get(task_num, [])]
-        previous_tasks = {i: task_num_to_task[i] for i in task_dependency.get(task_num, [])}
+        previous_outcomes = [task_outcomes[i] for i in task_dependency.get(task_num, [])]
         instrs = translator.translate_to_instructions({
-            "first_task":task_num == 1,
-            "goal":args["goal"],
-            "task":task['task'],
-            "objective":task['objective'],
-            "previous_tasks":previous_tasks,
-            "start_seq":start_seq,
-            "previous_outcome":previous_outcome
+            "first_task": task_num == 1,
+            "goal": args["goal"],
+            "task": task['task'],
+            "objective": task['objective'],
+            "start_seq": start_seq,
+            "previous_outcomes": previous_outcomes
         }, model=model)
+
         if instrs is not None:
           tmp = yaml.safe_load(instrs)
           start_seq = int(tmp['end_seq']) + 1
-          task_outcome[task_num] = tmp['overall_outcome']
+          task_outcomes[task_num] = {
+              "task_num": task_num,
+              "task": tmp['task'],
+              "outcome": tmp['overall_outcome'],
+          }
           with open(f"{task_num}.yaml", "w") as f:
               f.write(instrs)
 
-def gen_plan(model: str):
-    #input the goal
-    goal = input("Please input your goal:\n")
+    return len(args['task_list'])
+
+def gen_plan(model: str, goal: Optional[str] = None) -> str:
+    if goal is None:
+      #input the goal
+      input_goal = input("Please input your goal:\n")
+      goal = clarify.clarify_and_summarize(input_goal)
 
     try:
-        goal = clarify.clarify_and_summarize(goal)
-
         logging.info("========================")
         logging.info(f"The goal: {goal}")
 
@@ -144,3 +148,4 @@ def gen_plan(model: str):
     except Exception as err:
         logging.error("Error in main: %s", err)
         time.sleep(1)
+        raise err

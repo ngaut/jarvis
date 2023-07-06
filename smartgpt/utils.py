@@ -7,9 +7,13 @@ def wrap_string_to_eval(text):
     return jvm.LAZY_EVAL_PREFIX + text + ")"
 
 def strip_yaml(text):
+    # Strip whitespace (including newline) from end
+    text = text.rstrip()
+
     # remove the last "```" if it exists
     if text.endswith("```"):
         return text[:-3]
+
     return text
 
 def sys_eval(text):

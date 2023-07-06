@@ -9,6 +9,11 @@ from smartgpt import utils
 kv_store_file = "kv_store.json"
 kv_store = {}
 
+def reset_kv_store():
+    global kv_store
+    kv_store = {}
+    save_kv_store()
+
 def load_kv_store():
     global kv_store
     global kv_store_file
@@ -16,6 +21,8 @@ def load_kv_store():
     if os.path.exists(kv_store_file):
         with open(kv_store_file, 'r') as f:
             kv_store = json.load(f)
+    else:
+        kv_store = {}
 
 def save_kv_store():
     global kv_store

@@ -77,4 +77,4 @@ if __name__ == "__main__":
     logging.info(f"Running instructions from  {plan_with_instrs['instructions'][start_seq]}\n")
 
     interpreter = instruction.JVMInterpreter()
-    interpreter.run(plan_with_instrs["instructions"][start_seq:], goal=plan_with_instrs["goal"])
+    interpreter.run(plan_with_instrs["instructions"][start_seq:], task=plan_with_instrs["task"])
