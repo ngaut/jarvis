@@ -114,7 +114,7 @@ key-value API is the only way to pass information between tasks. The database ca
 ## Output Requirements
 
 Your output MUST have these fields: task, objective, thoughts, hints_from_user, end_seq(indicates the maximum instruction sequence number), instructions, overall_outcome.
-When forming the 'overall_outcome', Explain the overall outcome we had after succeeded, what is the final result and how to retrieve the results ( specify key name or (both key prefix and postfix if the key can't be retrieved by jvm.get) ), As there are other tasks will use the result, give hints to next task.
+When forming the 'overall_outcome', Explain the overall outcome we had after succeeded, what is the final result and how to retrieve the results( specify key name or (both key prefix and postfix if the key can't be retrieved by jvm.get) ), As there are other tasks will use the result, give hints to next task.
 
 An Output template example:
 ```yaml
