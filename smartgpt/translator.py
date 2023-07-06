@@ -1,3 +1,4 @@
+import json
 import logging
 import time
 
@@ -38,7 +39,6 @@ Common arguments for each instruction:
 - objective: The string contains an objective description for this instruction only.
 - inside_loop: Whether this instruction is inside a loop or not.
 - rule_num: which rule (include ID of rule) the instruction has been applied
-- level: 'basic' or 'advanced'
 
 
 1. 'WebSearch': {
@@ -51,8 +51,7 @@ Common arguments for each instruction:
     "save_to": The dynamic key under which the fetched results should be stored in the database.
   }
 
-3. 'TextCompletion':
-   - args {
+3. 'TextCompletion': {
     "command": The string describes what we want.
     "output_fmt": The output_fmt must be describe (use dynamic key if inside a loop) what to save by using the YAML template: {"kvs": [{"key": "key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0.
     "content": Perform text completion processing against this content. We need to feed the content to AI, the format looks like "```jvm.eval(jvm.get(key_name))```".
@@ -113,17 +112,17 @@ key-value API is the only way to pass information between tasks. The database ca
 ## Output Requirements
 
 Your output MUST have these fields: task, objective, thoughts, hints_from_user, end_seq(indicates the maximum instruction sequence number), instructions, overall_outcome.
-When forming the 'overall_outcome',  Explain the overall outcome we had after succeeded, what is the final result and how to retrieve the results( specify key name or (both key prefix and postfix if the key can't be retrieved by jvm.get) ), As there are other tasks will use the result, give hints to next task.
+When forming the 'overall_outcome', Explain the overall outcome we had after succeeded, what is the final result and how to retrieve the results( specify key name or (both key prefix and postfix if the key can't be retrieved by jvm.get) ), As there are other tasks will use the result, give hints to next task.
 
 An Output template example:
 ```yaml
-task: Get current weather data for San Francisco and provide suggestions based on temperature, save the results to file
+task: 'Get current weather data for San Francisco and provide suggestions based on temperature, save the results to file'
 
-objective:  # AI-generated objective content
+objective:  # AI-generated objective content, wrapped in quotes
 
-thoughts:  # AI-generated thoughts content
+thoughts:  # AI-generated thoughts content, should be plain text without newlines, wrapped in quotes
 
-hints_from_user: # A list of hints from the user
+hints_from_user: # A list of hints from the user, each item must be plain text and wrapped in quotes
 
 start_seq: 1  # user-specified start_seq
 
@@ -131,96 +130,88 @@ instructions:
   - seq: 1
     type: WebSearch
     inside_loop: false
-    objective: Find URLs related to current weather in San Francisco
+    objective: "Find URLs related to current weather in San Francisco"
     rule_num: 2
-    level: basic
     args:
-      query: temperature in San Francisco
-      save_to: "jvm.eval('search_results_' + str(jvm.get('idx')) + '.seq1.list')"
+      query: "temperature in San Francisco"
+      save_to: "search_result_urls.seq1.list"
 
   - seq: 2
     type: Fetch
     inside_loop: false
     rule_num: 2
-    level: basic
-    objective: Fetch the content from the first URL from the search results
+    objective: "Fetch the content from the first URL from the search results"
     args:
-      url: "jvm.eval(jvm.get('search_results.seq1.list')[0])"  # make sure the reference key exists.
-      save_to: "jvm.eval('content_fetched_' + str(jvm.get('idx')) + '.seq2.list')"  # other tasks can use the key or key prefix 'content_fetched_' to scan the data, this is the key point to handle dynamic data
+      url: "jvm.eval(jvm.get('search_result_urls.seq1.list')[0])"  # make sure the reference key exists.
+      save_to: "fetched_content_0.seq2.str"  # other tasks can use the key or key prefix 'fetched_content_' to retrieve the data, this is the key point to handle dynamic data
 
   - seq: 3
     type: TextCompletion
     inside_loop: false
-    objective: Get the current temperature in San Francisco from the fetched content
+    objective: "Get the current temperature in San Francisco from the fetched content"
     rule_num: 3
-    level: basic
     args:
-      command: Get the current temperature and url in San Francisco
+      command: "Get the current temperature and url in San Francisco"
       output_fmt:
         kvs:
-          - key: temperature.seq3.int
-            value: <to_fill>
-          - key: source_url.seq3.str
-            value: <to_fill>
-      content: "jvm.eval(jvm.get('content_fetched_' + str(jvm.get('idx')) + '.seq2.str'))"
+          - key: "temperature.seq3.int"
+            value: "<to_fill>"
+          - key: "source_url.seq3.str"
+            value: "<to_fill>"
+      content: "jvm.eval(jvm.get('fetched_content_0.seq2.str'))"
 
   - seq: 4
     type: If
     inside_loop: false
     objective: Evaluate condition to decide if we recommend outdoor or indoor activities
     rule_num: 4
-    level: advanced
     args:
       condition: "20 < jvm.eval(jvm.get('temperature.seq3.int')) < 30"
     then:
       - seq: 5
         type: TextCompletion
         inside_loop: false
-        objective: Generate outdoor activities suggestions
+        objective: "Generate outdoor activities suggestions"
         rule_num: 3
-        level: basic
         args:
-          command: What outdoor activities should we recommend to the users? Please generate a weather notes
+          command: "What outdoor activities should we recommend to the users? Please generate a weather notes"
           output_fmt:
             kvs:
-              - key: weather_notes.seq5.str
-                value: <to_fill>
+              - key: "weather_notes.seq5.str"
+                value: "<to_fill>"
           content: "Today's temperature in San Francisco is jvm.eval(jvm.get('temperature.seq3.int'))"
     else:
       - seq: 6
         type: TextCompletion
         inside_loop: false
-        objective: Generate indoor activities suggestions
+        objective: "Generate indoor activities suggestions"
         rule_num: 3
-        level: basic
         args:
-          command: What indoor activities should we recommend to the users? Please generate a weather notes
+          command: "What indoor activities should we recommend to the users? Please generate a weather notes"
           output_fmt:
             kvs:
-              - key: weather_notes.seq6.str
-                value: <to_fill>
+              - key: "weather_notes.seq6.str"
+                value: "<to_fill>"
           content: "Today's temperature in San Francisco is jvm.eval(jvm.get('temperature.seq3.int'))"
 
   - seq: 7
     type: TextCompletion
     inside_loop: false
-    objective: Generate a complete weather report for San Francisco using the gathered information
+    objective: "Generate a complete weather report for San Francisco using the gathered information"
     rule_num: 3
-    level: basic
     args:
-      command: Please generate current weather report for San Francisco
+      command: "Please generate current weather report for San Francisco"
       output_fmt:
         kvs:
-          - key: weather_report.seq7.str
-            value: <to_fill>
-      content: "temp = jvm.eval(jvm.get('temperature.seq3.int')), source_url = jvm.eval(jvm.get('source_url.seq3.str')), notes = jvm.eval(jvm.get('weather_notes.seq5.str') or jvm.get('weather_notes.seq6.str'))"
+          - key: "weather_report.seq7.str"
+            value: "<to_fill>"
+      content: "temperature = jvm.eval(jvm.get('temperature.seq3.int')), source_url = jvm.eval(jvm.get('source_url.seq3.str')), notes = jvm.eval(jvm.get('weather_notes.seq5.str') or jvm.get('weather_notes.seq6.str'))"
 
   - seq: 8
     type: RunPython
     inside_loop: false
-    objective: Save report to a file
+    objective: "Save report to a file"
     rule_num: 4 # RunPython is the only instruction that can do file IO
-    level: advanced
     args:
       code: |
         with open('weather_report.txt', 'w') as f:
@@ -239,25 +230,35 @@ Remember, your task is to generate instructions that will run on JVM based on th
 
 
 def translate_to_instructions(task_info, model: str):
-    hints = (
-        " - The current task is only a milestone towards the overall goal. Focus on crafting JVM instructions for the current task, not the overall goal.\n"
-    )
+    """
+    tmp = {
+        "Final objective": task_info["goal"],
+    }
+    hints = f"  - {json.dumps(tmp)}\n"
+    """
+    hints = ""
 
     if task_info["first_task"]:
-        hints += " - This is the first task, so there are no previous tasks or outcomes.\n"
+        hints += "  - \"This is the first task, so there are no previous tasks or outcomes.\"\n"
     else:
       previous_outcomes = task_info.get("previous_outcomes", [])
       for item in previous_outcomes:
-          hints += f" - The previous done task #{item['task_num']} ({item['task']}) has an outcome ({item['outcome']}).\n"
+          tmp = {
+              f"Previous done task {item['task_num']}": {
+                    "task": item["task"],
+                    "outcome": item["outcome"],
+              }
+          }
+          hints += f"  - {json.dumps(tmp)}\n"
 
     try:
         user_prompt = (
-            f"The overall goal is ({task_info['goal']})\n"
-            f"You are working on one of the tasks which is ({task_info['task']})\n"
-            f"The objective of this task is ({task_info['objective']})\n"
-            f"The starting sequence is ({task_info['start_seq']})\n"
-            "You are going to create a series of JVM instructions to complete the task and fulfill the stated objective.\n"
-            "Ensure you fully utilize the outcomes of previous tasks and user hints.\n"
+            f"The current task: {json.dumps(task_info['task'])}\n"
+            f"The objective of current task: {json.dumps(task_info['objective'])}\n"
+            f"The starting sequence: {json.dumps(task_info['start_seq'])}\n"
+            "You are going to create a series of JVM instructions to complete the current task and fulfill the stated objective.\n"
+            "Ensure you fully utilize the outcomes of previous tasks in user hints.\n"
+            #"Focus on the CURRENT TASK OBJECTIVE, MUST NOT create any JVM instruction for the FINAL OBJECTIVE in user hints.\n"
             "Remember: Every instruction must save its outcome to the database so it can be used in subsequent tasks.\n\n"
         )
 
