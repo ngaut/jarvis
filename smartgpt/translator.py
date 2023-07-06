@@ -1,3 +1,4 @@
+import json
 import logging
 import time
 
@@ -113,7 +114,7 @@ key-value API is the only way to pass information between tasks. The database ca
 ## Output Requirements
 
 Your output MUST have these fields: task, objective, thoughts, hints_from_user, end_seq(indicates the maximum instruction sequence number), instructions, overall_outcome.
-When forming the 'overall_outcome',  Explain the overall outcome we had after succeeded, what is the final result and how to retrieve the results( specify key name or (both key prefix and postfix if the key can't be retrieved by jvm.get) ), As there are other tasks will use the result, give hints to next task.
+When forming the 'overall_outcome', Explain the overall outcome we had after succeeded, what is the final result and how to retrieve the results ( specify key name or (both key prefix and postfix if the key can't be retrieved by jvm.get) ), As there are other tasks will use the result, give hints to next task.
 
 An Output template example:
 ```yaml
@@ -121,9 +122,9 @@ task: Get current weather data for San Francisco and provide suggestions based o
 
 objective:  # AI-generated objective content
 
-thoughts:  # AI-generated thoughts content
+thoughts:  # AI-generated thoughts content, should be plain text without newlines
 
-hints_from_user: # A list of hints from the user
+hints_from_user: # A list of hints from the user, each item must be plain text wrapped in quotes
 
 start_seq: 1  # user-specified start_seq
 
@@ -239,26 +240,33 @@ Remember, your task is to generate instructions that will run on JVM based on th
 
 
 def translate_to_instructions(task_info, model: str):
-    hints = (
-        " - The current task is only a milestone towards the overall goal. Focus on crafting JVM instructions for the current task, not the overall goal.\n"
-    )
+    tmp = {
+        "Overall goal": task_info["goal"],
+    }
+    hints = f" - {json.dumps(tmp)}\n"
 
     if task_info["first_task"]:
         hints += " - This is the first task, so there are no previous tasks or outcomes.\n"
     else:
       previous_outcomes = task_info.get("previous_outcomes", [])
       for item in previous_outcomes:
-          hints += f" - The previous done task #{item['task_num']} ({item['task']}) has an outcome ({item['outcome']}).\n"
+          tmp = {
+              f"Previous completed task {item['task_num']}": {
+                    "description": item["task"],
+                    "outcome": item["outcome"],
+              }
+          }
+          hints += f" - {json.dumps(tmp)}\n"
 
     try:
         user_prompt = (
-            f"The overall goal is ({task_info['goal']})\n"
-            f"You are working on one of the tasks which is ({task_info['task']})\n"
-            f"The objective of this task is ({task_info['objective']})\n"
-            f"The starting sequence is ({task_info['start_seq']})\n"
-            "You are going to create a series of JVM instructions to complete the task and fulfill the stated objective.\n"
-            "Ensure you fully utilize the outcomes of previous tasks and user hints.\n"
-            "Remember: Every instruction must save its outcome to the database so it can be used in subsequent tasks.\n\n"
+            f"Current task: {json.dumps(task_info['task'])}\n"
+            f"Objective of this task: {json.dumps(task_info['objective'])}\n"
+            f"Starting sequence: {json.dumps(task_info['start_seq'])}\n"
+            "Your mission: Generate a set of JVM instructions to accomplish the current task and fulfill the stated objective.\n"
+            "Focus on the CURRENT task, not the overall goal.\n"
+            "Leverage outcomes from previous tasks and user hints.\n"
+            "Note: Each instruction should save its outcome to the database for use in future tasks.\n\n"
         )
 
         if hints != "":
