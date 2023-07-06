@@ -354,13 +354,13 @@ class TextCompletionAction(Action):
             {
                 "role": "system",
                 "content": (
-                    "As an AI language model, your role is to handle user requests that may include text generation, "
-                    "completion, or information extraction based on given input text. You need to understand the task objectives "
+                    "As an AI language model, your role is to handle user Request that may include text generation, "
+                    "completion, or information extraction based on given Content input. You need to understand the Task Objective "
                     "provided by the user and process accordingly.\n\n"
                     "Your responses MUST adhere to the specified output format. The output format key follows the pattern 'key_<idx>.seqX.<type>'. "
                     "Here, 'X' is a constant, <idx> is evaluated dynamically, and 'type' signifies Python's data types {int, str, list}. "
                     "'list' denotes a list of strings/integers, 'int' is an integer, and 'str' is a string.\n\n"
-                    "Remember, the output should be structured according to the 'output_template_with_yaml' provided by the user in the request. "
+                    "Remember, the output should be structured according to the Output Format provided by the user."
                 )
             },
             {
@@ -368,11 +368,11 @@ class TextCompletionAction(Action):
                 "content": (
                     f"Task Objective: {self.task}\n\n"
                     f"Request: {self.command}\n\n"
-                    "Output Template (YAML Format):\n"
+                    "Output Format:\n"
                     f"```\n{self.output_fmt}\n```\n\n"
                     "Content:\n"
                     f"```\n{self.content}\n```\n\n"
-                    "Please formulate your response in the provided YAML format:\n\n```yaml\n"
+                    "Please formulate your response in the provided YAML Output Format:\n\n```yaml\n"
                 )
             }
         ]

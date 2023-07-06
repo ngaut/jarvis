@@ -240,8 +240,7 @@ Remember, your task is to generate instructions that will run on JVM based on th
 
 def translate_to_instructions(task_info, model: str):
     hints = (
-        f" - The current task is only a milestone towards the overall goal ({task_info['goal']}). "
-        "Focus on crafting JVM instructions for the current task, not the overall goal.\n"
+        " - The current task is only a milestone towards the overall goal. Focus on crafting JVM instructions for the current task, not the overall goal.\n"
     )
 
     if task_info["first_task"]:
@@ -253,8 +252,9 @@ def translate_to_instructions(task_info, model: str):
 
     try:
         user_prompt = (
-            f"You are working on the task which is ({task_info['task']})\n"
-            f"The objective of the task is ({task_info['objective']})\n"
+            f"The overall goal is ({task_info['goal']})\n"
+            f"You are working on one of the tasks which is ({task_info['task']})\n"
+            f"The objective of this task is ({task_info['objective']})\n"
             f"The starting sequence is ({task_info['start_seq']})\n"
             "You are going to create a series of JVM instructions to complete the task and fulfill the stated objective.\n"
             "Ensure you fully utilize the outcomes of previous tasks and user hints.\n"
