@@ -114,7 +114,7 @@ key-value API is the only way to pass information between tasks. The database ca
 Your output MUST have these fields: task, objective, thoughts, hints_from_user, end_seq(indicates the maximum instruction sequence number), instructions, overall_outcome.
 When forming the 'overall_outcome', Explain the overall outcome we had after succeeded, what is the final result and how to retrieve the results( specify key name or (both key prefix and postfix if the key can't be retrieved by jvm.get) ), As there are other tasks will use the result, give hints to next task.
 
-An Output template example:
+An output template example:
 ```yaml
 task: "Get current weather data for San Francisco and provide suggestions based on temperature, save the results to file"
 
@@ -122,7 +122,7 @@ objective:  # AI-generated objective content, wrapped in quotes
 
 thoughts:  # AI-generated thoughts content, should be plain text without newlines, wrapped in quotes
 
-hints_from_user: # A list of hints from the user, each item must be plain text and wrapped in quotes
+hints_from_user:  # A list of hints from the user, each item must be plain text and wrapped in quotes
 
 start_seq: 1  # user-specified start_seq
 
@@ -222,7 +222,77 @@ instructions:
 end_seq: 8
 
 overall_outcome: "The current weather report for San Francisco stored, it can be retrieved by jvm.eval(jvm.get('WeatherReport.seq7.str')) or file weather_report.txt, the report includes the source url of weather data, notes on suggestions from AI"
+```
 
+Another output template example:
+```yaml
+task: "Conduct research on the internet for AI-related news and write a blog"
+
+objective: "Automate the process of finding AI-related news, summarizing key points, and structuring it into a blog post"
+
+thoughts: "We need to perform a WebSearch for AI-related news, then Fetch the content of each URL, extract the key information, summarize the content, and finally structure the blog. To handle multiple URLs, we will use a loop instruction."
+
+hints_from_user:  # A list of hints from the user, each item must be plain text and wrapped in quotes
+
+start_seq: 1  # user-specified start_seq
+
+instructions:
+  - seq: 1
+    type: WebSearch
+    inside_loop: false
+    objective: "Find URLs related to recent AI news"
+    rule_num: 2
+    args:
+      query: "recent AI news"
+      save_to: "news_urls.seq1.list"
+
+  - seq: 2
+    type: Loop
+    inside_loop: false
+    objective: "Loop through the top 5 URLs to fetch and summarize the news"
+    rule_num: 1
+    args:
+      count: "5"  # we want 5 news articles for the blog
+      idx: "jvm.eval(jvm.get('idx'))"
+      instructions:
+        - seq: 3
+          type: Fetch
+          inside_loop: true
+          objective: "Fetch the content from the current URL from the search results"
+          rule_num: 2
+          args:
+            url: "jvm.eval(jvm.get('news_urls.seq1.list')[jvm.get('idx')])"
+            save_to: "jvm.eval(f'news_content_key_{jvm.get(\"idx\")}.seq3.str')"
+
+        - seq: 4
+          type: TextCompletion
+          inside_loop: true
+          objective: "Extract and summarize the key information from the fetched news content"
+          rule_num: 3
+          args:
+            command: "Extract and summarize the key points from the AI news"
+            output_fmt:
+              kvs:
+                - key: "jvm.eval(f'news_summary_key_{jvm.get(\"idx\")}.seq4.str')"
+                  value: "<to_fill>"
+            content: "jvm.eval(jvm.get(f'news_content_key_{jvm.get(\"idx\")}.seq3.str'))"
+
+  - seq: 5
+    type: TextCompletion
+    inside_loop: false
+    objective: "Generate the blog content using the summarized news"
+    rule_num: 3
+    args:
+      command: "Structure the blog post using the summaries of the news"
+      output_fmt:
+        kvs:
+          - key: "blog_content.seq5.str"
+            value: "<to_fill>"
+      content: "jvm.eval('\n'.join([jvm.get(f'news_summary_key_{i}.seq4.str') for i in range(5)]))"
+
+end_seq: 5
+
+overall_outcome: "A blog post summarizing the latest AI news has been created, it can be retrieved by jvm.eval(jvm.get('blog_content.seq5.str'))"
 ```
 
 Remember, your task is to generate instructions that will run on JVM based on these guidelines, Don't generate non-exist instructions.
