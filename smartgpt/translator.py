@@ -116,7 +116,7 @@ When forming the 'overall_outcome', Explain the overall outcome we had after suc
 
 An Output template example:
 ```yaml
-task: 'Get current weather data for San Francisco and provide suggestions based on temperature, save the results to file'
+task: "Get current weather data for San Francisco and provide suggestions based on temperature, save the results to file"
 
 objective:  # AI-generated objective content, wrapped in quotes
 
