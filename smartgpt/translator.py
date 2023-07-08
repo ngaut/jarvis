@@ -40,7 +40,6 @@ Common arguments for each instruction:
 - inside_loop: Whether this instruction is inside a loop or not.
 - rule_num: which rule (include ID of rule) the instruction has been applied
 
-
 1. 'WebSearch': {
     "query": The search query string.
     "save_to": The dynamic key('type' is always 'list') under which the URLs of search result should be stored in the database.
@@ -48,13 +47,13 @@ Common arguments for each instruction:
 
 2. 'Fetch': {
     "url": The URL from which the content needs to be fetched.
-    "save_to": The dynamic key under which the fetched results should be stored in the database.
+    "save_to": The dynamic key under which the fetched results should be stored in the database. (must use dynamic key if inside a loop)
   }
 
 3. 'TextCompletion': {
     "command": The string describes what we want.
     "output_fmt": The output_fmt must be describe (use dynamic key if inside a loop) what to save by using the YAML template: {"kvs": [{"key": "key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0.
-    "content": Perform text completion processing against this content. We need to feed the content to AI, the format looks like "```jvm.eval(jvm.get(key_name))```".
+    "content": Perform text completion processing against this content. We need to feed the content to AI, the format looks like "```jvm.eval(jvm.get('key_name'))```".
   }
 
 4. 'If': {
@@ -65,7 +64,7 @@ Common arguments for each instruction:
 
 5. 'Loop': {
      "count": The number of iterations for the loop, can be evaluated dynamically by using the lazy eval syntax. Example: "jvm.eval(len(jvm.get('fetched_urls.seq3.list')))"
-     "idx": jvm.eval(jvm.get("idx")). The number of iterations is determined by the "count" argument, the initial value of "idx" can be retrieved with jvm.eval(jvm.get("idx")), the initial value of jvm.eval(jvm.get("idx")) is 0. For each iteration, the AI checks the 'jvm.get("idx")' argument. Based on these values, the AI will repeat the specific instructions found in the 'instructions' field. "jvm.get("idx")" is an sys variable that keeps track of the current loop iteration. If you want to print current search result on the current loop iteration, you can use the following code: ```python print(jvm.eval(search_results.seq1[jvm.get("idx")]))```. here is another example to construct a dynamic key for any instructions inside the loop, code: ```python jvm.eval(jvm.set("relevant_info_" + str(jvm.get("idx")) + ".seq3"), value))```, assume the value jvm.get("idx") is 3, the constructed key will be evaluated as:" "relevant_info_0.seq3", "relevant_info_1.seq3", "relevant_info_2.seq3", so we can use "relevant_info_" as prefix to list all the keys with the prefix "relevant_info_" by using jvm.list_keys_with_prefix("relevant_info_"), or we can use jvm.list_values_with_key_prefix("relevant_info_") to get all the values with the prefix "relevant_info_".
+     "idx": jvm.eval(jvm.get('idx')). The number of iterations is determined by the 'count' argument, the initial value of 'idx' can be retrieved with jvm.eval(jvm.get('idx')), the initial value of jvm.get('idx') is 0. For each iteration, the AI checks the jvm.get('idx') argument. Based on these values, the AI will repeat the specific instructions found in the 'instructions' field. jvm.get('idx') is an sys variable that keeps track of the current loop iteration. If you want to print current search result on the current loop iteration, you can use the following code: ```python print(jvm.get('search_results.seq1.list')[jvm.get('idx')])```. here is another example to construct a dynamic key for any instructions inside the loop, code: ```python jvm.set('relevant_info_' + str(jvm.get('idx')) + '.seq3'), value)```, assume the value 'count' of loop is 3, the constructed key will be evaluated as: 'relevant_info_0.seq3', 'relevant_info_1.seq3', 'relevant_info_2.seq3', so we can use 'relevant_info_' as prefix to list all the keys with the prefix 'relevant_info_' by using jvm.list_keys_with_prefix('relevant_info_'), or we can use jvm.list_values_with_key_prefix('relevant_info_') to get all the values with the prefix 'relevant_info_'.
      "instructions": The list of instructions to be repeated for each iteration.
    }
 
@@ -114,7 +113,8 @@ key-value API is the only way to pass information between tasks. The database ca
 Your output MUST have these fields: task, objective, thoughts, hints_from_user, end_seq(indicates the maximum instruction sequence number), instructions, overall_outcome.
 When forming the 'overall_outcome', Explain the overall outcome we had after succeeded, what is the final result and how to retrieve the results( specify key name or (both key prefix and postfix if the key can't be retrieved by jvm.get) ), As there are other tasks will use the result, give hints to next task.
 
-An Output template example:
+An output template example: (with 'if' instruction)
+
 ```yaml
 task: "Get current weather data for San Francisco and provide suggestions based on temperature, save the results to file"
 
@@ -122,7 +122,7 @@ objective:  # AI-generated objective content, wrapped in quotes
 
 thoughts:  # AI-generated thoughts content, should be plain text without newlines, wrapped in quotes
 
-hints_from_user: # A list of hints from the user, each item must be plain text and wrapped in quotes
+hints_from_user:  # A list of hints from the user, each item must be plain text and wrapped in quotes
 
 start_seq: 1  # user-specified start_seq
 
@@ -143,7 +143,7 @@ instructions:
     objective: "Fetch the content from the first URL from the search results"
     args:
       url: "jvm.eval(jvm.get('search_result_urls.seq1.list')[0])"  # make sure the reference key exists.
-      save_to: "fetched_content_0.seq2.str"  # other tasks can use the key or key prefix 'fetched_content_' to retrieve the data, this is the key point to handle dynamic data
+      save_to: "fetched_content.seq2.str"
 
   - seq: 3
     type: TextCompletion
@@ -158,7 +158,7 @@ instructions:
             value: "<to_fill>"
           - key: "source_url.seq3.str"
             value: "<to_fill>"
-      content: "jvm.eval(jvm.get('fetched_content_0.seq2.str'))"
+      content: "jvm.eval(jvm.get('fetched_content.seq2.str'))"
 
   - seq: 4
     type: If
@@ -222,7 +222,79 @@ instructions:
 end_seq: 8
 
 overall_outcome: "The current weather report for San Francisco stored, it can be retrieved by jvm.eval(jvm.get('WeatherReport.seq7.str')) or file weather_report.txt, the report includes the source url of weather data, notes on suggestions from AI"
+```
 
+
+Another output template example: (with 'loop' instruction and dynamic key)
+
+```yaml
+task: "Conduct research on the internet for AI-related news and write a blog"
+
+objective:  # AI-generated objective content, wrapped in quotes
+
+thoughts:  # AI-generated thoughts content, should be plain text without newlines, wrapped in quotes
+
+hints_from_user:  # A list of hints from the user, each item must be plain text and wrapped in quotes
+
+start_seq: 1  # user-specified start_seq
+
+instructions:
+  - seq: 1
+    type: WebSearch
+    inside_loop: false
+    objective: "Find URLs related to recent AI news"
+    rule_num: 2
+    args:
+      query: "recent AI news"
+      save_to: "news_urls.seq1.list"
+
+  - seq: 2
+    type: Loop
+    inside_loop: false
+    objective: "Loop through the top 5 URLs to fetch and summarize the news"
+    rule_num: 1
+    args:
+      count: "5"  # we want 5 news articles for the blog
+      idx: "jvm.eval(jvm.get('idx'))"
+      instructions:
+        - seq: 3
+          type: Fetch
+          inside_loop: true
+          objective: "Fetch the content from the current URL from the search results"
+          rule_num: 2
+          args:
+            url: "jvm.eval(jvm.get('news_urls.seq1.list')[jvm.get('idx')])"
+            save_to: "jvm.eval('news_content_' + str(jvm.get('idx')) + '.seq3.str')"  # must use dynamic key with jvm.get('idx') in a loop
+
+        - seq: 4
+          type: TextCompletion
+          inside_loop: true
+          objective: "Extract and summarize the key information from the fetched news content"
+          rule_num: 3
+          args:
+            command: "Extract and summarize the key points from the AI news"
+            output_fmt:
+              kvs:
+                - key: "jvm.eval('news_summary_' + str(jvm.get('idx')) + '.seq4.str')"
+                  value: "<to_fill>"
+            content: "jvm.eval(jvm.get('news_content_' + str(jvm.get('idx')) + '.seq3.str'))"
+
+  - seq: 5
+    type: TextCompletion
+    inside_loop: false
+    objective: "Generate the blog content using the summarized news"
+    rule_num: 3
+    args:
+      command: "Structure the blog post using the summaries of the news"
+      output_fmt:
+        kvs:
+          - key: "blog_content.seq5.str"
+            value: "<to_fill>"
+      content: "jvm.eval('\\n'.join(jvm.list_values_with_key_prefix('news_summary_')))"
+
+end_seq: 5
+
+overall_outcome: "A blog post summarizing the latest AI news has been created, it can be retrieved by jvm.eval(jvm.get('blog_content.seq5.str'))"
 ```
 
 Remember, your task is to generate instructions that will run on JVM based on these guidelines, Don't generate non-exist instructions.
@@ -230,14 +302,7 @@ Remember, your task is to generate instructions that will run on JVM based on th
 
 
 def translate_to_instructions(task_info, model: str):
-    """
-    tmp = {
-        "Final objective": task_info["goal"],
-    }
-    hints = f"  - {json.dumps(tmp)}\n"
-    """
     hints = ""
-
     if task_info["first_task"]:
         hints += "  - \"This is the first task, so there are no previous tasks or outcomes.\"\n"
     else:
@@ -258,7 +323,6 @@ def translate_to_instructions(task_info, model: str):
             f"The starting sequence: {json.dumps(task_info['start_seq'])}\n"
             "You are going to create a series of JVM instructions to complete the current task and fulfill the stated objective.\n"
             "Ensure you fully utilize the outcomes of previous tasks in user hints.\n"
-            #"Focus on the CURRENT TASK OBJECTIVE, MUST NOT create any JVM instruction for the FINAL OBJECTIVE in user hints.\n"
             "Remember: Every instruction must save its outcome to the database so it can be used in subsequent tasks.\n\n"
         )
 
