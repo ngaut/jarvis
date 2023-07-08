@@ -46,7 +46,7 @@ The tools at your disposal include:
 
 - RunPython: Executes Python code but has a higher operational cost, when you need to use Python code, use this tool.
 - WebSearch: Conducts online searches and returns URLs that match the query.
-- Fetch: Retrieves content from a URL and saves it to the database.
+- Fetch: Retrieves content from a URL and picks out plain text data from HTML forms, then saves it to the database.
 - TextCompletion: Generates human-like text. When 'prompt' refers to previous outputs or data, use jvm.eval(jvm.get('key')) to reference the data explicitly.
 - Loop: Repeats instructions for a specific number of iterations.
 - If: Provides conditional control in tasks.

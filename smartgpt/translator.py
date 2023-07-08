@@ -12,7 +12,7 @@ You will fully leverage user's hints(if any), reuse them to generate instruction
 You will define milestones for the task, and then generate instructions for each milestone.
 
 When handling data, bear in mind that dynamic keys are critical to the operation of this AI. Dynamic keys provide the flexibility to manipulate and access data. They can cater to the specific needs of a variety of tasks.
-Dynamic keys, must be the format: 'key_<idx>.seqX.<type>', where 'X' could vary based on context, 'idx' is related to the loop index(can be optional if current instruction is not inside a loop), 'type' is type of the value(which is one of Python's type: {int, str, list}) allow the AI to structure and access data in a flexible, non-static way.
+Dynamic keys, must be the format: 'key_name_<idx>.seqX.<type>', where 'X' could vary based on context, 'idx' is related to the loop index(can be optional if current instruction is not inside a loop), 'type' is type of the value(which is one of Python's type: {int, str, list}) allow the AI to structure and access data in a flexible, non-static way.
 Dynamic keys are particularly useful in loop structures, where data is iteratively processed or collected. They allow the AI to dynamically create and access individual data entries, thus providing a more granular control over data. Be sure to construct and utilize dynamic keys wisely, allowing for efficient data manipulation and access across various tasks.
 
 
@@ -22,7 +22,7 @@ Dynamic keys are particularly useful in loop structures, where data is iterative
 
 - 'WebSearch': Returns a list of URLs from a web search engine based on the provided query.
 
-- 'Fetch': Fetches the content of a specified URL.
+- 'Fetch': Fetches the content of a specified URL, and picking out plain text data from HTML forms.
 
 - 'TextCompletion': Leverages AI to generate content, complete text, or extract information from provided text interactively and user-friendly.
 
@@ -47,13 +47,13 @@ Common arguments for each instruction:
 
 2. 'Fetch': {
     "url": The URL from which the content needs to be fetched.
-    "save_to": The dynamic key under which the fetched results should be stored in the database. (must use dynamic key if inside a loop)
+    "save_to": The dynamic key under which the fetched results should be stored in the database. (must use dynamic key with <idx> if inside a loop)
   }
 
 3. 'TextCompletion': {
     "command": The string describes what we want.
-    "output_fmt": The output_fmt must be describe (use dynamic key if inside a loop) what to save by using the YAML template: {"kvs": [{"key": "key_<idx>.seqX.<type>", "value": "<to_fill>"}]} // idx starts from 0.
-    "content": Perform text completion processing against this content. We need to feed the content to AI, the format looks like "```jvm.eval(jvm.get('key_name'))```".
+    "output_fmt": The output_fmt must be described what to save by using the YAML template: {'kvs': [{'key': 'key_name.seqX.<type>', 'value': '<to_fill>'}]}, and use dynamic key with <idx> if inside a loop, template like: {'kvs': [{'key': 'key_name_<idx>.seqX.<type>', 'value': '<to_fill>'}]}.
+    "content": Perform text completion processing against this content. We need to feed the content to AI, the format looks like "jvm.eval(jvm.get('key_name'))".
   }
 
 4. 'If': {
@@ -83,7 +83,7 @@ Everything inside output_fmt argument of a instruction will be evaluated and per
 
 ## instruction_selection_rules
 
-Rule 1 - Be mindful of keywords such as 'loop', 'each', 'every', and plural nouns in the task and objective description. Generally, these terms suggest that the task requires loop-based instructions.
+Rule 1 - Be mindful of keywords such as 'loop', 'each', 'every', and plural nouns in the task and objective description. Generally, these terms suggest that the task requires loop-based instructions. But if the intention is to combine or summarize previous multiple results, do not select the Loop.
 
 Rule 2 - Prioritize basic instructions. If the objective can be achieved using a few basic instructions, utilize them and then return the result.
 
@@ -114,7 +114,6 @@ Your output MUST have these fields: task, objective, thoughts, hints_from_user, 
 When forming the 'overall_outcome', Explain the overall outcome we had after succeeded, what is the final result and how to retrieve the results( specify key name or (both key prefix and postfix if the key can't be retrieved by jvm.get) ), As there are other tasks will use the result, give hints to next task.
 
 An output template example: (with 'if' instruction)
-
 ```yaml
 task: "Get current weather data for San Francisco and provide suggestions based on temperature, save the results to file"
 
@@ -154,7 +153,7 @@ instructions:
       command: "Get the current temperature and url in San Francisco"
       output_fmt:
         kvs:
-          - key: "temperature.seq3.int"
+          - key: "temperature.seq3.int"  # without <idx> as not in a loop
             value: "<to_fill>"
           - key: "source_url.seq3.str"
             value: "<to_fill>"
@@ -205,7 +204,7 @@ instructions:
         kvs:
           - key: "weather_report.seq7.str"
             value: "<to_fill>"
-      content: "temperature = jvm.eval(jvm.get('temperature.seq3.int')), source_url = jvm.eval(jvm.get('source_url.seq3.str')), notes = jvm.eval(jvm.get('weather_notes.seq5.str') or jvm.get('weather_notes.seq6.str'))"
+      content: "temperature: jvm.eval(jvm.get('temperature.seq3.int')), source_url: jvm.eval(jvm.get('source_url.seq3.str')), weather_notes: jvm.eval(jvm.get('weather_notes.seq5.str') or jvm.get('weather_notes.seq6.str'))"
 
   - seq: 8
     type: RunPython
@@ -225,8 +224,7 @@ overall_outcome: "The current weather report for San Francisco stored, it can be
 ```
 
 
-Another output template example: (with 'loop' instruction and dynamic key)
-
+Another output template example: (with 'Loop' instruction and using dynamic key with <idx>)
 ```yaml
 task: "Conduct research on the internet for AI-related news and write a blog"
 
@@ -264,7 +262,7 @@ instructions:
           rule_num: 2
           args:
             url: "jvm.eval(jvm.get('news_urls.seq1.list')[jvm.get('idx')])"
-            save_to: "jvm.eval('news_content_' + str(jvm.get('idx')) + '.seq3.str')"  # must use dynamic key with jvm.get('idx') in a loop
+            save_to: "jvm.eval('news_content_' + str(jvm.get('idx')) + '.seq3.str')"  # must use dynamic key with <idx> as in a loop
 
         - seq: 4
           type: TextCompletion
@@ -275,7 +273,7 @@ instructions:
             command: "Extract and summarize the key points from the AI news"
             output_fmt:
               kvs:
-                - key: "jvm.eval('news_summary_' + str(jvm.get('idx')) + '.seq4.str')"
+                - key: "jvm.eval('news_summary_' + str(jvm.get('idx')) + '.seq4.str')"  # must use dynamic key with <idx> as in a loop
                   value: "<to_fill>"
             content: "jvm.eval(jvm.get('news_content_' + str(jvm.get('idx')) + '.seq3.str'))"
 
