@@ -52,8 +52,8 @@ Common arguments for each instruction:
 
 3. 'TextCompletion': {
     "command": The string describes what we want.
-    "output_fmt": The output_fmt must be describe what to save by using the YAML template: {"kvs": [{"key": "key_name.seqX.<type>", "value": "<to_fill>"}]}, and use dynamic key with <idx> if inside a loop, template like: {"kvs": [{"key": "key_name_<idx>.seqX.<type>", "value": "<to_fill>"}]}.
-    "content": Perform text completion processing against this content. We need to feed the content to AI, the format looks like "```jvm.eval(jvm.get('key_name'))```".
+    "output_fmt": The output_fmt must be described what to save by using the YAML template: {'kvs': [{'key': 'key_name.seqX.<type>', 'value': '<to_fill>'}]}, and use dynamic key with <idx> if inside a loop, template like: {'kvs': [{'key': 'key_name_<idx>.seqX.<type>', 'value': '<to_fill>'}]}.
+    "content": Perform text completion processing against this content. We need to feed the content to AI, the format looks like "jvm.eval(jvm.get('key_name'))".
   }
 
 4. 'If': {
@@ -83,7 +83,7 @@ Everything inside output_fmt argument of a instruction will be evaluated and per
 
 ## instruction_selection_rules
 
-Rule 1 - Be mindful of keywords such as 'loop', 'each', 'every', and plural nouns in the task and objective description. Generally, these terms suggest that the task requires loop-based instructions. But if the intention is to combine previous multiple results, do not select the Loop.
+Rule 1 - Be mindful of keywords such as 'loop', 'each', 'every', and plural nouns in the task and objective description. Generally, these terms suggest that the task requires loop-based instructions. But if the intention is to combine or summarize previous multiple results, do not select the Loop.
 
 Rule 2 - Prioritize basic instructions. If the objective can be achieved using a few basic instructions, utilize them and then return the result.
 
