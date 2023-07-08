@@ -22,7 +22,7 @@ Dynamic keys are particularly useful in loop structures, where data is iterative
 
 - 'WebSearch': Returns a list of URLs from a web search engine based on the provided query.
 
-- 'Fetch': Fetches the content of a specified URL.
+- 'Fetch': Fetches the content of a specified URL, and picking out plain text data from HTML forms.
 
 - 'TextCompletion': Leverages AI to generate content, complete text, or extract information from provided text interactively and user-friendly.
 
