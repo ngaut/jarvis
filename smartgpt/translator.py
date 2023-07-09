@@ -24,7 +24,7 @@ Dynamic keys are particularly useful in loop structures, where data is iterative
 
 - 'Fetch': Fetches the content of a specified URL, and picking out plain text data from HTML forms.
 
-- 'TextCompletion': Leverages AI to generate content, complete text, or extract information from provided text interactively and user-friendly.
+- 'TextCompletion': Leverages AI to generate content, complete text, or extract information from provided text interactively and user-friendly. It can also efficiently combine multiple pieces of inputs into a unified whole and produce concise summaries.
 
 ### Advanced Instructions:
 
@@ -46,14 +46,14 @@ Common arguments for each instruction:
   }
 
 2. 'Fetch': {
-    "url": The URL from which the content needs to be fetched.
-    "save_to": The dynamic key under which the fetched results should be stored in the database. (must use dynamic key with <idx> if inside a loop)
+    "url": The URL from which content should be fetched.
+    "save_to": This argument specifies the dynamic key under which the fetched results will be stored in the database. If within a loop, ensure the dynamic key follows the "<idx>" format to guarantee its uniqueness.
   }
 
 3. 'TextCompletion': {
-    "command": The string describes what we want.
+    "command": This string defines the desired action.
     "output_fmt": The output_fmt must be described what to save by using the YAML template: {'kvs': [{'key': 'key_name.seqX.<type>', 'value': '<to_fill>'}]}, and use dynamic key with <idx> if inside a loop, template like: {'kvs': [{'key': 'key_name_<idx>.seqX.<type>', 'value': '<to_fill>'}]}.
-    "content": Perform text completion processing against this content. We need to feed the content to AI, the format looks like "jvm.eval(jvm.get('key_name'))".
+    "content": This is the content awaiting text completion processing. The format looks like "jvm.eval(jvm.get('key_name'))", which will be inputted into the AI.
   }
 
 4. 'If': {
@@ -63,9 +63,9 @@ Common arguments for each instruction:
   }
 
 5. 'Loop': {
-     "count": The number of iterations for the loop, can be evaluated dynamically by using the lazy eval syntax. Example: "jvm.eval(len(jvm.get('fetched_urls.seq3.list')))"
-     "idx": jvm.eval(jvm.get('idx')). The number of iterations is determined by the 'count' argument, the initial value of 'idx' can be retrieved with jvm.eval(jvm.get('idx')), the initial value of jvm.get('idx') is 0. For each iteration, the AI checks the jvm.get('idx') argument. Based on these values, the AI will repeat the specific instructions found in the 'instructions' field. jvm.get('idx') is an sys variable that keeps track of the current loop iteration. If you want to print current search result on the current loop iteration, you can use the following code: ```python print(jvm.get('search_results.seq1.list')[jvm.get('idx')])```. here is another example to construct a dynamic key for any instructions inside the loop, code: ```python jvm.set('relevant_info_' + str(jvm.get('idx')) + '.seq3'), value)```, assume the value 'count' of loop is 3, the constructed key will be evaluated as: 'relevant_info_0.seq3', 'relevant_info_1.seq3', 'relevant_info_2.seq3', so we can use 'relevant_info_' as prefix to list all the keys with the prefix 'relevant_info_' by using jvm.list_keys_with_prefix('relevant_info_'), or we can use jvm.list_values_with_key_prefix('relevant_info_') to get all the values with the prefix 'relevant_info_'.
-     "instructions": The list of instructions to be repeated for each iteration.
+    "count": The number of iterations for the loop, can be evaluated dynamically by using the lazy eval syntax. Example: "jvm.eval(len(jvm.get('fetched_urls.seq3.list')))"
+    "idx": jvm.eval(jvm.get('idx')). The number of iterations is determined by the 'count' argument, the initial value of 'idx' can be retrieved with jvm.eval(jvm.get('idx')), the initial value of jvm.get('idx') is 0. For each iteration, the AI checks the jvm.get('idx') argument. Based on these values, the AI will repeat the specific instructions found in the 'instructions' field. jvm.get('idx') is an sys variable that keeps track of the current loop iteration. If you want to print current search result on the current loop iteration, you can use the following code: ```python print(jvm.get('search_results.seq1.list')[jvm.get('idx')])```. here is another example to construct a dynamic key for any instructions inside the loop, code: ```python jvm.set('relevant_info_' + str(jvm.get('idx')) + '.seq3'), value)```, assume the value 'count' of loop is 3, the constructed key will be evaluated as: 'relevant_info_0.seq3', 'relevant_info_1.seq3', 'relevant_info_2.seq3', so we can use 'relevant_info_' as prefix to list all the keys with the prefix 'relevant_info_' by using jvm.list_keys_with_prefix('relevant_info_'), or we can use jvm.list_values_with_key_prefix('relevant_info_') to get all the values with the prefix 'relevant_info_'.
+    "instructions": The list of instructions to be repeated for each iteration.
    }
 
 6. 'RunPython': {  // do not use any non-existing arguments
@@ -83,13 +83,15 @@ Everything inside output_fmt argument of a instruction will be evaluated and per
 
 ## instruction_selection_rules
 
-Rule 1 - Be mindful of keywords such as 'loop', 'each', 'every', and plural nouns in the task and objective description. Generally, these terms suggest that the task requires loop-based instructions. But if the intention is to combine or summarize previous multiple results, do not select the Loop.
+Rule 1 - Be mindful of keywords such as 'loop', 'each', 'every', and plural nouns in the task and objective description. Typically, these terms imply that the task requires instructions based on loops.
 
 Rule 2 - Prioritize basic instructions. If the objective can be achieved using a few basic instructions, utilize them and then return the result.
 
 Rule 3 - Exercise caution when considering the RunPython instruction. Evaluate whether the objective can be accomplished using other basic instructions. If it can, prefer those over the RunPython instruction and return the result.
 
-Rule 4 - Lastly, consider using advanced instructions. If the objective can be achieved with these, employ them and return the result.
+Rule 4 - Exercise caution when considering the Loop instruction. when the task involves combining and summarizing a list of multiple inputs, prefer using the TextCompletion instruction over more advanced ones such as Loop.
+
+Rule 5 - Lastly, consider using advanced instructions. If the objective can be achieved with these, employ them and return the result.
 
 
 ## Instruction Sequence
@@ -163,7 +165,7 @@ instructions:
     type: If
     inside_loop: false
     objective: Evaluate condition to decide if we recommend outdoor or indoor activities
-    rule_num: 4
+    rule_num: 5
     args:
       condition: "20 < jvm.eval(jvm.get('temperature.seq3.int')) < 30"
     then:
@@ -210,7 +212,7 @@ instructions:
     type: RunPython
     inside_loop: false
     objective: "Save report to a file"
-    rule_num: 4 # RunPython is the only instruction that can do file IO
+    rule_num: 5 # RunPython is the only instruction that can do file IO
     args:
       code: |
         with open('weather_report.txt', 'w') as f:
@@ -281,7 +283,7 @@ instructions:
     type: TextCompletion
     inside_loop: false
     objective: "Generate the blog content using the summarized news"
-    rule_num: 3
+    rule_num: 4 # Use TextCompletion instead of Loop when combining a list of multiple news summaries into a single blog post.
     args:
       command: "Structure the blog post using the summaries of the news"
       output_fmt:
