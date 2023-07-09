@@ -52,7 +52,7 @@ def send_message(messages: List[Dict[str, str]], model: str) -> str:
                 model=model,
                 messages=messages,
                 max_tokens=max_response_tokens,
-                temperature=0)
+                temperature=0.2)
             return response.choices[0].message["content"] # type: ignore
 
         except openai.error.RateLimitError as rate_limit_err:  # type: ignore
@@ -87,7 +87,7 @@ def send_message_stream(messages: List[Dict[str, str]], model: str) -> str:
                 messages=messages,
                 stream=True,
                 model=model,
-                temperature=0.7)
+                temperature=0.2)
 
             chat = []
             for chunk in response:
