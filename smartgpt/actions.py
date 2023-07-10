@@ -257,6 +257,7 @@ class RunPythonAction(Action):
 
     # Use the current directory as the working environment
     work_dir = os.path.join(os.getcwd(), "workspace")
+    project_dir = os.getcwd()
 
     # Generate a random file name for each execution
     file_name = f'run_{uuid.uuid4()}.py'
@@ -303,6 +304,8 @@ class RunPythonAction(Action):
 
     def _write_code_to_file(self):
         with open(os.path.join(self.work_dir, self.file_name), mode="w", encoding="utf-8") as file:
+            file.write("import sys\n")
+            file.write(f"sys.path.append('{self.project_dir}/smartgpt')\n")
             file.write("import jvm\n")
             file.write("jvm.load_kv_store()\n")
             file.write(self.code)
