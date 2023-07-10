@@ -123,6 +123,8 @@ def gen_instructions(model: str, replan: bool = False, goal: Optional[str] = Non
           with open(f"{task_num}.yaml", "w") as f:
               f.write(instrs)
 
+        time.sleep(60)
+
     return len(args['task_list'])
 
 def gen_plan(model: str, goal: Optional[str] = None) -> str:
