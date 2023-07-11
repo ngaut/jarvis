@@ -40,6 +40,23 @@ def count_tokens(input) -> int:
 
     return sum(len(ENCODING.encode(msg['content'])) for msg in input) + (len(input) * TOKENS_PER_MESSAGE)
 
+def truncate_to_tokens(content: str, max_token_count: int) -> str:
+    """Truncates the content to fit within the model's max tokens."""
+
+    if count_tokens(content) <= max_token_count:
+        # No need to truncate
+        return content
+
+    tokens = ENCODING.encode(content)
+
+    # Truncate tokens
+    truncated_tokens = tokens[:max_token_count]
+
+    # Convert truncated tokens back to string
+    truncated_str = ENCODING.decode(truncated_tokens)
+
+    return truncated_str
+
 def send_message(messages: List[Dict[str, str]], model: str) -> str:
     max_response_tokens = get_max_tokens(model) - count_tokens(messages)
 

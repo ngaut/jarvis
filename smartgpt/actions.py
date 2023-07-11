@@ -257,6 +257,7 @@ class RunPythonAction(Action):
 
     # Use the current directory as the working environment
     work_dir = os.path.join(os.getcwd(), "workspace")
+    project_dir = os.getcwd()
 
     # Generate a random file name for each execution
     file_name = f'run_{uuid.uuid4()}.py'
@@ -303,7 +304,9 @@ class RunPythonAction(Action):
 
     def _write_code_to_file(self):
         with open(os.path.join(self.work_dir, self.file_name), mode="w", encoding="utf-8") as file:
-            file.write("import jvm\n")
+            file.write("import sys\n")
+            file.write(f"sys.path.append('{self.project_dir}')\n")
+            file.write("from smartgpt import jvm\n")
             file.write("jvm.load_kv_store()\n")
             file.write(self.code)
 
@@ -334,7 +337,7 @@ class RunPythonAction(Action):
 @dataclass(frozen=True)
 class TextCompletionAction(Action):
     action_id: int
-    task: str
+    objective: str
     command: str
     content: str
     output_fmt: str
@@ -350,12 +353,21 @@ class TextCompletionAction(Action):
         return f"action_id: {self.id()}, Text Completion for `{self.command}`."
 
     def generate_messages(self) -> List[Dict[str, str]]:
+        # Adjust content to fit within model's max tokens
+        content = self.content
+        max_token_count = gpt.get_max_tokens(gpt.GPT_3_5_TURBO_16K) - 4096  # leaving some space for the system and user roles and responses
+        content_token_count = gpt.count_tokens(content)
+
+        if content_token_count > max_token_count:
+            # If content is too long, truncate it to fit within model's max tokens.
+            content = gpt.truncate_to_tokens(content, max_token_count)
+
         return [
             {
                 "role": "system",
                 "content": (
-                    "As an AI language model, your role is to handle user Request that may include text generation, "
-                    "completion, or information extraction based on given Content input. You need to understand the Task Objective "
+                    "As an AI language model, your role is to handle user Request that may include content generation, consolidation and summarization, "
+                    "text completion, or information extraction based on given Content input. You need to understand the Objective and Request "
                     "provided by the user and process accordingly.\n\n"
                     "Your responses MUST adhere to the specified output format. The output format key follows the pattern 'key_<idx>.seqX.<type>'. "
                     "Here, 'X' is a constant, <idx> is evaluated dynamically, and 'type' signifies Python's data types {int, str, list}. "
@@ -366,13 +378,13 @@ class TextCompletionAction(Action):
             {
                 "role": "user",
                 "content": (
-                    f"Task Objective: {self.task}\n\n"
+                    f"Objective: {self.objective}\n\n"
                     f"Request: {self.command}\n\n"
                     "Output Format:\n"
-                    f"```\n{self.output_fmt}\n```\n\n"
+                    f"```yaml\n{self.output_fmt}```\n\n"
                     "Content:\n"
-                    f"```\n{self.content}\n```\n\n"
-                    "Please formulate your response in the provided YAML Output Format:\n\n```yaml\n"
+                    f"\"\"\"\n{content}\n\"\"\"\n\n"
+                    "Please formulate your response in the provided YAML Output Format:\n```yaml\n"
                 )
             }
         ]
@@ -386,7 +398,6 @@ class TextCompletionAction(Action):
             model_name = gpt.GPT_3_5_TURBO_16K
 
         return model_name
-
 
     def run(self) -> str:
         hash_str = hashlib.md5(self.command.encode()).hexdigest()

@@ -13,7 +13,7 @@ from smartgpt import jvm
 from smartgpt import instruction
 
 
-BASE_MODEL = gpt.GPT_3_5_TURBO_16K
+BASE_MODEL = gpt.GPT_4
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

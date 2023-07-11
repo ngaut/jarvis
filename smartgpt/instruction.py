@@ -21,6 +21,7 @@ class JVMInstruction:
             return
 
         action_id = self.instruction.get("seq")
+        objective = self.instruction.get("objective")
         # clone the args dict!
         args = dict(self.instruction.get("args"))
 
@@ -45,7 +46,7 @@ class JVMInstruction:
             args["command"] = self.eval_and_patch(args.get("command"))
             args["content"] = self.eval_and_patch(args.get("content"))
             args["output_fmt"] = self.eval_and_patch(yaml.safe_dump(args.get("output_fmt")))
-            args["task"] = self.task
+            args["objective"] = objective
 
         action_data = { "type": action_type, "action_id": action_id }
         action_data.update(args)
