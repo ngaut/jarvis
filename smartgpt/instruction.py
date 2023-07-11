@@ -169,7 +169,7 @@ class JVMInterpreter:
 
         evaluation_action = actions.TextCompletionAction(
             action_id = -1,
-            task = "",
+            objective="Evaluate true and false based on input content",
             command = "Is that true or false?",
             content = condition,
             output_fmt = yaml.safe_dump(output_fmt))

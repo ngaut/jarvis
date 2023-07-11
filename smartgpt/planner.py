@@ -105,7 +105,7 @@ def gen_instructions(model: str, replan: bool = False, goal: Optional[str] = Non
         previous_outcomes = [task_outcomes[i] for i in task_dependency.get(task_num, [])]
         instrs = translator.translate_to_instructions({
             "first_task": task_num == 1,
-            "goal": args["goal"],
+            "hints": args["hints_from_user"],
             "task": task['task'],
             "objective": task['objective'],
             "start_seq": start_seq,
@@ -123,12 +123,13 @@ def gen_instructions(model: str, replan: bool = False, goal: Optional[str] = Non
           with open(f"{task_num}.yaml", "w") as f:
               f.write(instrs)
 
-        time.sleep(60)
+        if model == gpt.GPT_4:
+          time.sleep(60)
 
     return len(args['task_list'])
 
 def gen_plan(model: str, goal: Optional[str] = None) -> str:
-    if goal is None:
+    if not goal:
       #input the goal
       input_goal = input("Please input your goal:\n")
       goal = clarify.clarify_and_summarize(input_goal)
@@ -138,12 +139,17 @@ def gen_plan(model: str, goal: Optional[str] = None) -> str:
         logging.info(f"The goal: {goal}")
 
         user_prompt = (
-            f"The goal: {goal}.\n"
+            f"The goal: {goal}\n"
             "Please generate the task list that can finish the goal.\n"
             "Your YAML response:```yaml\n"
         )
 
         resp = utils.strip_yaml(gpt.complete(user_prompt, model, GEN_PLAN__SYS_PROMPT))
+        tmp = yaml.safe_load(resp)
+
+        if 'hints_from_user' in tmp and isinstance(tmp['hints_from_user'], list):
+            tmp['hints_from_user'].append("The user's original request: " + goal)
+        resp = yaml.safe_dump(tmp)
         logging.info("Response from AI: %s", resp)
         return resp
 

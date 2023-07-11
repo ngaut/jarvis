@@ -13,7 +13,8 @@ from smartgpt import jvm
 from smartgpt import instruction
 
 
-BASE_MODEL = gpt.GPT_4
+#BASE_MODEL = gpt.GPT_4
+BASE_MODEL = gpt.GPT_3_5_TURBO_16K
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -21,9 +22,10 @@ if __name__ == "__main__":
     parser.add_argument('--timeout', type=int, default=1, help='Timeout for user input')
     parser.add_argument('--continuous', action='store_true', help='Continuous mode')
     parser.add_argument('--verbose', action='store_true', help='Verbose mode')
-    parser.add_argument('--replan', action='store_true', help='create a new plan')
+    parser.add_argument('--replan', action='store_true', help='Create a new plan')
     parser.add_argument('--yaml', type=str, help='Path to the yaml file to execute plan from')
     parser.add_argument('--startseq', type=int, default=0, help='Starting sequence number')
+    parser.add_argument('--goalfile', type=str, default='', help='Specify the goal description file for Jarvis')
 
     args = parser.parse_args()
 
@@ -47,6 +49,12 @@ if __name__ == "__main__":
     args.verbose = args.verbose or assistant_config.get('verbose', False)
     args.continuous = args.continuous or assistant_config.get('continuous', False)
     args.replan = args.replan or assistant_config.get('replan', False)
+    args.goalfile = args.goalfile or assistant_config.get('goalfile', '')
+
+    goal = ''
+    if args.goalfile:
+        with open(args.goalfile, 'r') as f:
+            goal = f.read()
 
     os.makedirs("workspace", exist_ok=True)
     os.chdir("workspace")
@@ -61,7 +69,7 @@ if __name__ == "__main__":
             plan_with_instrs = yaml.safe_load(f)
     else:
         # Generate a new plan
-        planner.gen_instructions(BASE_MODEL, replan=args.replan)
+        planner.gen_instructions(BASE_MODEL, replan=args.replan, goal=goal)
         exit(0)
 
     # Find the starting sequence number

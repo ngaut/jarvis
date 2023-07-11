@@ -1,4 +1,3 @@
-
 def get_example(example_key: str) -> str:
     return example_pool[example_key]
 

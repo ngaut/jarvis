@@ -342,6 +342,7 @@ class TextCompletionAction(Action):
     content: str
     output_fmt: str
     model_name: str = gpt.GPT_3_5_TURBO_16K
+#    model_name: str = gpt.GPT_4
 
     def key(self) -> str:
         return "TextCompletion"
@@ -400,7 +401,8 @@ class TextCompletionAction(Action):
         return model_name
 
     def run(self) -> str:
-        hash_str = hashlib.md5(self.command.encode()).hexdigest()
+        hash_key = self.command + str(jvm.get('idx'))
+        hash_str = hashlib.md5(hash_key.encode()).hexdigest()
         cached_key = f"{hash_str}"
         cached_result = get_from_cache(cached_key)
 
@@ -416,6 +418,9 @@ class TextCompletionAction(Action):
             if result is None:
                 raise ValueError(f"Generating text completion for `{self.command}` appears to have failed.")
             result = utils.strip_yaml(result)
+
+            if model_name == gpt.GPT_4:
+                time.sleep(30)
 
             save_to_cache(cached_key, result)
             return result
