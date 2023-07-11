@@ -10,9 +10,14 @@ def strip_yaml(text):
     # Strip whitespace (including newline) from end
     text = text.rstrip()
 
-    # remove the last "```" if it exists
-    if text.endswith("```"):
-        return text[:-3]
+    # keep removing the last "```" if it exists
+    while text.endswith("```"):
+        text = text[:-3]
+        text = text.rstrip()
+
+    # if text starts with "```yaml\n", remove it
+    if text.startswith("```yaml\n"):
+        text = text[8:]
 
     return text
 

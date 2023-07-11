@@ -124,7 +124,7 @@ def gen_instructions(model: str, replan: bool = False, goal: Optional[str] = Non
               f.write(instrs)
 
         if model == gpt.GPT_4:
-          time.sleep(30)
+          time.sleep(60)
 
     return len(args['task_list'])
 
