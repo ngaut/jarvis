@@ -81,6 +81,9 @@ def set_loop_idx(value):
 LAZY_EVAL_PREFIX = "jvm.eval("
 
 def eval(text, lazy_eval_prefix=LAZY_EVAL_PREFIX):
+    if not isinstance(text, str):
+        return text
+
     # find last occurrence of "jvm.eval("
     start = text.rfind(lazy_eval_prefix)
     if start == -1:

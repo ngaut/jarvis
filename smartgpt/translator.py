@@ -127,6 +127,7 @@ Remember, your task is to generate instructions that will run on JVM based on th
 
 def translate_to_instructions(task_info, model: str):
     hints = ""
+
     if task_info["first_task"]:
         hints += "  - \"This is the first task, so there are no previous tasks or outcomes.\"\n"
     else:
@@ -139,6 +140,9 @@ def translate_to_instructions(task_info, model: str):
               }
           }
           hints += f"  - {json.dumps(tmp)}\n"
+
+    for item in task_info.get("hints", []):
+        hints += f"  - {json.dumps(item)}\n"
 
     try:
         user_prompt = (
