@@ -1,0 +1,6 @@
+Jarvis, I would like you to convert a MySQL stored procedure to a TiDB SQL testcase. Here are the steps you should follow:
+1. Read the 'stored-procedure.sql' file which is located at your local workspace
+2. Analyze the content of the stored-procedure.sql file. The file consists of stored procedures, table creation, data insertion, etc. We need to convert these stored procedures into individual SQL statements as TiDB doesn't support stored procedures. You should identify the stored procedures and their corresponding SQL statements. Take note of the order of execution and the dependencies among these SQL statements.
+3. Convert the stored procedures into SQL statements. For example, if there is a stored procedure that inserts data into a table in a loop, convert this into multiple insert statements. For each stored procedure, identify the SQL statements that it is executing. Replace the stored procedure with these SQL statements. Make sure the execution order and the dependencies among these SQL statements are preserved.
+4. Write the converted SQL statements to a new file named 'tidb-sql-testcase.sql'.
+Remember, the goal is to create a TiDB SQL testcase that can be executed on a TiDB database without using any stored procedures.

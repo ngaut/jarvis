@@ -79,10 +79,10 @@ hints_from_user: ["Any additional instructions or information provided by the us
 
 """
 
-def gen_instructions(model: str, replan: bool = False, goal: Optional[str] = None, skip: Optional[bool] = False) -> int:
+def gen_instructions(model: str, replan: bool = False, goal: Optional[str] = None) -> int:
     if replan:
         logging.info("Replanning...")
-        plan = utils.strip_yaml(gen_plan(model, goal, skip))
+        plan = utils.strip_yaml(gen_plan(model, goal))
         with open("plan.yaml", "w") as f:
             f.write(plan)
         return 0
@@ -127,21 +127,18 @@ def gen_instructions(model: str, replan: bool = False, goal: Optional[str] = Non
 
     return len(args['task_list'])
 
-def gen_plan(model: str, goal: Optional[str] = None, skip: Optional[bool] = False) -> str:
-    if goal is None:
+def gen_plan(model: str, goal: Optional[str] = None) -> str:
+    if not goal:
       #input the goal
       input_goal = input("Please input your goal:\n")
-      if not skip:
-        goal = clarify.clarify_and_summarize(input_goal)
-      else:
-        goal = input_goal
+      goal = clarify.clarify_and_summarize(input_goal)
 
     try:
         logging.info("========================")
         logging.info(f"The goal: {goal}")
 
         user_prompt = (
-            f"The goal: {goal}.\n"
+            f"The goal: {goal}\n"
             "Please generate the task list that can finish the goal.\n"
             "Your YAML response:```yaml\n"
         )
