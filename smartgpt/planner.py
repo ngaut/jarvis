@@ -79,10 +79,10 @@ hints_from_user: ["Any additional instructions or information provided by the us
 
 """
 
-def gen_instructions(model: str, replan: bool = False, goal: Optional[str] = None) -> int:
+def gen_instructions(model: str, replan: bool = False, goal: Optional[str] = None, skip: Optional[bool] = False) -> int:
     if replan:
         logging.info("Replanning...")
-        plan = utils.strip_yaml(gen_plan(model, goal))
+        plan = utils.strip_yaml(gen_plan(model, goal, skip))
         with open("plan.yaml", "w") as f:
             f.write(plan)
         return 0
@@ -127,11 +127,14 @@ def gen_instructions(model: str, replan: bool = False, goal: Optional[str] = Non
 
     return len(args['task_list'])
 
-def gen_plan(model: str, goal: Optional[str] = None) -> str:
+def gen_plan(model: str, goal: Optional[str] = None, skip: Optional[bool] = False) -> str:
     if goal is None:
       #input the goal
       input_goal = input("Please input your goal:\n")
-      goal = clarify.clarify_and_summarize(input_goal)
+      if not skip:
+        goal = clarify.clarify_and_summarize(input_goal)
+      else:
+        goal = input_goal
 
     try:
         logging.info("========================")
