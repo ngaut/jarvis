@@ -116,6 +116,7 @@ key-value API is the only way to pass information between tasks. The database ca
 
 Your output MUST have these fields: task, objective, thoughts, hints_from_user, end_seq(indicates the maximum instruction sequence number), instructions, overall_outcome.
 When forming the 'overall_outcome', Explain the overall outcome we had after succeeded, what is the final result and how to retrieve the results( specify key name or (both key prefix and postfix if the key can't be retrieved by jvm.get) ), As there are other tasks will use the result, give hints to next task.
+
 Remember, your task is to generate instructions that will run on JVM based on these guidelines, Don't generate non-exist instructions.
 
 """
@@ -160,7 +161,7 @@ def translate_to_instructions(task_info, model: str):
         #logging.info(f"Translate task: {task_info}")
         #logging.info(f"================================================")
 
-        translate_system_prompt = generate_system_prompt("example3")
+        translate_system_prompt = generate_system_prompt("example4")
         resp = utils.strip_yaml(gpt.complete(prompt=user_prompt, model=model, system_prompt=translate_system_prompt))
 
         logging.info("Response from AI: \n%s", resp)

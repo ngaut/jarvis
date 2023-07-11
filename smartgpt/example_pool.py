@@ -269,5 +269,90 @@ end_seq: 6
 
 overall_outcome: "The titles of the top 5 articles on Hacker News have been fetched and decisions have been made on whether to post them to a Slack channel. The messages prepared to be posted to Slack can be retrieved with keys like 'slack_message_<idx>.seq6.str'"
 ```
+""",
+    'example4': """
+### Example: An output template with RunPython and TextCompletion
+
+task: "Convert a MySQL stored procedure test case stored in a local file named 'stored-procedure.sql' into a SQL test case for the TiDB database"
+
+objective: "Read the stored procedure test case from 'stored-procedure.sql', understand the test purpose and logic, convert it into a SQL test case compatible with TiDB, and write the result to a local file named 'converted-sql-test.sql'."
+
+thoughts: "The task involves working with local files, parsing the content, making decisions based on the parsed content, executing Python code to manipulate the data, and writing to a file. This requires instructions such as 'RunPython' and 'TextCompletion'."
+
+hints_from_user: []
+
+start_seq: 1
+
+instructions:
+  - seq: 1
+    type: RunPython
+    inside_loop: false
+    objective: "Read the content of the stored procedure file"
+    rule_num: 3
+    args:
+      code: "with open('stored-procedure.sql', 'r') as f: content = f.read(); jvm.set('procedure_content.seq1.str', content)"
+      code_review: "Yes, it achieved the objective. It follows the coding standards, opening a file using a context manager ensures the file is properly closed after operations are performed."
+      pkg_dependencies: []
+
+  - seq: 2
+    type: TextCompletion
+    inside_loop: false
+    objective: "Understand the test purpose and logic of the stored procedure, propose a way to convert it into a SQL test case for TiDB"
+    rule_num: 2
+    args:
+      command: "Analyze the content and generate a conversion plan"
+      output_fmt:
+        kvs:
+          - key: 'analysis_result.seq2.str'
+            value: '<to_fill>'
+      content: "jvm.eval(jvm.get('procedure_content.seq1.str'))"
+
+  - seq: 3
+    type: TextCompletion
+    inside_loop: false
+    objective: "Generate Python code for the conversion based on the analysis result and the original content"
+    rule_num: 2
+    args:
+      command: "Generate conversion Python code, implement the convert() function and export"
+      output_fmt:
+        kvs:
+          - key: 'conversion_code.seq3.str'
+            value: '<to_fill>'
+      content: "Original stored procedure testcase:\\n```\\njvm.get('procedure_content.seq1.str')\\n```\\n\\n\\nAnalysis result:\\njvm.get('analysis_result.seq2.str')\\n"
+
+  - seq: 4
+    type: RunPython
+    inside_loop: false
+    objective: "Write the generated Python code to 'convert_sql_testcase.py' file"
+    rule_num: 3
+    args:
+      code: "conversion_code = jvm.get('conversion_code.seq2_1.str'); with open('convert_sql_testcase.py', 'w') as f: f.write(conversion_code)"
+      code_review: "Yes, it achieved the objective. It follows the coding standards, opening a file using a context manager ensures the file is properly closed after operations are performed."
+      pkg_dependencies: []
+
+  - seq: 5
+    type: RunPython
+    inside_loop: false
+    objective: "Import convert_sql_testcase function and use it to convert the stored procedure to a SQL test case based on the analysis result"
+    rule_num: 3
+    args:
+      code: "from convert_sql_testcase import convert; procedure_content = jvm.get('procedure_content.seq1.str'); converted_content = convert(procedure_content); jvm.set('converted_content.seq3.str', converted_content)"
+      code_review: "Yes, it achieved the objective. It follows the coding standards, importing a function from a Python script is a common practice."
+      pkg_dependencies: ['convert_sql_testcase']
+
+
+  - seq: 6
+    type: RunPython
+    inside_loop: false
+    objective: "Write the converted content to a local file 'converted-sql-test.sql'"
+    rule_num: 3
+    args:
+      code: "converted_content = jvm.get('converted_content.seq3.str'); with open('converted-sql-test.sql', 'w') as f: f.write(converted_content)"
+      code_review: "Yes, it achieved the objective. It follows the coding standards, opening a file using a context manager ensures the file is properly closed after operations are performed."
+      pkg_dependencies: []
+
+end_seq: 6
+
+overall_outcome: "The stored procedure test case has been successfully converted to a SQL test case compatible with TiDB and saved to a local file named 'converted-sql-test.sql'. You can find the conversion result by reading the local file 'converted-sql-test.sql'. The analysis result and the original procedure content are also stored, which can be retrieved with 'jvm.get('analysis_result.seq2.str')' and 'jvm.get('procedure_content.seq1.str')', respectively."
 """
 }
