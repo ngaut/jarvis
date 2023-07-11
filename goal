@@ -1,6 +1,1 @@
-Jarvis, I have some MySQL stored procedure cases, but TiDB doesn't support stored procedure and WHILE statement. I would like you to rewrite these cases to make them able to run TiDB database.
-
-Here are the steps you should follow, please make planning as simple and effective as possible:
-  1. Read the 'stored-procedure.sql' file which is located at your local workspace.
-  2. TiDB does not support functions such as stored procedure, UNTIL, WHILE (such as create procedure, call procedure, drop procedure, UNTIL ... END, REPEAT, WHILE ... END), use the functions supported by TiDB to implement these cases in one task using tool TextCompletion. (Please use this description as instruction command).
-  3. Write the generated cases into a new file.
+Please provide bullet point summaries for each of the top three stories currently featured on the Hacker News front page and save them to the 'bullet-point.md' file.
