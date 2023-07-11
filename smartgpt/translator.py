@@ -161,7 +161,7 @@ def translate_to_instructions(task_info, model: str):
         #logging.info(f"Translate task: {task_info}")
         #logging.info(f"================================================")
 
-        translate_system_prompt = generate_system_prompt("example4")
+        translate_system_prompt = generate_system_prompt("example3")
         resp = utils.strip_yaml(gpt.complete(prompt=user_prompt, model=model, system_prompt=translate_system_prompt))
 
         logging.info("Response from AI: \n%s", resp)
