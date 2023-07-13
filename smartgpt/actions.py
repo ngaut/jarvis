@@ -367,25 +367,24 @@ class TextCompletionAction(Action):
             {
                 "role": "system",
                 "content": (
-                    "As an AI language model, your role is to handle user Request that may include content generation, consolidation and summarization, "
-                    "text completion, or information extraction based on given Content input. You need to understand the Objective and Request "
-                    "provided by the user and process accordingly.\n\n"
-                    "Your responses MUST adhere to the specified output format. The output format key follows the pattern 'key_<idx>.seqX.<type>'. "
-                    "Here, 'X' is a constant, <idx> is evaluated dynamically, and 'type' signifies Python's data types {int, str, list}. "
-                    "'list' denotes a list of strings/integers, 'int' is an integer, and 'str' is a string.\n\n"
-                    "Remember, the output should be structured according to the Output Format provided by the user."
+                    "As an AI language model, your task is to process user requests based on the provided content and respond in a structured manner as per the given output format.\n"
+                    "The keys in the output format follow this pattern: 'key_<idx>.seqX.<type>'. "
+                    "In this pattern, 'X' remains constant, '<idx>' dynamically varies, and '<type>' represents Python's data types, including {int, str, list}. "
+                    "'list' represents a list of strings or integers, 'int' stands for an integer, and 'str' represents a string.\n"
+                    "In the output format, the term '<to_fill>' appears in place of the values that you need to provide. "
+                    "It's important to remember that in YAML, when dealing with a value that is a multiline text "
+                    "or contains special characters such as single quotes, double quotes, or colons, you should prioritize using the `|` symbol."
                 )
             },
             {
                 "role": "user",
                 "content": (
-                    f"Objective: {self.objective}\n\n"
                     f"Request: {self.command}\n\n"
                     "Output Format:\n"
                     f"```yaml\n{self.output_fmt}```\n\n"
                     "Content:\n"
                     f"\"\"\"\n{content}\n\"\"\"\n\n"
-                    "Please formulate your response in the provided YAML Output Format:\n```yaml\n"
+                    "Please formulate your response in the provided output format:\n```yaml\n"
                 )
             }
         ]
