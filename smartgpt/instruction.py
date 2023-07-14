@@ -26,6 +26,7 @@ class JVMInstruction:
         args = dict(self.instruction.get("args"))
 
         if action_type == "WebSearch":
+            args["query"] = self.eval_and_patch(args["query"])
             args["save_to"] = self.eval_and_patch(args["save_to"])
 
         if action_type == "Fetch":
@@ -66,13 +67,16 @@ class JVMInstruction:
 
     def eval_and_patch(self, text) -> str:
         if text is None:
-            return "None"
+            return ""
 
         while True:
             tmp_text = jvm.eval(text)
             if tmp_text is None:
                 break
             text = tmp_text
+
+        if "jvm." in text:
+            raise ValueError(f"Error: text still contains 'jvm.' after evaluation. text: {text}")
 
         return text
 
