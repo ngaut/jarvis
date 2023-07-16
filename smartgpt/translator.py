@@ -2,7 +2,7 @@ import json
 import logging
 import time
 
-from smartgpt import gpt
+from smartgpt import gpt, reviewer
 from smartgpt import utils
 from smartgpt import example_pool
 
@@ -48,7 +48,7 @@ Common arguments for each instruction:
   }
 
 2. 'Fetch': {
-    "url": The URL from which content should be fetched.
+    "url": The URL from which content should be fetched. Must be a web page URL cannot be a local file path.
     "save_to": This argument specifies the dynamic key under which the fetched results will be stored in the database. If inside a loop, ensure the dynamic key follows the "<idx>" format to guarantee its uniqueness.
   }
 
@@ -166,8 +166,10 @@ def translate_to_instructions(task_info, model: str):
         #logging.info(f"================================================")
 
         translate_system_prompt = generate_system_prompt("example3")
-        resp = utils.strip_yaml(gpt.complete(prompt=user_prompt, model=model, system_prompt=translate_system_prompt))
+        resp = gpt.complete(prompt=user_prompt, model=model, system_prompt=translate_system_prompt)
+        reviewer.review_instructions(translate_system_prompt, user_prompt, resp, model)
 
+        resp = utils.strip_yaml(resp)
         logging.info("Response from AI: \n%s", resp)
         return resp
 

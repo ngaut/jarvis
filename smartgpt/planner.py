@@ -3,15 +3,15 @@ import time
 import logging
 import yaml
 
-from smartgpt import gpt
+from smartgpt import gpt, reviewer
 from smartgpt import translator
 from smartgpt import clarify
 from smartgpt import utils
 
 GEN_PLAN__SYS_PROMPT = """
 As Jarvis, your role as an AI model is to generate and structure tasks for execution by an automated agent (auto-agent).
-Your job is to create the tasks, but not to execute them, which will be done by other agents.
-Each task you create should be self-contained(see description bellow), requiring no external references beyond its description.
+Your job is to create the tasks rather than execute them, which will be done by other agents.
+Each task you create should be self-contained (see description below), requiring no external references beyond its description.
 If a task needs to access data from an internal storage system (the database), the task description should specify this.
 
 
@@ -19,7 +19,7 @@ Good Self-Contained Description:
 ```
 Task: "Given a document stored in the database under the key 'document', retrieve the document's text, analyze its content, identify the key points, and generate a concise summary. Store the summary in the database under the key 'summary'."
 
-This is a good self-contained description because it:
+This is a good self-contained description because of it:
   Clearly defines the task's input: a document stored under a specific key.
   Describes the steps to be taken: retrieving the document, analyzing its content, identifying key points, and generating a summary.
   Specifies where the outcome should be stored.
@@ -29,22 +29,22 @@ Bad Self-Contained Description:
 ```
 Task: "Summarize the document."
 
-This is a poor self-contained description because it:
-  Doesn't specify where the document is located or how to access it.
-  Doesn't provide enough details about the expected summary (should it be a paragraph long? A few bullet points?).
-  Doesn't indicate where to store or how to deliver the result.
+This is a poor self-contained description because of it:
+  It doesn't specify where the document is located or how to access it.
+  It doesn't provide enough details about the expected summary (should it be a paragraph long? A few bullet points?).
+  It doesn't indicate where to store or how to deliver the result.
 ```
 
 Your responsibilities include:
 
 - Task Generation: Devise tasks that can fulfill user requests like 'fetch me the latest news on AI advancements', 'summarize a blog post on Quantum Computing', etc.
 - Task Interlinking: Create connections between tasks, allowing the output of one task to serve as the input for another.
-- Task Simplification: Break down complex tasks into more manageable subtasks. The aim is to use no more than four tools per task when possible without compromising the effectiveness of the task.
+- Task Simplification: Break down complex tasks into more manageable subtasks. The aim is to use up to four tools per task when possible without compromising the effectiveness of the task.
 - Staying Informed: Regularly update your knowledge using the most recent, reliable information available on the internet.
 
 The tools at your disposal include:
 
-- RunPython: Executes Python code but has a higher operational cost, when you need to use Python code, use this tool.
+- RunPython: Executes Python code but has a higher operational cost. When you need to use Python code, use this tool.
 - WebSearch: Conducts online searches and returns URLs that match the query.
 - Fetch: Retrieves content from a URL and picks out plain text data from HTML forms, then saves it to the database.
 - TextCompletion: Generates human-like text. When 'prompt' refers to previous outputs or data, use jvm.eval(jvm.get('key')) to reference the data explicitly.
@@ -70,7 +70,7 @@ task_list:
     tools: ["Loop", "Fetch", "TextCompletion"]
     outcome: "A list of notes highlighting the key points and features of TiDB Serverless is available."
 # Additional tasks...
-reasoning_for_each_task: ["explaining how each task leverages other tasks's outcomes"]
+reasoning_for_each_task: ["explaining how each task leverages other tasks' outcomes"]
 task_dependency:
   "2": [1]
   "3": [2]
@@ -123,9 +123,6 @@ def gen_instructions(model: str, replan: bool = False, goal: Optional[str] = Non
           with open(f"{task_num}.yaml", "w") as f:
               f.write(instrs)
 
-        if model == gpt.GPT_4:
-          time.sleep(60)
-
     return len(args['task_list'])
 
 def gen_plan(model: str, goal: Optional[str] = None) -> str:
@@ -139,17 +136,15 @@ def gen_plan(model: str, goal: Optional[str] = None) -> str:
         logging.info(f"The goal: {goal}")
 
         user_prompt = (
-            f"The goal: {goal}\n"
+            f"The goal: \"\"\"\n{goal}\n\"\"\"\n\n"
             "Please generate the task list that can finish the goal.\n"
             "Your YAML response:```yaml\n"
         )
 
-        resp = utils.strip_yaml(gpt.complete(user_prompt, model, GEN_PLAN__SYS_PROMPT))
-        tmp = yaml.safe_load(resp)
+        resp = gpt.complete(user_prompt, model, GEN_PLAN__SYS_PROMPT)
+        reviewer.review_plan(GEN_PLAN__SYS_PROMPT, user_prompt, resp, model)
 
-        if 'hints_from_user' in tmp and isinstance(tmp['hints_from_user'], list):
-            tmp['hints_from_user'].append("The user's original request: " + goal)
-        resp = yaml.safe_dump(tmp)
+        resp = utils.strip_yaml(resp)
         logging.info("Response from AI: %s", resp)
         return resp
 

@@ -6,7 +6,21 @@ from typing import Optional, List, Dict
 import openai
 import tiktoken
 
+API_TYPE = os.getenv("OPENAI_API_TYPE")
+
+# Set OpenAI or Azure API based on the OPENAI_API_TYPE
+if API_TYPE == 'azure':
+    openai.api_type = API_TYPE
+    openai.api_base = os.getenv("OPENAI_API_BASE")
+    openai.api_version = os.getenv("OPENAI_API_VERSION")
+
 openai.api_key = os.getenv("OPENAI_API_KEY")
+
+try:
+    TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", "0.7"))
+except (ValueError, TypeError):
+    TEMPERATURE = 0.7
+
 
 TOKEN_BUFFER = 50
 TOKENS_PER_MESSAGE = 3
@@ -20,15 +34,23 @@ MODELS = {
     "gpt-3.5-turbo-0613": 4096,
     "gpt-3.5-turbo-16k": 16384,
     "mpt-7b-chat": 4096,
+    "gpt-35-turbo-0613-azure": 4096,
+    "gpt-35-turbo-16k-azure": 8192,
+    "gpt-4-0613-azure": 8192,
+    "gpt-4-32k-0613-azure": 32768
 }
 
-# Default model
-GPT_4 = "gpt-4-0613"
+if API_TYPE == 'azure':
+    GPT_4 = "gpt-4-0613-azure"
+    GPT_3_5_TURBO = "gpt-35-turbo-0613-azure"
+    GPT_3_5_TURBO_16K = "gpt-35-turbo-16k-azure"
+else:
+    GPT_4 = "gpt-4-0613"
+    GPT_3_5_TURBO = "gpt-3.5-turbo-0613"
+    GPT_3_5_TURBO_16K = "gpt-3.5-turbo-16k"
 
-# Alternative model
-GPT_3_5_TURBO = "gpt-3.5-turbo-0613"
-GPT_3_5_TURBO_16K = "gpt-3.5-turbo-16k"
 GPT_LOCAL = "mpt-7b-chat"
+
 
 def get_max_tokens(model:str) -> int:
     return MODELS[model] - TOKEN_BUFFER
@@ -65,11 +87,25 @@ def send_message(messages: List[Dict[str, str]], model: str) -> str:
 
     while True:
         try:
-            response = openai.ChatCompletion.create(
-                model=model,
-                messages=messages,
-                max_tokens=max_response_tokens,
-                temperature=0.2)
+            if API_TYPE == 'azure':
+                response = openai.ChatCompletion.create(
+                    engine=model,
+                    messages=messages,
+                    max_tokens=max_response_tokens,
+                    temperature=TEMPERATURE)
+            else:
+                response = openai.ChatCompletion.create(
+                    model=model,
+                    messages=messages,
+                    max_tokens=max_response_tokens,
+                    temperature=TEMPERATURE)
+
+            logging.info(f"Call OpenAI: Model={model}, Total tokens={response.usage['total_tokens']}") # type: ignore
+
+            if model == GPT_4:
+                logging.info("Sleeping for 60 seconds in GPT-4 model")
+                time.sleep(60)
+
             return response.choices[0].message["content"] # type: ignore
 
         except openai.error.RateLimitError as rate_limit_err:  # type: ignore
@@ -100,15 +136,22 @@ def send_message(messages: List[Dict[str, str]], model: str) -> str:
 def send_message_stream(messages: List[Dict[str, str]], model: str) -> str:
     while True:
         try:
-            response = openai.ChatCompletion.create(
-                messages=messages,
-                stream=True,
-                model=model,
-                temperature=0.2)
+            if API_TYPE == 'azure':
+                response = openai.ChatCompletion.create(
+                    messages=messages,
+                    stream=True,
+                    engine=model,
+                    temperature=TEMPERATURE)
+            else:
+                response = openai.ChatCompletion.create(
+                    messages=messages,
+                    stream=True,
+                    model=model,
+                    temperature=TEMPERATURE)
 
             chat = []
             for chunk in response:
-                delta = chunk["choices"][0]["delta"]
+                delta = chunk["choices"][0]["delta"] # type: ignore
                 msg = delta.get("content", "")
                 print(msg, end="")
                 chat.append(msg)
@@ -120,7 +163,6 @@ def send_message_stream(messages: List[Dict[str, str]], model: str) -> str:
             # Handling General Exceptions
             logging.error("Unexpected Error for model %s. Error: %s", model, err)
             raise ValueError(f'OpenAI Error: {err}') from err
-
 
 def complete(prompt: str, model: str, system_prompt: Optional[str] = None) -> str:
     messages = []

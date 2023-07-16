@@ -25,6 +25,9 @@ from smartgpt.spinner import Spinner
 from smartgpt import utils
 
 
+TEXT_COMPLETION_MODEL = gpt.GPT_3_5_TURBO_16K
+#TEXT_COMPLETION_MODEL = gpt.GPT_4
+
 _CACHE = {}
 _ENABLE_CACHE = True
 
@@ -109,7 +112,7 @@ class Action(ABC):
 class FetchAction:
     action_id: int
     url: str
-    save_to: str = None  # the key that will be used to save content to database
+    save_to: str = ""  # the key that will be used to save content to database
 
     def key(self):
         return "Fetch"
@@ -341,8 +344,7 @@ class TextCompletionAction(Action):
     command: str
     content: str
     output_fmt: str
-    model_name: str = gpt.GPT_3_5_TURBO_16K
-#    model_name: str = gpt.GPT_4
+    model_name: str = TEXT_COMPLETION_MODEL
 
     def key(self) -> str:
         return "TextCompletion"
@@ -417,9 +419,6 @@ class TextCompletionAction(Action):
             if result is None:
                 raise ValueError(f"Generating text completion for `{self.command}` appears to have failed.")
             result = utils.strip_yaml(result)
-
-            if model_name == gpt.GPT_4:
-                time.sleep(30)
 
             save_to_cache(cached_key, result)
             return result
