@@ -2,7 +2,7 @@ import json
 from smartgpt import gpt
 
 
-def review_plan(system, user, response, model):
+def review_plan_gen(step, system, user, response, model):
     review_prompt = """
 Please review the prompt and your response, then answer the following questions in the provided format:
 {
@@ -24,19 +24,13 @@ Please review the prompt and your response, then answer the following questions 
     review_response = gpt.send_message(messages, model)
     messages.append({"role": "assistant", "content": review_response})
 
-    # Open the file in append mode
-    with open("gpt_review.trace", "a") as f:
-        f.write("=== Review Plan " + "="*50 + "\n")  # Separator for better readability
-
-        # Write the messages to the file in a readable format
-        for message in messages:
-            f.write(f"{message['role'].upper()}:\n")
-            f.write(message['content'] + "\n\n")
+    # write to files
+    _trace_gpt_gen(step, messages)
 
     return json.loads(review_response)
 
 
-def review_instructions(system, user, response, model):
+def review_instructions_gen(step, system, user, response, model):
     review_prompt = """
 Please review the prompt and your response, then answer the following questions in the provided format:
 {
@@ -58,13 +52,31 @@ Please review the prompt and your response, then answer the following questions 
     review_response = gpt.send_message(messages, model)
     messages.append({"role": "assistant", "content": review_response})
 
-    # Open the file in append mode
-    with open("gpt_review.trace", "a") as f:
-        f.write("=== Review Instructions " + "="*50 + "\n")  # Separator for better readability
+    # write to files
+    _trace_gpt_gen(step, messages)
 
+    return json.loads(review_response)
+
+
+def trace_gpt_gen(step, system, user, response):
+    # Construct the messages for the review request
+    messages = [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user},
+        {"role": "assistant", "content": response}
+    ]
+
+    _trace_gpt_gen(step, messages)
+
+
+def _trace_gpt_gen(step, messages):
+    # Write to file in json format
+    with open(f"review_{step}.json", "w") as f:
+        json.dump(messages, f)
+
+    # Write to file in readable format (for human review)
+    with open(f"review_{step}.txt", "w") as f:
         # Write the messages to the file in a readable format
         for message in messages:
             f.write(f"{message['role'].upper()}:\n")
             f.write(message['content'] + "\n\n")
-
-    return json.loads(review_response)

@@ -76,7 +76,6 @@ task_dependency:
   "3": [2]
 hints_from_user: ["Any additional instructions or information provided by the user, which can guide the task generation process"]
 
-
 """
 
 def gen_instructions(model: str, replan: bool = False, goal: Optional[str] = None) -> int:
@@ -105,6 +104,7 @@ def gen_instructions(model: str, replan: bool = False, goal: Optional[str] = Non
         previous_outcomes = [task_outcomes[i] for i in task_dependency.get(task_num, [])]
         instrs = translator.translate_to_instructions({
             "first_task": task_num == 1,
+            "task_num": task_num,
             "hints": args["hints_from_user"],
             "task": task['task'],
             "objective": task['objective'],
@@ -142,7 +142,7 @@ def gen_plan(model: str, goal: Optional[str] = None) -> str:
         )
 
         resp = gpt.complete(user_prompt, model, GEN_PLAN__SYS_PROMPT)
-        reviewer.review_plan(GEN_PLAN__SYS_PROMPT, user_prompt, resp, model)
+        reviewer.trace_gpt_gen("plan", GEN_PLAN__SYS_PROMPT, user_prompt, resp)
 
         resp = utils.strip_yaml(resp)
         logging.info("Response from AI: %s", resp)

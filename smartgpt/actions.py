@@ -340,8 +340,7 @@ class RunPythonAction(Action):
 @dataclass(frozen=True)
 class TextCompletionAction(Action):
     action_id: int
-    objective: str
-    command: str
+    task_description: str
     content: str
     output_fmt: str
     model_name: str = TEXT_COMPLETION_MODEL
@@ -353,7 +352,7 @@ class TextCompletionAction(Action):
         return self.action_id
 
     def short_string(self) -> str:
-        return f"action_id: {self.id()}, Text Completion for `{self.command}`."
+        return f"action_id: {self.id()}, text completion for \"{self.task_description}\"."
 
     def generate_messages(self) -> List[Dict[str, str]]:
         # Adjust content to fit within model's max tokens
@@ -369,7 +368,7 @@ class TextCompletionAction(Action):
             {
                 "role": "system",
                 "content": (
-                    "As an AI language model, your task is to process user requests based on the provided content and respond in a structured manner as per the given output format.\n"
+                    "As an AI language model, your task is to process user's task request based on the provided content and respond in a structured manner as per the given output format.\n"
                     "The keys in the output format follow this pattern: 'key_<idx>.seqX.<type>'. "
                     "In this pattern, 'X' remains constant, '<idx>' dynamically varies, and '<type>' represents Python's data types, including {int, str, list}. "
                     "'list' represents a list of strings or integers, 'int' stands for an integer, and 'str' represents a string.\n"
@@ -381,10 +380,10 @@ class TextCompletionAction(Action):
             {
                 "role": "user",
                 "content": (
-                    f"Request: {self.command}\n\n"
+                    f"Task Description: {self.task_description}\n\n"
                     "Output Format:\n"
-                    f"```yaml\n{self.output_fmt}```\n\n"
-                    "Content:\n"
+                    f"```yaml\n{self.output_fmt}\n```\n\n"
+                    "Input Content:\n"
                     f"\"\"\"\n{content}\n\"\"\"\n\n"
                     "Please formulate your response in the provided output format:\n```yaml\n"
                 )
@@ -402,13 +401,13 @@ class TextCompletionAction(Action):
         return model_name
 
     def run(self) -> str:
-        hash_key = self.command + str(jvm.get('idx'))
+        hash_key = self.task_description + str(jvm.get('idx'))
         hash_str = hashlib.md5(hash_key.encode()).hexdigest()
         cached_key = f"{hash_str}"
         cached_result = get_from_cache(cached_key)
 
         if cached_result is not None:
-            logging.info(f"TextCompletionAction RESULT(cached) for command \"{self.command}\"\n")
+            logging.info(f"TextCompletionAction RESULT(cached) for task description: {self.task_description}")
             return cached_result
 
         messages = self.generate_messages()
@@ -417,7 +416,7 @@ class TextCompletionAction(Action):
         try:
             result = gpt.send_message(messages, model_name)
             if result is None:
-                raise ValueError(f"Generating text completion for `{self.command}` appears to have failed.")
+                raise ValueError(f"Generating text completion appears to have failed.")
             result = utils.strip_yaml(result)
 
             save_to_cache(cached_key, result)

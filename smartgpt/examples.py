@@ -41,7 +41,7 @@ instructions:
     objective: "Get the current temperature in San Francisco from the fetched content"
     rule_num: 3
     args:
-      command: "Get the current temperature and url in San Francisco"
+      task_description: "Get the current temperature and url in San Francisco"
       output_fmt:
         kvs:
           - key: "temperature.seq3.int"  # without <idx> as not inside a loop
@@ -64,7 +64,7 @@ instructions:
         objective: "Generate outdoor activities suggestions"
         rule_num: 3
         args:
-          command: "What outdoor activities should we recommend to the users? Please generate a weather notes"
+          task_description: "What outdoor activities should we recommend to the users? Please generate a weather notes"
           output_fmt:
             kvs:
               - key: "weather_notes.seq5.str"
@@ -77,7 +77,7 @@ instructions:
         objective: "Generate indoor activities suggestions"
         rule_num: 3
         args:
-          command: "What indoor activities should we recommend to the users? Please generate a weather notes"
+          task_description: "What indoor activities should we recommend to the users? Please generate a weather notes"
           output_fmt:
             kvs:
               - key: "weather_notes.seq6.str"
@@ -90,7 +90,7 @@ instructions:
     objective: "Generate a complete weather report for San Francisco using the gathered information"
     rule_num: 3
     args:
-      command: "Please generate current weather report for San Francisco"
+      task_description: "Please generate current weather report for San Francisco"
       output_fmt:
         kvs:
           - key: "weather_report.seq7.str"
@@ -113,6 +113,7 @@ end_seq: 8
 
 overall_outcome: "The current weather report for San Francisco stored, it can be retrieved by jvm.eval(jvm.get('WeatherReport.seq7.str')) or file weather_report.txt, the report includes the source url of weather data, notes on suggestions from AI"
 ```
+
 """,
     'example2': """
 ### Example: An output template with Loop instruction structure
@@ -162,7 +163,7 @@ instructions:
           objective: "Extract and summarize the key information from the fetched news content"
           rule_num: 3
           args:
-            command: "Extract and summarize the key points from the AI news"
+            task_description: "Extract and summarize the key points from the AI news"
             output_fmt:
               kvs:
                 - key: "jvm.eval('news_summary_' + str(jvm.get('idx')) + '.seq4.str')"  # with <idx> as inside a loop
@@ -175,7 +176,7 @@ instructions:
     objective: "Generate the blog content using the summarized news"
     rule_num: 4  # Use TextCompletion instead of Loop when combining a list of multiple news summaries into a single blog post.
     args:
-      command: "Structure the blog post using the summaries of the news"
+      task_description: "Structure the blog post using the summaries of the news"
       output_fmt:
         kvs:
           - key: "blog_content.seq5.str"
@@ -186,6 +187,7 @@ end_seq: 5
 
 overall_outcome: "A blog post summarizing the latest AI news has been created, it can be retrieved by jvm.eval(jvm.get('blog_content.seq5.str'))"
 ```
+
 """,
     'example3': """
 ### Example: An output template with Loop and If structure
@@ -235,7 +237,7 @@ instructions:
           objective: "Decide if the article is relevant to AI"
           rule_num: 3
           args:
-            command: "Determine if the article is about AI"
+            task_description: "Determine if the article is about AI"
             output_fmt:
               kvs:
                 - key: "jvm.eval('is_relevant_' + str(jvm.get('idx')) + '.seq4.bool')"
@@ -256,7 +258,7 @@ instructions:
                 objective: "Prepare the message to be posted to Slack"
                 rule_num: 3
                 args:
-                  command: "Generate the message to be posted to Slack"
+                  task_description: "Generate the message to be posted to Slack"
                   output_fmt:
                     kvs:
                       - key: "jvm.eval('slack_message_' + str(jvm.get('idx')) + '.seq6.str')"
@@ -268,5 +270,6 @@ end_seq: 6
 
 overall_outcome: "The titles of the top 5 articles on Hacker News have been fetched and decisions have been made on whether to post them to a Slack channel. The messages prepared to be posted to Slack can be retrieved with keys like 'slack_message_<idx>.seq6.str'"
 ```
+
 """
 }

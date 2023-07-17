@@ -44,7 +44,7 @@ class JVMInstruction:
                 args["timeout"] = 30
 
         if action_type == "TextCompletion":
-            args["command"] = self.eval_and_patch(args.get("command"))
+            args["task_description"] = self.eval_and_patch(args.get("task_description"))
             args["content"] = self.eval_and_patch(args.get("content"))
             args["output_fmt"] = self.eval_and_patch(yaml.safe_dump(args.get("output_fmt")))
             args["objective"] = objective
@@ -173,8 +173,7 @@ class JVMInterpreter:
 
         evaluation_action = actions.TextCompletionAction(
             action_id = -1,
-            objective="Evaluate true and false based on input content",
-            command = "Is that true or false?",
+            task_description="Evaluate true or false based on input content",
             content = condition,
             output_fmt = yaml.safe_dump(output_fmt))
 

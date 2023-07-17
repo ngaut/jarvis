@@ -4,7 +4,7 @@ import time
 
 from smartgpt import gpt, reviewer
 from smartgpt import utils
-from smartgpt import example_pool
+from smartgpt import examples
 
 def generate_system_prompt(example_key: str) -> str:
     system_prompt = """
@@ -24,9 +24,9 @@ Dynamic keys are particularly useful in loop structures, where data is iterative
 
 - 'WebSearch': Returns a list of URLs from a web search engine based on the provided query.
 
-- 'Fetch': Fetches the content of a specified URL, and picking out plain text data from HTML forms.
+- 'Fetch': Fetches the content of a specified URL, specifically designed for web pages, and extracts plain text from HTML forms. Please note that Fetch DOES NOT support reading the contents of local files. If needed, consider using the 'RunPython'.
 
-- 'TextCompletion': Leverages AI to generate content, complete text, or extract information from provided text interactively and user-friendly. It can also efficiently combine multiple pieces of inputs into a unified whole and produce concise summaries.
+- 'TextCompletion': Leverages the AI's capabilities to generate content, complete text, translate code, consolidate content, create summary, or extract information from provided text in an interactive and user-friendly manner.
 
 ### Advanced Instructions:
 
@@ -48,14 +48,14 @@ Common arguments for each instruction:
   }
 
 2. 'Fetch': {
-    "url": The URL from which content should be fetched. Must be a web page URL cannot be a local file path.
+    "url": The URL from which content should be fetched. This URL must be a web page URL, local file paths or non-web URLs are not supported.
     "save_to": This argument specifies the dynamic key under which the fetched results will be stored in the database. If inside a loop, ensure the dynamic key follows the "<idx>" format to guarantee its uniqueness.
   }
 
 3. 'TextCompletion': {
-    "command": This string defines the desired action.
-    "output_fmt": The output_fmt must be described what to save by using the YAML template: {'kvs': [{'key': 'key_name.seqX.<type>', 'value': '<to_fill>'}]}, and use dynamic key with <idx> if inside a loop, template like: {'kvs': [{'key': 'key_name_<idx>.seqX.<type>', 'value': '<to_fill>'}]}.
-    "content": This is the content awaiting text completion processing. The format looks like "jvm.eval(jvm.get('key_name'))", which will be inputted into the AI.
+    "task_description": A narrative that describes the task at hand in a comprehensive way. It includes the context of the task (e.g., information about the input data), the objective of the task (e.g., what needs to be done with the input data), and other requirements for the output.
+    "output_fmt": The output_fmt must be described what to save by using the json template: {'kvs': [{'key': '<key_name>.seqX.<type>', 'value': '<to_fill>'}, ...]}, and use dynamic key with <idx> if inside a loop, e.g. {'kvs': [{'key': '<key_name>_<idx>.seqX.<type>', 'value': '<to_fill>'}, ...]}.
+    "content": This is the content to be processed. It's the raw input that the AI will work on.
   }
 
 4. 'If': {
@@ -121,7 +121,7 @@ Remember, your task is to generate instructions that will run on JVM based on th
 
 """
 
-    example = example_pool.get_example(example_key)
+    example = examples.get_example(example_key)
     system_prompt += example
     return system_prompt
 
@@ -167,7 +167,7 @@ def translate_to_instructions(task_info, model: str):
 
         translate_system_prompt = generate_system_prompt("example3")
         resp = gpt.complete(prompt=user_prompt, model=model, system_prompt=translate_system_prompt)
-        reviewer.review_instructions(translate_system_prompt, user_prompt, resp, model)
+        reviewer.trace_gpt_gen(f"task_{task_info['task_num']}", translate_system_prompt, user_prompt, resp)
 
         resp = utils.strip_yaml(resp)
         logging.info("Response from AI: \n%s", resp)
