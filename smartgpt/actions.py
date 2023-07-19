@@ -342,7 +342,7 @@ class TextCompletionAction(Action):
     action_id: int
     task_description: str
     content: str
-    output_fmt: str
+    output_format: str
     model_name: str = TEXT_COMPLETION_MODEL
 
     def key(self) -> str:
@@ -382,7 +382,7 @@ class TextCompletionAction(Action):
                 "content": (
                     f"Task Description: {self.task_description}\n\n"
                     "Output Format:\n"
-                    f"```yaml\n{self.output_fmt}\n```\n\n"
+                    f"```yaml\n{self.output_format}\n```\n\n"
                     "Input Content:\n"
                     f"\"\"\"\n{content}\n\"\"\"\n\n"
                     "Please formulate your response in the provided output format:\n```yaml\n"

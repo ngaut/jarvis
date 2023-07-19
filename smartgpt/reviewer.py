@@ -71,8 +71,10 @@ def trace_gpt_gen(step, system, user, response):
 
 def _trace_gpt_gen(step, messages):
     # Write to file in json format
+    """
     with open(f"review_{step}.json", "w") as f:
         json.dump(messages, f)
+    """
 
     # Write to file in readable format (for human review)
     with open(f"review_{step}.txt", "w") as f:

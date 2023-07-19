@@ -42,7 +42,7 @@ instructions:
     rule_num: 3
     args:
       task_description: "Get the current temperature and url in San Francisco"
-      output_fmt:
+      output_format:
         kvs:
           - key: "temperature.seq3.int"  # without <idx> as not inside a loop
             value: "<to_fill>"
@@ -65,7 +65,7 @@ instructions:
         rule_num: 3
         args:
           task_description: "What outdoor activities should we recommend to the users? Please generate a weather notes"
-          output_fmt:
+          output_format:
             kvs:
               - key: "weather_notes.seq5.str"
                 value: "<to_fill>"
@@ -78,7 +78,7 @@ instructions:
         rule_num: 3
         args:
           task_description: "What indoor activities should we recommend to the users? Please generate a weather notes"
-          output_fmt:
+          output_format:
             kvs:
               - key: "weather_notes.seq6.str"
                 value: "<to_fill>"
@@ -91,7 +91,7 @@ instructions:
     rule_num: 3
     args:
       task_description: "Please generate current weather report for San Francisco"
-      output_fmt:
+      output_format:
         kvs:
           - key: "weather_report.seq7.str"
             value: "<to_fill>"
@@ -164,7 +164,7 @@ instructions:
           rule_num: 3
           args:
             task_description: "Extract and summarize the key points from the AI news"
-            output_fmt:
+            output_format:
               kvs:
                 - key: "jvm.eval('news_summary_' + str(jvm.get('idx')) + '.seq4.str')"  # with <idx> as inside a loop
                   value: "<to_fill>"
@@ -177,7 +177,7 @@ instructions:
     rule_num: 4  # Use TextCompletion instead of Loop when combining a list of multiple news summaries into a single blog post.
     args:
       task_description: "Structure the blog post using the summaries of the news"
-      output_fmt:
+      output_format:
         kvs:
           - key: "blog_content.seq5.str"
             value: "<to_fill>"
@@ -238,7 +238,7 @@ instructions:
           rule_num: 3
           args:
             task_description: "Determine if the article is about AI"
-            output_fmt:
+            output_format:
               kvs:
                 - key: "jvm.eval('is_relevant_' + str(jvm.get('idx')) + '.seq4.bool')"
                   value: "<to_fill>"
@@ -259,7 +259,7 @@ instructions:
                 rule_num: 3
                 args:
                   task_description: "Generate the message to be posted to Slack"
-                  output_fmt:
+                  output_format:
                     kvs:
                       - key: "jvm.eval('slack_message_' + str(jvm.get('idx')) + '.seq6.str')"
                         value: "<to_fill>"

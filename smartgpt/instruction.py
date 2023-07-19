@@ -46,7 +46,7 @@ class JVMInstruction:
         if action_type == "TextCompletion":
             args["task_description"] = self.eval_and_patch(args.get("task_description"))
             args["content"] = self.eval_and_patch(args.get("content"))
-            args["output_fmt"] = self.eval_and_patch(yaml.safe_dump(args.get("output_fmt")))
+            args["output_format"] = self.eval_and_patch(yaml.safe_dump(args.get("output_format")))
             args["objective"] = objective
 
         action_data = { "type": action_type, "action_id": action_id }
@@ -175,7 +175,7 @@ class JVMInterpreter:
             action_id = -1,
             task_description="Evaluate true or false based on input content",
             content = condition,
-            output_fmt = yaml.safe_dump(output_fmt))
+            output_format = yaml.safe_dump(output_fmt))
 
         try:
             evaluation_result = evaluation_action.run()

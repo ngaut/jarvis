@@ -54,7 +54,7 @@ Common arguments for each instruction:
 
 3. 'TextCompletion': {
     "task_description": A narrative that describes the task at hand in a comprehensive way. It includes the context of the task (e.g., information about the input data), the objective of the task (e.g., what needs to be done with the input data), and other requirements for the output.
-    "output_fmt": The output_fmt must be described what to save by using the json template: {'kvs': [{'key': '<key_name>.seqX.<type>', 'value': '<to_fill>'}, ...]}, and use dynamic key with <idx> if inside a loop, e.g. {'kvs': [{'key': '<key_name>_<idx>.seqX.<type>', 'value': '<to_fill>'}, ...]}.
+    "output_format": The output_format must be described what to save by using the json template: {'kvs': [{'key': '<key_name>.seqX.<type>', 'value': '<to_fill>'}, ...]}, and use dynamic key with <idx> if inside a loop, e.g. {'kvs': [{'key': '<key_name>_<idx>.seqX.<type>', 'value': '<to_fill>'}, ...]}.
     "content": This is the content to be processed. It's the raw input that the AI will work on.
   }
 
@@ -80,7 +80,7 @@ Common arguments for each instruction:
     - Avoid placeholder code.
     - Avoid use f-strings.
 
-Everything inside output_fmt argument of a instruction will be evaluated and persist to database. No further persist/save action is required.
+Everything inside output_format argument of a instruction will be evaluated and persist to database. No further persist/save action is required.
 
 
 ## instruction_selection_rules

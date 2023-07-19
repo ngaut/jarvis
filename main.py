@@ -51,7 +51,7 @@ if __name__ == "__main__":
     args.replan = args.replan or assistant_config.get('replan', False)
     args.goalfile = args.goalfile or assistant_config.get('goalfile', '')
 
-    goal = ''
+    goal = ""
     if args.goalfile:
         with open(args.goalfile, 'r') as f:
             goal = f.read()
