@@ -2,11 +2,47 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "main",
+            "name": "Python: Run Yaml",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/jarvis/main.py",
-            "args": ["--verbose"],
+            "program": "${workspaceFolder}/main.py",
+            "args": ["--continuous", "--verbose", "--timeout", "3", "--config", "./config.yaml", "--startseq", "0", "--yaml", "4.yaml"],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Python: Run Replan",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.py",
+            "args": ["--continuous", "--verbose", "--timeout", "3", "--config", "./config.yaml", "--startseq", "0", "--replan"],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Python: Run Replan with Goalfile",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.py",
+            "args": ["--continuous", "--verbose", "--timeout", "3", "--config", "./config.yaml", "--startseq", "0", "--replan", "--goalfile=goal"],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Python: Run Gen Task",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.py",
+            "args": ["--continuous", "--verbose", "--timeout", "3", "--config", "./config.yaml", "--startseq", "0"],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Python: Run babyagi",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/babyagi.py",
+            "args": [],
             "console": "integratedTerminal",
             "justMyCode": true
         }
