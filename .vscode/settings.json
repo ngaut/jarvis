@@ -1,17 +1,15 @@
 {
-    "python.analysis.typeCheckingMode": "basic",
     "python.linting.pylintArgs": ["--rcfile=${workspaceFolder}/.pylintrc"],
-    "python.linting.pylintEnabled": false,
+    "python.linting.pylintEnabled": true,
     "python.linting.enabled": true,
     "prettier.tabWidth": 4,
     "prettier.printWidth": 200,
-    "[python]": {
-        "editor.defaultFormatter": "ms-python.python"
-    },
-    "python.formatting.provider": "none",
+    "python.formatting.provider": "autopep8",
+    "python.analysis.typeCheckingMode": "basic",
     "python.analysis.extraPaths": [
         "./jarvis"
     ],
-    "sqltools.useNodeRuntime": true,
-    "sqltools.connections": []
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.python"
+    }
 }
