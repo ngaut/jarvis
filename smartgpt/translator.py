@@ -1,10 +1,13 @@
 import json
 import logging
 import time
+from typing import Dict, Any
+import yaml
 
 from smartgpt import gpt, reviewer
 from smartgpt import utils
 from smartgpt import examples
+
 
 def generate_system_prompt(example_key: str) -> str:
     system_prompt = """
@@ -125,21 +128,21 @@ Remember, your task is to generate instructions that will run on JVM based on th
     system_prompt += example
     return system_prompt
 
-def translate_to_instructions(task_info, model: str):
-    hints = ""
 
+def translate_to_instructions(task_info, model: str) -> str:
+    hints = ""
     if task_info["first_task"]:
         hints += "  - \"This is the first task, so there are no previous tasks or outcomes.\"\n"
     else:
-      previous_outcomes = task_info.get("previous_outcomes", [])
-      for item in previous_outcomes:
-          tmp = {
+        previous_outcomes = task_info.get("previous_outcomes", [])
+        for item in previous_outcomes:
+            tmp = {
               f"Previous done task {item['task_num']}": {
                     "task": item["task"],
                     "outcome": item["outcome"],
               }
-          }
-          hints += f"  - {json.dumps(tmp)}\n"
+            }
+            hints += f"  - {json.dumps(tmp)}\n"
 
     for item in task_info.get("hints", []):
         hints += f"  - {json.dumps(item)}\n"
@@ -176,3 +179,11 @@ def translate_to_instructions(task_info, model: str):
     except Exception as err:
         logging.error("Error in main: %s", err)
         time.sleep(1)
+
+
+class Translator:
+    def __init__(self, model):
+        self.model = model
+
+    def translate(self, task_info: Dict[str, Any]):
+        return translate_to_instructions(task_info, model=self.model)
