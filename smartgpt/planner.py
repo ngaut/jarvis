@@ -1,11 +1,11 @@
-from typing import Optional
 import time
 import logging
-import yaml
 from collections import defaultdict, deque
+from typing import Dict
+
+import yaml
 
 from smartgpt import gpt, reviewer
-from smartgpt import translator
 from smartgpt import clarify
 from smartgpt import utils
 
@@ -80,58 +80,7 @@ hints_from_user: ["Any additional instructions or information provided by the us
 
 """
 
-
-def gen_instructions(model: str, replan: bool = False, goal: Optional[str] = None) -> int:
-    if replan:
-        logging.info("Replanning...")
-        plan = gen_plan(model, goal)
-        plan = sort_plan(plan)
-        with open("plan.yaml", "w") as f:
-            f.write(plan)
-        return 0
-
-    with open("plan.yaml", 'r') as file:
-        args = yaml.safe_load(file)
-        logging.debug(f"Loaded plan: {args}")
-
-    args.pop("reasoning_for_each_task", None)
-
-    # Prepare task dependencies
-    task_dependency = {int(k): [int(i) for i in v] for k, v in args.pop("task_dependency", {}).items()}
-    task_outcomes = {}
-
-    # Filter and translate tasks
-    args['task_list'] = [{k: v for k, v in task.items() if k in ['task_num', 'task', 'objective', 'outcome']} for task in args['task_list']]
-    start_seq = 1
-    for task in args['task_list']:
-        task_num = task['task_num']
-        previous_outcomes = [task_outcomes[i] for i in task_dependency.get(task_num, [])]
-        instrs = translator.translate_to_instructions({
-            "first_task": task_num == 1,
-            "task_num": task_num,
-            "hints": args["hints_from_user"],
-            "task": task['task'],
-            "objective": task['objective'],
-            "start_seq": start_seq,
-            "previous_outcomes": previous_outcomes
-        }, model=model)
-
-        if instrs is not None:
-            tmp = yaml.safe_load(instrs)
-            start_seq = int(tmp['end_seq']) + 1
-            task_outcomes[task_num] = {
-                "task_num": task_num,
-                "task": tmp['task'],
-                "outcome": tmp['overall_outcome'],
-            }
-
-            with open(f"{task_num}.yaml", "w") as f:
-                f.write(instrs)
-
-    return len(args['task_list'])
-
-
-def gen_plan(model: str, goal: Optional[str] = None) -> str:
+def gen_plan(model: str, goal: str) -> Dict:
     if not goal:
         # input the goal
         input_goal = input("Please input your goal:\n")
@@ -149,10 +98,12 @@ def gen_plan(model: str, goal: Optional[str] = None) -> str:
 
         resp = gpt.complete(user_prompt, model, GEN_PLAN__SYS_PROMPT)
         reviewer.trace_gpt_gen("plan", GEN_PLAN__SYS_PROMPT, user_prompt, resp)
+        resp = sort_plan(utils.strip_yaml(resp))
 
-        resp = utils.strip_yaml(resp)
-        logging.info("Response from AI: %s", resp)
-        return resp
+        with open("plan.yaml", "w") as stream:
+            stream.write(resp)
+
+        return yaml.safe_load(resp)
 
     except Exception as err:
         logging.error("Error in main: %s", err)
@@ -214,8 +165,6 @@ def sort_plan(plan_yaml_str: str) -> str:
 
     # Update task IDs in the task dependency list
     new_task_dependency = {str(id_map[int(task_id)]): [id_map[dep] for dep in deps] for task_id, deps in graph.items()}
-
-    # Update the original plan
     plan['task_dependency'] = new_task_dependency
 
     # Dump the updated plan back to YAML

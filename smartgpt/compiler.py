@@ -1,24 +1,21 @@
-import logging
+from typing import Dict, List
 import yaml
 
-from smartgpt import translator
+from smartgpt.translator import Translator
 
 
 class Compiler:
     def __init__(self, model: str):
-        self.translator = translator.Translator(model)
+        self.translator = Translator(model)
 
-    def compile_plan(self):
+    def compile_plan(self) -> List[Dict]:
         with open('plan.yaml', 'r') as stream:
-            try:
-                plan = yaml.safe_load(stream)
-            except yaml.YAMLError as err:
-                logging.error(f"Error loading plan file: {err}")
-                raise
+            plan = yaml.safe_load(stream)
 
         task_list = plan.get("task_list", [])
         task_dependency = plan.get("task_dependency", {})
         task_outcomes = {}
+        result = []
 
         for task in task_list:
             num = task['task_num']
@@ -37,19 +34,22 @@ class Compiler:
 
             instructions_yaml_str = self.translator.translate(task_info)
 
+            # Save the current task outcomes
             tmp = yaml.safe_load(instructions_yaml_str)
+            result.append(tmp)
             task_outcomes[num] = {
                 "task_num": num,
                 "task": tmp['task'],
                 "outcome": tmp['overall_outcome'],
             }
 
-            with open(f"{num}.yaml", "w") as f:
-                f.write(instructions_yaml_str)
+            with open(f"{num}.yaml", "w") as stream:
+                stream.write(instructions_yaml_str)
+
+        return result
 
     def compile_task(self, task_num):
         pass
 
     def compile_instruction(self, task_num, inst_seq):
         pass
-

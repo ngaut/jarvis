@@ -11,6 +11,7 @@ from smartgpt import planner
 from smartgpt import gpt
 from smartgpt import jvm
 from smartgpt import instruction
+from smartgpt.compiler import Compiler
 
 
 BASE_MODEL = gpt.GPT_4
@@ -51,11 +52,6 @@ if __name__ == "__main__":
     args.replan = args.replan or assistant_config.get('replan', False)
     args.goalfile = args.goalfile or assistant_config.get('goalfile', '')
 
-    goal = ""
-    if args.goalfile:
-        with open(args.goalfile, 'r') as f:
-            goal = f.read()
-
     os.makedirs("workspace", exist_ok=True)
     os.chdir("workspace")
 
@@ -65,24 +61,34 @@ if __name__ == "__main__":
     # If a YAML file path is provided, load the plan_with_instrs from the YAML file, otherwise generate a new plan_with_instrs
     if args.yaml:
         # Load the plan_with_instrs from the YAML file
-        with open(args.yaml, 'r') as f:
-            plan_with_instrs = yaml.safe_load(f)
+        with open(args.yaml, 'r') as stream:
+            plan_with_instrs = yaml.safe_load(stream)
+
+        logging.info(f"plan_with_instrs: {plan_with_instrs['instructions']}")
+
+        # Make sure start_seq is within bounds
+        start_seq = args.startseq
+        if start_seq < 0 or start_seq >= len(plan_with_instrs["instructions"]):
+            print(f"Invalid start sequence number: {start_seq}")
+            exit(1)
+
+        # Run the instructions starting from start_seq
+        logging.info(f"Running instructions from  {plan_with_instrs['instructions'][start_seq]}\n")
+        interpreter = instruction.JVMInterpreter()
+        interpreter.run(plan_with_instrs["instructions"][start_seq:], task=plan_with_instrs["task"])
+
     else:
-        # Generate a new plan
-        planner.gen_instructions(BASE_MODEL, replan=args.replan, goal=goal)
-        exit(0)
+        if args.replan:
+            # Generate a new plan
+            logging.info("Replanning...")
 
-    # Find the starting sequence number
-    start_seq = args.startseq
-    logging.info(f"plan_with_instrs: {plan_with_instrs['instructions']}")
+            if args.goalfile:
+                with open(args.goalfile, 'r') as stream:
+                    goal = stream.read()
+            else:
+                goal = ""
 
-    # Make sure start_seq is within bounds
-    if start_seq < 0 or start_seq >= len(plan_with_instrs["instructions"]):
-        print(f"Invalid start sequence number: {start_seq}")
-        exit(1)
+            planner.gen_plan(BASE_MODEL, goal)
 
-    # Run the instructions starting from start_seq
-    logging.info(f"Running instructions from  {plan_with_instrs['instructions'][start_seq]}\n")
-
-    interpreter = instruction.JVMInterpreter()
-    interpreter.run(plan_with_instrs["instructions"][start_seq:], task=plan_with_instrs["task"])
+        else:
+            Compiler(BASE_MODEL).compile_plan()

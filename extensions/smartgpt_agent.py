@@ -1,19 +1,16 @@
 import glob
 import json
 import shutil
-import sys
 import os
-import re
 import uuid
 import logging
-
-import yaml
 
 from smartgpt import actions
 from smartgpt import planner
 from smartgpt import instruction
 from smartgpt import jvm
 from smartgpt import gpt
+from smartgpt.compiler import Compiler
 
 BASE_MODEL = gpt.GPT_3_5_TURBO_16K
 
@@ -73,21 +70,17 @@ def call_smartgpt_exec(goal: str) -> str:
     goal = f"{goal}, the overall outcome should be written into a file named 'smartgpt.out'."
 
     # Generate a new plan
-    planner.gen_instructions(model=BASE_MODEL, replan=True, goal=goal)
+    planner.gen_plan(BASE_MODEL, goal)
 
     # Generate new tasks from plan.yaml: (1.yaml, 2.yaml, ...)
-    task_count = planner.gen_instructions(BASE_MODEL, replan=False)
+    tasks = Compiler(BASE_MODEL).compile_plan()
 
-    for i in range(task_count):
-        # Load the plan_with_instrs from the task YAML file
-        with open(f"{i + 1}.yaml", 'r') as f:
-            plan_with_instrs = yaml.safe_load(f)
-
+    for task in tasks:
         # Execute the task
         interpreter = instruction.JVMInterpreter()
-        interpreter.run(plan_with_instrs["instructions"], task=plan_with_instrs["task"])
+        interpreter.run(task["instructions"], task["task"])
 
-    # todo: extract the final Outcome from the kv store
+    # Todo: extract the final Outcome from the kv store
     result = "smartgpt task run failed."
     if os.path.exists("smartgpt.out"):
         with open("smartgpt.out", 'r') as f:
