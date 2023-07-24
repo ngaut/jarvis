@@ -61,8 +61,8 @@ if __name__ == "__main__":
     # If a YAML file path is provided, load the plan_with_instrs from the YAML file, otherwise generate a new plan_with_instrs
     if args.yaml:
         # Load the plan_with_instrs from the YAML file
-        with open(args.yaml, 'r') as stream:
-            plan_with_instrs = yaml.safe_load(stream)
+        with open(args.yaml, 'r') as f:
+            plan_with_instrs = yaml.safe_load(f)
 
         logging.info(f"plan_with_instrs: {plan_with_instrs['instructions']}")
 
@@ -83,8 +83,8 @@ if __name__ == "__main__":
             logging.info("Replanning...")
             goal = ''
             if args.goalfile:
-                with open(args.goalfile, 'r') as stream:
-                    goal = stream.read()
+                with open(args.goalfile, 'r') as f:
+                    goal = f.read()
             planner.gen_plan(BASE_MODEL, goal)
         else:
             c = Compiler(BASE_MODEL)

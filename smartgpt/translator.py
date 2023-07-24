@@ -1,7 +1,6 @@
 import json
 import logging
-from typing import List, Dict, Any
-from copy import deepcopy
+from typing import Dict, Any
 
 from smartgpt import gpt
 from smartgpt import utils
@@ -13,6 +12,7 @@ class Translator:
     def __init__(self, model):
         self.model = model
         self.messages = []
+        self.task_info = {}
 
     def generate_system_prompt(self, example: str) -> str:
         few_shot = examples.get_example(example)
@@ -164,7 +164,7 @@ Remember, your task is to generate instructions that will run on JVM based on th
 
         user_prompt += "Please provide your response in YAML format:\n```yaml\n"
 
-        logging.info(f"user prompt:\n{user_prompt}")
+        logging.info(f"User Prompt:\n{user_prompt}")
 
         #logging.info(f"================================================")
         #logging.info(f"Translate task: {task_info}")
@@ -172,14 +172,16 @@ Remember, your task is to generate instructions that will run on JVM based on th
 
         system_prompt = self.generate_system_prompt(FEW_SHOT_EXAMPLE)
         resp = gpt.complete(prompt=user_prompt, model=self.model, system_prompt=system_prompt)
-        self.trace_llm_completion(system_prompt, user_prompt, resp)
+        self.trace_llm_completion(system_prompt, user_prompt, resp, task_info)
 
         resp = utils.strip_yaml(resp)
-        logging.info("Response from AI: \n%s", resp)
+        logging.info(f"LLM Response: \n{resp}")
         return resp
 
-    def trace_llm_completion(self, system_prompt, user_prompt, response):
+    def trace_llm_completion(self, system_prompt: str, user_prompt: str, response: str, task_info: Dict[str, Any]):
         self.messages = []
         self.messages.append({"role": "system", "content": system_prompt})
         self.messages.append({"role": "user", "content": user_prompt})
         self.messages.append({"role": "assistant", "content": response})
+
+        self.task_info = task_info
