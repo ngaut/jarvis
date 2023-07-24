@@ -1,16 +1,23 @@
 import json
 import logging
-import time
-from typing import Dict, Any
-import yaml
+from typing import List, Dict, Any
+from copy import deepcopy
 
-from smartgpt import gpt, reviewer
+from smartgpt import gpt
 from smartgpt import utils
 from smartgpt import examples
 
+FEW_SHOT_EXAMPLE = "example3"
 
-def generate_system_prompt(example_key: str) -> str:
-    system_prompt = """
+class Translator:
+    def __init__(self, model):
+        self.model = model
+        self.messages = []
+
+    def generate_system_prompt(self, example: str) -> str:
+        few_shot = examples.get_example(example)
+
+        system_prompt = """
 # As Jarvis, an AI model with the role of translating task into JVM(AKA Jarvis virtual machine)'s instructions.
 You will fully leverage user's hints(if any), reuse them to generate instructions efficiently.
 
@@ -121,33 +128,28 @@ Your output MUST have these fields: task, objective, thoughts, hints_from_user, 
 When forming the 'overall_outcome', Explain the overall outcome we had after succeeded, what is the final result and how to retrieve the results( specify key name or (both key prefix and postfix if the key can't be retrieved by jvm.get) ), As there are other tasks will use the result, give hints to next task.
 
 Remember, your task is to generate instructions that will run on JVM based on these guidelines, Don't generate non-exist instructions.
-
 """
-
-    example = examples.get_example(example_key)
-    system_prompt += example
-    return system_prompt
+        return system_prompt + few_shot
 
 
-def translate_to_instructions(task_info, model: str) -> str:
-    hints = ""
-    if task_info["first_task"]:
-        hints += "  - \"This is the first task, so there are no previous tasks or outcomes.\"\n"
-    else:
-        previous_outcomes = task_info.get("previous_outcomes", [])
-        for item in previous_outcomes:
-            tmp = {
-              f"Previous done task {item['task_num']}": {
-                    "task": item["task"],
-                    "outcome": item["outcome"],
-              }
-            }
-            hints += f"  - {json.dumps(tmp)}\n"
+    def translate_to_instructions(self, task_info: Dict[str, Any]):
+        hints = ""
+        if task_info["first_task"]:
+            hints += "  - \"This is the first task, so there are no previous tasks or outcomes.\"\n"
+        else:
+            previous_outcomes = task_info.get("previous_outcomes", [])
+            for item in previous_outcomes:
+                tmp = {
+                    f"Previous done task {item['task_num']}": {
+                        "task": item["task"],
+                        "outcome": item["outcome"],
+                    }
+                }
+                hints += f"  - {json.dumps(tmp)}\n"
 
-    for item in task_info.get("hints", []):
-        hints += f"  - {json.dumps(item)}\n"
+        for item in task_info.get("hints", []):
+            hints += f"  - {json.dumps(item)}\n"
 
-    try:
         user_prompt = (
             f"The current task: {json.dumps(task_info['task'])}\n"
             f"The objective of current task: {json.dumps(task_info['objective'])}\n"
@@ -168,22 +170,16 @@ def translate_to_instructions(task_info, model: str) -> str:
         #logging.info(f"Translate task: {task_info}")
         #logging.info(f"================================================")
 
-        translate_system_prompt = generate_system_prompt("example3")
-        resp = gpt.complete(prompt=user_prompt, model=model, system_prompt=translate_system_prompt)
-        reviewer.trace_gpt_gen(f"task_{task_info['task_num']}", translate_system_prompt, user_prompt, resp)
+        system_prompt = self.generate_system_prompt(FEW_SHOT_EXAMPLE)
+        resp = gpt.complete(prompt=user_prompt, model=self.model, system_prompt=system_prompt)
+        self.trace_llm_completion(system_prompt, user_prompt, resp)
 
         resp = utils.strip_yaml(resp)
         logging.info("Response from AI: \n%s", resp)
         return resp
 
-    except Exception as err:
-        logging.error("Error in main: %s", err)
-        time.sleep(1)
-
-
-class Translator:
-    def __init__(self, model):
-        self.model = model
-
-    def translate(self, task_info: Dict[str, Any]):
-        return translate_to_instructions(task_info, model=self.model)
+    def trace_llm_completion(self, system_prompt, user_prompt, response):
+        self.messages = []
+        self.messages.append({"role": "system", "content": system_prompt})
+        self.messages.append({"role": "user", "content": user_prompt})
+        self.messages.append({"role": "assistant", "content": response})

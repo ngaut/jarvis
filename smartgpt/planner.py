@@ -97,9 +97,9 @@ def gen_plan(model: str, goal: str) -> Dict:
         )
 
         resp = gpt.complete(user_prompt, model, GEN_PLAN__SYS_PROMPT)
-        reviewer.trace_gpt_gen("plan", GEN_PLAN__SYS_PROMPT, user_prompt, resp)
-        resp = sort_plan(utils.strip_yaml(resp))
+        # reviewer.Reviewer().review_plan_gen(resp)
 
+        resp = sort_plan(utils.strip_yaml(resp))
         with open("plan.yaml", "w") as stream:
             stream.write(resp)
 

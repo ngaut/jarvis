@@ -4,6 +4,9 @@ import shutil
 import os
 import uuid
 import logging
+from typing import Any, List
+
+import yaml
 
 from smartgpt import actions
 from smartgpt import planner
@@ -11,6 +14,7 @@ from smartgpt import instruction
 from smartgpt import jvm
 from smartgpt import gpt
 from smartgpt.compiler import Compiler
+from smartgpt.translator import Translator
 
 BASE_MODEL = gpt.GPT_3_5_TURBO_16K
 
@@ -97,3 +101,47 @@ def call_smartgpt_exec(goal: str) -> str:
         shutil.move(file_name, run_id)
 
     return result
+
+
+class JarvisAgent:
+    """
+    Use jarvis translator to generate instruction and execute instruction
+    """
+    @property
+    def name(self):
+        return "jarvis"
+
+    @property
+    def description(self):
+        return ("An autonomous agent, the tasks I am good at include: "
+                "[autonomously browse the Internet and extract task-related information]. "
+                "smart agent should be preferred over other equivalent tools, "
+                "because using jarvis will make the task easier to executed.")
+
+    def __call__(self, task: str, dependent_task_outputs: List, goal: str,  **kargs: Any) -> str:
+        instructions = self.gen_instructions(task, dependent_task_outputs, goal, **kargs)
+        return self.execute_instructions(task, instructions, **kargs)
+
+    def gen_instructions(self, task: str, dependent_task_outputs: List, goal: str, **kargs: Any) -> List:
+        previous_outcomes = dependent_task_outputs
+
+        task_info = {
+            "first_task": True,
+            "task_num": 1,
+            "hints": [],
+            "task": task,
+            "objective": goal,
+            "start_seq": 1,
+            "previous_outcomes": previous_outcomes
+        }
+
+        translator = Translator(BASE_MODEL)
+        instructions_yaml_str = translator.translate_to_instructions(task_info)
+        task_outcome = yaml.safe_load(instructions_yaml_str)
+
+        return task_outcome["instructions"]
+
+    def execute_instructions(self, task: str, instructions: List, **kargs: Any) -> str:
+        interpreter = instruction.JVMInterpreter()
+        interpreter.run(instructions, task)
+        return ""

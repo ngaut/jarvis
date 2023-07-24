@@ -77,7 +77,7 @@ class Action(ABC):
         if isinstance(data, str):
             data = yaml.safe_load(data)  # Parse the input string into a dictionary
 
-        action_type = data.get("type")
+        action_type = data.get("type")  # type: ignore
 
         if action_type is None or action_type not in ACTION_CLASSES:
             return None
@@ -91,7 +91,7 @@ class Action(ABC):
         constructor_args = {}
         for param_name, _ in constructor_params.items():
             if param_name != "self" and param_name in data:
-                constructor_args[param_name] = data[param_name]
+                constructor_args[param_name] = data[param_name] # type: ignore
 
         return action_class(**constructor_args)
 
@@ -414,7 +414,7 @@ class TextCompletionAction(Action):
         model_name = self.adjust_token_and_model(messages)
 
         try:
-            result = gpt.send_message(messages, model_name)
+            result = gpt.send_messages(messages, model_name)
             if result is None:
                 raise ValueError(f"Generating text completion appears to have failed.")
             result = utils.strip_yaml(result)

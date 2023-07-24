@@ -81,14 +81,11 @@ if __name__ == "__main__":
         if args.replan:
             # Generate a new plan
             logging.info("Replanning...")
-
+            goal = ''
             if args.goalfile:
                 with open(args.goalfile, 'r') as stream:
                     goal = stream.read()
-            else:
-                goal = ""
-
             planner.gen_plan(BASE_MODEL, goal)
-
         else:
-            Compiler(BASE_MODEL).compile_plan()
+            c = Compiler(BASE_MODEL)
+            c.compile_plan()

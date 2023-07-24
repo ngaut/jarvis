@@ -79,7 +79,7 @@ def truncate_to_tokens(content: str, max_token_count: int) -> str:
 
     return truncated_str
 
-def send_message(messages: List[Dict[str, str]], model: str) -> str:
+def send_messages(messages: List[Dict[str, str]], model: str) -> str:
     max_response_tokens = get_max_tokens(model) - count_tokens(messages)
 
     if max_response_tokens < 0:
@@ -133,7 +133,7 @@ def send_message(messages: List[Dict[str, str]], model: str) -> str:
             logging.error("Unexpected Error for model %s. Error: %s", model, err)
             raise ValueError(f'OpenAI Error: {err}') from err
 
-def send_message_stream(messages: List[Dict[str, str]], model: str) -> str:
+def send_messages_stream(messages: List[Dict[str, str]], model: str) -> str:
     while True:
         try:
             if API_TYPE == 'azure':
@@ -175,7 +175,7 @@ def complete(prompt: str, model: str, system_prompt: Optional[str] = None) -> st
 
 def complete_with_messages(prompt: str, model: str, messages: List[Dict[str, str]]) -> str:
     messages.append({"role": "user", "content": prompt[:get_max_tokens(model)]})
-    return send_message(messages, model)
+    return send_messages(messages, model)
 
 def start(system_prompt: str, user_prompt: str, model: str) -> List[Dict[str, str]]:
     messages = [
@@ -189,7 +189,7 @@ def chat(messages: List[Dict[str, str]], model: str, prompt=None) -> List[Dict[s
     if prompt:
         messages.append({"role": "user", "content": prompt})
 
-    response = send_message_stream(messages, model)
+    response = send_messages_stream(messages, model)
 
     messages.append({"role": "assistant", "content": response})
     return messages
