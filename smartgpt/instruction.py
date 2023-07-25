@@ -202,3 +202,7 @@ class JVMInterpreter:
                 self.pc = 0
                 self.run(jvm_instr.instruction["args"]["else"], jvm_instr.task)
         self.pc = old_pc
+
+    def reset(self):
+        self.pc = 0
+        jvm.set_loop_idx(0)

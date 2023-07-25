@@ -152,7 +152,7 @@ Remember, your task is to generate instructions that will run on JVM based on th
 
         user_prompt = (
             f"The current task: {json.dumps(task_info['task'])}\n"
-            f"The objective of current task: {json.dumps(task_info['objective'])}\n"
+            f"Current task is part of global objective: {json.dumps(task_info['objective'])}\n"
             f"The starting sequence: {json.dumps(task_info['start_seq'])}\n"
             "You are going to create a series of JVM instructions to complete the current task and fulfill the stated objective.\n"
             "Ensure you fully utilize the outcomes of previous tasks in user hints.\n"

@@ -222,7 +222,7 @@ class JarvisAgent:
 
         for task_instrs in instructions:
             # Execute the generated instructions
-            interpreter.pc = 0
+            interpreter.reset()
             interpreter.run(task_instrs["instructions"], task)
 
         with open("result.txt", "r") as f:
