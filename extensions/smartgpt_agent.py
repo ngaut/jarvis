@@ -4,9 +4,10 @@ import shutil
 import os
 import uuid
 import logging
-from typing import Any, List, Optional
 from datetime import datetime
-
+from pydantic import BaseModel
+from typing import Any, List, Dict, Optional
+import traceback
 import yaml
 
 from smartgpt import actions
@@ -18,6 +19,7 @@ from smartgpt.compiler import Compiler
 from smartgpt.translator import Translator
 
 BASE_MODEL = gpt.GPT_3_5_TURBO_16K
+# BASE_MODEL = gpt.GPT_4
 
 os.makedirs("workspace", exist_ok=True)
 os.chdir("workspace")
@@ -105,6 +107,13 @@ def call_smartgpt_exec(goal: str) -> str:
     return result
 
 
+class TaskInfo(BaseModel):
+    task_num: int
+    task: str
+    result: str
+    metadata: dict
+
+
 class JarvisAgent:
     """
     Use jarvis translator to generate instruction and execute instruction
@@ -126,12 +135,12 @@ class JarvisAgent:
     def __call__(
         self,
         task: str,
-        dependent_task_outputs: List,
+        dependent_task_outputs: List[TaskInfo],
         goal: str,
         skip_gen: bool = False,
         subdir: Optional[str] = None,
         **kargs: Any,
-    ) -> str:
+    ) -> TaskInfo | None:
         # skip_gen and subdir are used for testing purpose
         current_workdir = os.getcwd()
         if subdir:
@@ -150,82 +159,101 @@ class JarvisAgent:
                 instrs = self.load_instructions()
             else:
                 instrs = self.gen_instructions(task, dependent_task_outputs, goal)
-            result = self.execute_instructions(task, instrs)
+            result = self.execute_instructions(instrs)
         except Exception as e:
             logging.error(f"Error executing task {task}: {e}")
             os.chdir(current_workdir)
-            return ""
+            print(traceback.format_exc())
+            raise e
 
         os.chdir(current_workdir)
         return result
 
-    def load_instructions(self) -> List:
-        result = []
+    def load_instructions(self) -> Dict:
+        instructions = {}
         for file_name in glob.glob("*.yaml"):
             with open(file_name, "r") as f:
                 saved = f.read()
-            result.append(yaml.safe_load(saved))
-        return result
+            task_num = int(file_name.split(".")[0])
+            instructions[task_num] = yaml.safe_load(saved)
+        return instructions
 
     def gen_instructions(
-        self, task: str, dependent_task_outputs: List, goal: str, **kargs: Any
-    ) -> List:
-        result = []
+        self, task: str, dependent_tasks: List[TaskInfo], goal: str
+    ) -> Dict:
         translator = Translator(BASE_MODEL)
 
+        first_task = len(dependent_tasks) == 0
+
+        previous_outcomes = []
+        task_num = 1
+
+        for dt in dependent_tasks:
+            previous_outcomes.append(
+                {
+                    "task_num": dt.task_num,
+                    "task": dt.task,
+                    "outcome": dt.metadata.get("instruction_outcome", ""),
+                }
+            )
+            task_num = (
+                dt.task_num + 1
+            )  # assert the depend task is executed before this task
+
         task_info = {
-            "first_task": True,
-            "task_num": 1,
-            "hints": dependent_task_outputs,
+            "first_task": first_task,
+            "task_num": task_num,
+            "hints": [],
             "task": task,
             "objective": goal,
-            "start_seq": 1001,
-            "previous_outcomes": [],
+            "start_seq": (task_num - 1 << 4) + 1,
+            "previous_outcomes": previous_outcomes,
         }
+
         generated_instrs = translator.translate_to_instructions(task_info)
         # call reviewer
 
-        with open("1.yaml", "w") as f:
+        with open(f"{task_num}.yaml", "w") as f:
             f.write(generated_instrs)
 
-        generated_instrs = yaml.safe_load(generated_instrs)
-        result.append(generated_instrs)
-        previous_outcomes = [
-            {
-                "task_num": 1,
-                "task": task,
-                "outcome": generated_instrs["overall_outcome"],
-            }
-        ]
+        return {task_num: yaml.safe_load(generated_instrs)}
 
-        task_info = {
-            "first_task": False,
-            "task_num": 2,
-            "hints": [],
-            "task": "Write the outcome of the previous task to the file 'result.txt'",
-            "objective": "Save the output of the previous task to the file 'result.txt'",
-            "start_seq": 2001,
-            "previous_outcomes": previous_outcomes,
-        }
-        save_output = translator.translate_to_instructions(task_info)
-
-        with open("2.yaml", "w") as f:
-            f.write(save_output)
-
-        save_output = yaml.safe_load(save_output)
-        result.append(save_output)
-
-        return result
-
-    def execute_instructions(self, task: str, instructions: List, **kargs: Any) -> str:
+    def execute_instructions(self, instructions: Dict) -> TaskInfo | None:
+        jvm.load_kv_store()
         interpreter = instruction.JVMInterpreter()
+        last_result = None
 
-        for task_instrs in instructions:
+        for task_num, instrs in instructions.items():
             # Execute the generated instructions
             interpreter.reset()
-            interpreter.run(task_instrs["instructions"], task)
+            logging.info(f"Executing task {task_num}: {instrs}")
+            interpreter.run(instrs["instructions"], instrs["task"])
+            last_result = TaskInfo(
+                task_num=task_num,
+                task=instrs["task"],
+                result="to_filled",
+                metadata={
+                    "instruction_outcome": instrs["overall_outcome"],
+                },
+            )
 
-        with open("result.txt", "r") as f:
-            result = f.read()
+        if last_result is not None:
+            last_result.result = self.get_task_result(
+                last_result.metadata["instruction_outcome"]
+            )
+            assert last_result.result is not None, "task result should not be None"
 
-        return result
+        return last_result
+
+    def get_task_result(self, overall_outcome: str):
+        user_prompt = (
+            f"According to the task output description, output the key name where the task result is stored.\n"
+            "Description: The data under the key 'AI_trends' has been analyzed and 1-3 projects that have shown significant trends or growth have been selected. The selected projects have been stored in the database under the key 'selected_projects.seq2.list'.\n"
+            "Answer: selected_projects.seq2.list\n\n"
+            f"Description:{overall_outcome}\n"
+            "Answer:"
+        )
+
+        resp = gpt.complete(prompt=user_prompt, model=gpt.GPT_3_5_TURBO_16K)
+        res = jvm.eval(f'jvm.eval(jvm.get("{resp}"))')
+        return f"task result: {res}"
