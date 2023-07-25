@@ -151,7 +151,6 @@ class JarvisAgent:
             new_subdir = os.path.join(current_workdir, f"{unique_id}-{timestamp}")
 
         os.makedirs(new_subdir, exist_ok=True)
-
         os.chdir(new_subdir)
 
         try:

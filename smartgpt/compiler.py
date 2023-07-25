@@ -41,8 +41,6 @@ class Compiler:
         }
 
     def check_diff(self, task_outcome, origin) -> bool:
-        if origin is None:
-            return True
         return task_outcome['overall_outcome'] != origin['overall_outcome']
 
     def compile_plan(self) -> List[Dict]:
@@ -74,7 +72,7 @@ class Compiler:
 
         return result
 
-    def recompile_task_in_plan(self, recompile_task_num) -> List[Dict]:
+    def compile_task_in_plan(self, specified_task_num: int) -> List[Dict]:
         plan = self.load_yaml('plan.yaml')
 
         task_list = plan.get("task_list", [])
@@ -90,14 +88,13 @@ class Compiler:
             file_name = f"{num}.yaml"
 
             task_info = self.create_task_info(task, num, deps, plan, previous_outcomes)
+            origin = self.load_yaml(file_name) if os.path.exists(file_name) else None
 
             task_outcome = None
-            if num < recompile_task_num and os.path.exists(file_name):
+            if num < specified_task_num and os.path.exists(file_name):
                 task_outcome = self.load_yaml(file_name)
-            elif num > recompile_task_num and os.path.exists(file_name) and not need_to_recompile_subsequent_tasks:
+            elif num > specified_task_num and os.path.exists(file_name) and not need_to_recompile_subsequent_tasks:
                 task_outcome = self.load_yaml(file_name)
-
-            origin = self.load_yaml(file_name) if num == recompile_task_num and os.path.exists(file_name) else None
 
             if not task_outcome:
                 instructions_yaml_str = self.translator.translate_to_instructions(task_info)
@@ -105,8 +102,8 @@ class Compiler:
                 self.write_yaml(file_name, instructions_yaml_str)
                 task_outcome = yaml.safe_load(instructions_yaml_str)
 
-            if num == recompile_task_num:
-                need_to_recompile_subsequent_tasks = self.check_diff(task_outcome, origin)
+            if num == specified_task_num:
+                need_to_recompile_subsequent_tasks = self.check_diff(task_outcome, origin) if origin else True
 
             result.append(task_outcome)
             task_outcomes[num] = {

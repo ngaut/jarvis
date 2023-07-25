@@ -155,7 +155,7 @@ class JVMInterpreter:
         for i in range(loop_count):
             # Set the loop index in jvm, to adopt gpt behaviour error
             jvm.set_loop_idx(i)
-            logging.info(f"loop idx: {i}")
+            # logging.info(f"loop idx: {i}")
             # As each loop execution should start from the first instruction, we reset the program counter
             self.pc = 0
             self.run(loop_instructions, jvm_instr.task)

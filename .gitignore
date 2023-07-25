@@ -1,7 +1,6 @@
 *~
 .DS_Store
 /__MACOSX
-/.vscode
 __pycache__
 .env
 /workspace

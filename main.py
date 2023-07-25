@@ -14,8 +14,8 @@ from smartgpt import instruction
 from smartgpt.compiler import Compiler
 
 
-BASE_MODEL = gpt.GPT_4
-#BASE_MODEL = gpt.GPT_3_5_TURBO_16K
+#BASE_MODEL = gpt.GPT_4
+BASE_MODEL = gpt.GPT_3_5_TURBO_16K
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -27,6 +27,7 @@ if __name__ == "__main__":
     parser.add_argument('--yaml', type=str, help='Path to the yaml file to execute plan from')
     parser.add_argument('--startseq', type=int, default=0, help='Starting sequence number')
     parser.add_argument('--goalfile', type=str, default='', help='Specify the goal description file for Jarvis')
+    parser.add_argument('--compile', type=int, default=0, help='Translate the plan into instructions with the given task number')
 
     args = parser.parse_args()
 
@@ -52,6 +53,15 @@ if __name__ == "__main__":
     args.replan = args.replan or assistant_config.get('replan', False)
     args.goalfile = args.goalfile or assistant_config.get('goalfile', '')
 
+    goal = ""
+    if args.goalfile:
+        if os.path.isfile(args.goalfile):
+            with open(args.goalfile, 'r') as f:
+                goal = f.read()
+        else:
+            logging.error(f"Goal file {args.goalfile} does not exist")
+            exit(1)
+
     os.makedirs("workspace", exist_ok=True)
     os.chdir("workspace")
 
@@ -75,17 +85,14 @@ if __name__ == "__main__":
         # Run the instructions starting from start_seq
         logging.info(f"Running instructions from  {plan_with_instrs['instructions'][start_seq]}\n")
         interpreter = instruction.JVMInterpreter()
-        interpreter.run(plan_with_instrs["instructions"][start_seq:], task=plan_with_instrs["task"])
-
+        interpreter.run(plan_with_instrs["instructions"], task=plan_with_instrs["task"])
     else:
         if args.replan:
-            # Generate a new plan
-            logging.info("Replanning...")
-            goal = ''
-            if args.goalfile:
-                with open(args.goalfile, 'r') as f:
-                    goal = f.read()
+            logging.info("Regenerate plan ...")
             planner.gen_plan(BASE_MODEL, goal)
+        elif args.compile:
+            logging.info(f"Tranlate the given task[{args.compile}] in plan ...")
+            Compiler(BASE_MODEL).compile_task_in_plan(args.compile)
         else:
-            c = Compiler(BASE_MODEL)
-            c.compile_plan()
+            logging.info("Tranlate all tasks in plan ...")
+            Compiler(BASE_MODEL).compile_plan()
