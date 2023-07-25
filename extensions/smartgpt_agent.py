@@ -4,7 +4,7 @@ import shutil
 import os
 import uuid
 import logging
-from typing import Any, List, Dict
+from typing import Any, List, Optional
 from datetime import datetime
 
 import yaml
@@ -25,10 +25,9 @@ os.chdir("workspace")
 # Logging file name and line number
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s',
-    filename='smartgpt.log', # Log output goes to this file
-    filemode='a' # Append to the file instead of overwriting it
+    format="%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s",
 )
+
 
 def execute_task(objective: str, task: str, context: list) -> str:
     sys_prompt = """
@@ -50,10 +49,12 @@ Your response should be formatted as follow template:
 }
 """
 
-    prompt = f'Perform one task based on the following objective: {objective}.\n'
+    prompt = f"Perform one task based on the following objective: {objective}.\n"
     if context:
-        prompt += 'Take into account these previously completed tasks:' + '\n'.join(context)
-    prompt += f'\nYour task: {task}\nResponse:\n'
+        prompt += "Take into account these previously completed tasks:" + "\n".join(
+            context
+        )
+    prompt += f"\nYour task: {task}\nResponse:\n"
 
     result = gpt.complete(prompt, BASE_MODEL, sys_prompt)
     response = json.loads(result)
@@ -88,7 +89,7 @@ def call_smartgpt_exec(goal: str) -> str:
     # Todo: extract the final Outcome from the kv store
     result = "smartgpt task run failed."
     if os.path.exists("smartgpt.out"):
-        with open("smartgpt.out", 'r') as f:
+        with open("smartgpt.out", "r") as f:
             result = f.read()
 
     # Cleanup
@@ -108,28 +109,47 @@ class JarvisAgent:
     """
     Use jarvis translator to generate instruction and execute instruction
     """
+
     @property
     def name(self):
         return "jarvis"
 
     @property
     def description(self):
-        return ("An autonomous agent, the tasks I am good at include: "
-                "[autonomously browse the Internet and extract task-related information]. "
-                "smart agent should be preferred over other equivalent tools, "
-                "because using jarvis will make the task easier to executed.")
+        return (
+            "An autonomous agent, the tasks I am good at include: "
+            "[autonomously browse the Internet and extract task-related information]. "
+            "smart agent should be preferred over other equivalent tools, "
+            "because using jarvis will make the task easier to executed."
+        )
 
-    def __call__(self, task: str, dependent_task_outputs: List, goal: str,  **kargs: Any) -> str:
+    def __call__(
+        self,
+        task: str,
+        dependent_task_outputs: List,
+        goal: str,
+        skip_gen: bool = False,
+        subdir: Optional[str] = None,
+        **kargs: Any,
+    ) -> str:
+        # skip_gen and subdir are used for testing purpose
         current_workdir = os.getcwd()
-        unique_id = str(uuid.uuid4())
-        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        new_subdir = os.path.join(current_workdir, f"{unique_id}-{timestamp}")
+        if subdir:
+            new_subdir = os.path.join(current_workdir, subdir)
+        else:
+            unique_id = str(uuid.uuid4())
+            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+            new_subdir = os.path.join(current_workdir, f"{unique_id}-{timestamp}")
 
         os.makedirs(new_subdir, exist_ok=True)
+
         os.chdir(new_subdir)
 
         try:
-            instrs = self.gen_instructions(task, dependent_task_outputs, goal)
+            if skip_gen:
+                instrs = self.load_instructions()
+            else:
+                instrs = self.gen_instructions(task, dependent_task_outputs, goal)
             result = self.execute_instructions(task, instrs)
         except Exception as e:
             logging.error(f"Error executing task {task}: {e}")
@@ -139,8 +159,17 @@ class JarvisAgent:
         os.chdir(current_workdir)
         return result
 
+    def load_instructions(self) -> List:
+        result = []
+        for file_name in glob.glob("*.yaml"):
+            with open(file_name, "r") as f:
+                saved = f.read()
+            result.append(yaml.safe_load(saved))
+        return result
 
-    def gen_instructions(self, task: str, dependent_task_outputs: List, goal: str, **kargs: Any) -> List:
+    def gen_instructions(
+        self, task: str, dependent_task_outputs: List, goal: str, **kargs: Any
+    ) -> List:
         result = []
         translator = Translator(BASE_MODEL)
 
@@ -151,7 +180,7 @@ class JarvisAgent:
             "task": task,
             "objective": goal,
             "start_seq": 1001,
-            "previous_outcomes": []
+            "previous_outcomes": [],
         }
         generated_instrs = translator.translate_to_instructions(task_info)
         # call reviewer
@@ -165,7 +194,7 @@ class JarvisAgent:
             {
                 "task_num": 1,
                 "task": task,
-                "outcome": generated_instrs['overall_outcome'],
+                "outcome": generated_instrs["overall_outcome"],
             }
         ]
 
@@ -176,7 +205,7 @@ class JarvisAgent:
             "task": "Write the outcome of the previous task to the file 'result.txt'",
             "objective": "Save the output of the previous task to the file 'result.txt'",
             "start_seq": 2001,
-            "previous_outcomes": previous_outcomes
+            "previous_outcomes": previous_outcomes,
         }
         save_output = translator.translate_to_instructions(task_info)
 
@@ -193,9 +222,10 @@ class JarvisAgent:
 
         for task_instrs in instructions:
             # Execute the generated instructions
+            interpreter.pc = 0
             interpreter.run(task_instrs["instructions"], task)
 
-        with open("result.txt", 'r') as f:
+        with open("result.txt", "r") as f:
             result = f.read()
 
         return result
