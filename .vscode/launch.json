@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Run Yaml",
+            "name": "Python: Run yaml",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/main.py",
@@ -11,7 +11,7 @@
             "justMyCode": true
         },
         {
-            "name": "Python: Run Replan",
+            "name": "Python: Replan",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/main.py",
@@ -20,7 +20,7 @@
             "justMyCode": true
         },
         {
-            "name": "Python: Run Replan with Goalfile",
+            "name": "Python: Replan with goalfile",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/main.py",
@@ -29,11 +29,20 @@
             "justMyCode": true
         },
         {
-            "name": "Python: Run Gen Task",
+            "name": "Python: Translate all tasks in plan",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/main.py",
             "args": ["--continuous", "--verbose", "--timeout", "3", "--config", "./config.yaml", "--startseq", "0"],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Python: Translate the given task in plan",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.py",
+            "args": ["--continuous", "--verbose", "--timeout", "3", "--config", "./config.yaml", "--startseq", "0", "--compile", "2"],
             "console": "integratedTerminal",
             "justMyCode": true
         },
