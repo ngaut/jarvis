@@ -245,15 +245,17 @@ class JarvisAgent:
 
         return last_result
 
-    def get_task_result(self, overall_outcome: str):
-        user_prompt = (
-            f"According to the task output description, output the key name where the task result is stored.\n"
-            "Description: The data under the key 'AI_trends' has been analyzed and 1-3 projects that have shown significant trends or growth have been selected. The selected projects have been stored in the database under the key 'selected_projects.seq2.list'.\n"
-            "Answer: selected_projects.seq2.list\n\n"
-            f"Description:{overall_outcome}\n"
-            "Answer:"
+    def get_task_result(self, overall_outcome: str, return_key: bool = False):
+        sys_prompt = (
+            "You're a helpful assistant, please output the key name where the task result is stored according to the task output description.\n"
+            "Examples:\n"
+            "User: The data under the key 'AI_trends' has been analyzed and 1-3 projects that have shown significant trends or growth have been selected. The selected projects have been stored in the database under the key 'selected_projects.seq2.list'.\n"
+            "Assistant: selected_projects.seq2.list"
         )
+        user_prompt = overall_outcome
 
-        resp = gpt.complete(prompt=user_prompt, model=gpt.GPT_3_5_TURBO_16K)
+        resp = gpt.complete(prompt=user_prompt, model=gpt.GPT_3_5_TURBO_16K, system_prompt=sys_prompt)
+        if return_key:
+            return resp
         res = jvm.eval(f'jvm.eval(jvm.get("{resp}"))')
         return f"task result: {res}"
