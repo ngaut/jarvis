@@ -1,29 +1,27 @@
 from dataclasses import dataclass, field
-import io, subprocess, os, inspect, json, logging, time, re
-import shutil
+import subprocess, os, inspect, json, logging, time
 import venv
-from typing import Union, List, Dict, Tuple
+from typing import Union, List, Dict
 from abc import ABC
-from urllib.error import HTTPError
 import uuid
-from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urlunparse
-import requests
-import time
 import hashlib
+import requests
+
+from bs4 import BeautifulSoup
 import yaml
+
 from selenium import webdriver
-from selenium.webdriver.chrome.webdriver import WebDriver as ChromeWebDriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.chrome.options import Options as ChromeOptions
-from webdriver_manager.chrome import ChromeDriverManager
 
 from smartgpt import gpt
 from smartgpt import jvm
-from smartgpt.spinner import Spinner
 from smartgpt import utils
 
+
+TEXT_COMPLETION_MODEL = gpt.GPT_3_5_TURBO_16K
+#TEXT_COMPLETION_MODEL = gpt.GPT_4
 
 _CACHE = {}
 _ENABLE_CACHE = True
@@ -74,7 +72,7 @@ class Action(ABC):
         if isinstance(data, str):
             data = yaml.safe_load(data)  # Parse the input string into a dictionary
 
-        action_type = data.get("type")
+        action_type = data.get("type")  # type: ignore
 
         if action_type is None or action_type not in ACTION_CLASSES:
             return None
@@ -88,7 +86,7 @@ class Action(ABC):
         constructor_args = {}
         for param_name, _ in constructor_params.items():
             if param_name != "self" and param_name in data:
-                constructor_args[param_name] = data[param_name]
+                constructor_args[param_name] = data[param_name] # type: ignore
 
         return action_class(**constructor_args)
 
@@ -106,19 +104,19 @@ class Action(ABC):
         raise NotImplementedError
 
 @dataclass(frozen=True)
-class FetchAction:
+class FetchWebContentAction:
     action_id: int
     url: str
-    save_to: str = None  # the key that will be used to save content to database
+    save_to: str = ""  # the key that will be used to save content to database
 
     def key(self):
-        return "Fetch"
+        return "FetchWebContent"
 
     def id(self) -> int:
         return self.action_id
 
     def short_string(self):
-        return f"action_id: {self.id()}, Fetch `{self.url}`."
+        return f"action_id: {self.id()}, Fetch URL: `{self.url}`."
 
     @staticmethod
     def ensure_url_scheme(url) -> str:
@@ -134,16 +132,18 @@ class FetchAction:
         chrome_options.headless = True
 
         # Installing and setting up Chrome WebDriver with the defined options
-        driver_path = ChromeDriverManager().install()
+        #driver_path = ChromeDriverManager().install()
 
         # Use context management to ensure the browser is quit
-        with ChromeWebDriver(executable_path=driver_path, options=chrome_options) as browser:
+        # with ChromeWebDriver(executable_path=driver_path, options=chrome_options) as browser:
+        with webdriver.Chrome(options=chrome_options) as browser:
             # Access the provided URL
             browser.get(url)
 
             # Extract HTML content from the body of the web page
             body_element = browser.find_element(By.TAG_NAME, "body")
             page_html = body_element.get_attribute("innerHTML")
+            browser.quit()
 
         return page_html
 
@@ -170,7 +170,7 @@ class FetchAction:
         cached_key = self.url + self.save_to
         cached_result = get_from_cache(cached_key)
         if cached_result is not None:
-            logging.info(f"\nFetchAction RESULT(cached)\n")
+            logging.info("FetchWebContentAction RESULT(cached).")
             return cached_result
 
         try:
@@ -178,10 +178,10 @@ class FetchAction:
             html = self.get_html(url)
             text = self.extract_text(html)
         except Exception as err:
-            logging.error(f"FetchAction RESULT: An error occurred: {str(err)}")
-            return f"FetchAction RESULT: An error occurred: {str(err)}"
+            logging.error(f"FetchWebContentAction RESULT: An error occurred: {str(err)}")
+            return f"FetchWebContentAction RESULT: An error occurred: {str(err)}"
         else:
-            logging.info(f"\nFetchAction RESULT:\n{text}")
+            logging.info(f"\nFetchWebContentAction RESULT:\n{text}")
             result_str = yaml.safe_dump({"kvs": [{"key": self.save_to, "value": text}]})
 
             save_to_cache(cached_key, result_str)
@@ -337,12 +337,10 @@ class RunPythonAction(Action):
 @dataclass(frozen=True)
 class TextCompletionAction(Action):
     action_id: int
-    objective: str
-    command: str
+    operation: str
     content: str
-    output_fmt: str
-    model_name: str = gpt.GPT_3_5_TURBO_16K
-#    model_name: str = gpt.GPT_4
+    output_format: str
+    model_name: str = TEXT_COMPLETION_MODEL
 
     def key(self) -> str:
         return "TextCompletion"
@@ -351,7 +349,7 @@ class TextCompletionAction(Action):
         return self.action_id
 
     def short_string(self) -> str:
-        return f"action_id: {self.id()}, Text Completion for `{self.command}`."
+        return f"action_id: {self.id()}, text completion for \"{self.operation}\"."
 
     def generate_messages(self) -> List[Dict[str, str]]:
         # Adjust content to fit within model's max tokens
@@ -367,25 +365,24 @@ class TextCompletionAction(Action):
             {
                 "role": "system",
                 "content": (
-                    "As an AI language model, your role is to handle user Request that may include content generation, consolidation and summarization, "
-                    "text completion, or information extraction based on given Content input. You need to understand the Objective and Request "
-                    "provided by the user and process accordingly.\n\n"
-                    "Your responses MUST adhere to the specified output format. The output format key follows the pattern 'key_<idx>.seqX.<type>'. "
-                    "Here, 'X' is a constant, <idx> is evaluated dynamically, and 'type' signifies Python's data types {int, str, list}. "
-                    "'list' denotes a list of strings/integers, 'int' is an integer, and 'str' is a string.\n\n"
-                    "Remember, the output should be structured according to the Output Format provided by the user."
+                    "As an AI language model, your task is to process user's task request based on the provided content and respond in a structured manner as per the given output format.\n"
+                    "The keys in the output format follow this pattern: 'key_<idx>.seqX.<type>'. "
+                    "In this pattern, 'X' remains constant, '<idx>' dynamically varies, and '<type>' represents Python's data types, including {int, str, list}. "
+                    "'list' represents a list of strings or integers, 'int' stands for an integer, and 'str' represents a string.\n"
+                    "In the output format, the term '<to_fill>' appears in place of the values that you need to provide. "
+                    "It's important to remember that in YAML, when dealing with a value that is a multiline text "
+                    "or contains special characters such as single quotes, double quotes, or colons, you should prioritize using the `|` symbol."
                 )
             },
             {
                 "role": "user",
                 "content": (
-                    f"Objective: {self.objective}\n\n"
-                    f"Request: {self.command}\n\n"
+                    f"Operation: {self.operation}\n\n"
                     "Output Format:\n"
-                    f"```yaml\n{self.output_fmt}```\n\n"
-                    "Content:\n"
+                    f"```yaml\n{self.output_format}\n```\n\n"
+                    "Input Content:\n"
                     f"\"\"\"\n{content}\n\"\"\"\n\n"
-                    "Please formulate your response in the provided YAML Output Format:\n```yaml\n"
+                    "Please formulate your response in the provided output format:\n```yaml\n"
                 )
             }
         ]
@@ -401,26 +398,23 @@ class TextCompletionAction(Action):
         return model_name
 
     def run(self) -> str:
-        hash_key = self.command + str(jvm.get('idx'))
+        hash_key = self.operation + str(jvm.get('idx'))
         hash_str = hashlib.md5(hash_key.encode()).hexdigest()
         cached_key = f"{hash_str}"
         cached_result = get_from_cache(cached_key)
 
         if cached_result is not None:
-            logging.info(f"TextCompletionAction RESULT(cached) for command \"{self.command}\"\n")
+            logging.info(f"TextCompletionAction RESULT(cached) for operation: {self.operation}")
             return cached_result
 
         messages = self.generate_messages()
         model_name = self.adjust_token_and_model(messages)
 
         try:
-            result = gpt.send_message(messages, model_name)
+            result = gpt.send_messages(messages, model_name)
             if result is None:
-                raise ValueError(f"Generating text completion for `{self.command}` appears to have failed.")
+                raise ValueError("Generating text completion appears to have failed.")
             result = utils.strip_yaml(result)
-
-            if model_name == gpt.GPT_4:
-                time.sleep(30)
 
             save_to_cache(cached_key, result)
             return result
@@ -451,7 +445,7 @@ def _populate_action_classes(action_classes):
     return result
 
 ACTION_CLASSES = _populate_action_classes([
-    FetchAction,
+    FetchWebContentAction,
     RunPythonAction,
     WebSearchAction,
     TextCompletionAction,

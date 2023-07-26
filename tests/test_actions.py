@@ -2,31 +2,31 @@ import hashlib
 import yaml
 import unittest
 from unittest.mock import patch
-from smartgpt.actions import FetchAction
+from smartgpt.actions import FetchWebContentAction
 from smartgpt.actions import WebSearchAction
 from smartgpt.actions import RunPythonAction
 from smartgpt.actions import TextCompletionAction
 
-class TestFetchAction(unittest.TestCase):
+class TestFetchWebContentAction(unittest.TestCase):
     def setUp(self):
-        self.action = FetchAction(1, "https://news.ycombinator.com/", "content_fetched_0.seq3.str")
+        self.action = FetchWebContentAction(1, "https://news.ycombinator.com/", "content_fetched_0.seq3.str")
 
     def test_ensure_url_scheme(self):
         # Test case where url does not have a scheme
         self.assertEqual(
-             FetchAction.ensure_url_scheme("www.google.com"),
+             FetchWebContentAction.ensure_url_scheme("www.google.com"),
              "https://www.google.com"
         )
 
         # Test case where url has http scheme
         self.assertEqual(
-            FetchAction.ensure_url_scheme("http://www.google.com"),
+            FetchWebContentAction.ensure_url_scheme("http://www.google.com"),
             "http://www.google.com"
         )
 
         # Test case where url has https scheme
         self.assertEqual(
-            FetchAction.ensure_url_scheme("https://www.google.com"),
+            FetchWebContentAction.ensure_url_scheme("https://www.google.com"),
             "https://www.google.com"
         )
 
@@ -39,11 +39,11 @@ class TestFetchAction(unittest.TestCase):
         </body>
         </html>
         """
-        text = FetchAction.extract_text(html)
+        text = FetchWebContentAction.extract_text(html)
         self.assertNotIn("console.log('Hello, World!');", text)
         self.assertIn("Hello, World!", text)
 
-    @patch.object(FetchAction, 'get_html', return_value='<html><body><p>Hello World!</p></body></html>')
+    @patch.object(FetchWebContentAction, 'get_html', return_value='<html><body><p>Hello World!</p></body></html>')
     def test_run(self, mock_get_html):
         expected_result = yaml.safe_dump({
             "kvs": [

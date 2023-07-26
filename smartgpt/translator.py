@@ -1,13 +1,23 @@
 import json
 import logging
-import time
+from typing import Dict, Any
 
 from smartgpt import gpt
 from smartgpt import utils
-from smartgpt import example_pool
+from smartgpt import examples
 
-def generate_system_prompt(example_key: str) -> str:
-    system_prompt = """
+FEW_SHOT_EXAMPLE = "example3"
+
+class Translator:
+    def __init__(self, model):
+        self.model = model
+        self.messages = []
+        self.task_info = {}
+
+    def generate_system_prompt(self, example: str) -> str:
+        few_shot_example = examples.get_example(example)
+
+        system_prompt = """
 # As Jarvis, an AI model with the role of translating task into JVM(AKA Jarvis virtual machine)'s instructions.
 You will fully leverage user's hints(if any), reuse them to generate instructions efficiently.
 
@@ -24,9 +34,9 @@ Dynamic keys are particularly useful in loop structures, where data is iterative
 
 - 'WebSearch': Returns a list of URLs from a web search engine based on the provided query.
 
-- 'Fetch': Fetches the content of a specified URL, and picking out plain text data from HTML forms.
+- 'FetchWebContent': Fetches the content of a specified URL, specifically designed for web pages, and extracts plain text from HTML forms.
 
-- 'TextCompletion': Leverages AI to generate content, complete text, or extract information from provided text interactively and user-friendly. It can also efficiently combine multiple pieces of inputs into a unified whole and produce concise summaries.
+- 'TextCompletion': Leverages the AI's capabilities to generate content, complete text, translate code, consolidate content, create summary, or extract information from provided text in an interactive and user-friendly manner.
 
 ### Advanced Instructions:
 
@@ -47,15 +57,15 @@ Common arguments for each instruction:
     "save_to": The dynamic key('type' is always 'list') under which the URLs of search result should be stored in the database.
   }
 
-2. 'Fetch': {
-    "url": The URL from which content should be fetched.
+2. 'FetchWebContent': {
+    "url": The URL from which content should be fetched. This URL must be a web page URL, local file paths or non-web URLs are not supported.
     "save_to": This argument specifies the dynamic key under which the fetched results will be stored in the database. If inside a loop, ensure the dynamic key follows the "<idx>" format to guarantee its uniqueness.
   }
 
 3. 'TextCompletion': {
-    "command": This string defines the desired action.
-    "output_fmt": The output_fmt must be described what to save by using the YAML template: {'kvs': [{'key': 'key_name.seqX.<type>', 'value': '<to_fill>'}]}, and use dynamic key with <idx> if inside a loop, template like: {'kvs': [{'key': 'key_name_<idx>.seqX.<type>', 'value': '<to_fill>'}]}.
-    "content": This is the content awaiting text completion processing. The format looks like "jvm.eval(jvm.get('key_name'))", which will be inputted into the AI.
+    "operation": A narrative that describes the Text Completion operation in a comprehensive way. It includes the context of the task (e.g., information about the input data), the objective of the task (e.g., what needs to be done with the input data), and other requirements for the output.
+    "output_format": The output_format must be described what to save by using the json template: {'kvs': [{'key': '<key_name>.seqX.<type>', 'value': '<to_fill>'}, ...]}, and use dynamic key with <idx> if inside a loop, e.g. {'kvs': [{'key': '<key_name>_<idx>.seqX.<type>', 'value': '<to_fill>'}, ...]}.
+    "content": This is the content to be processed. It's the raw input that the AI will work on.
   }
 
 4. 'If': {
@@ -80,7 +90,7 @@ Common arguments for each instruction:
     - Avoid placeholder code.
     - Avoid use f-strings.
 
-Everything inside output_fmt argument of a instruction will be evaluated and persist to database. No further persist/save action is required.
+Everything inside output_format argument of a instruction will be evaluated and persist to database. No further persist/save action is required.
 
 
 ## instruction_selection_rules
@@ -114,42 +124,29 @@ key-value API is the only way to pass information between tasks. The database ca
 
 ## Output Requirements
 
-Your output MUST have these fields: task, objective, thoughts, hints_from_user, end_seq(indicates the maximum instruction sequence number), instructions, overall_outcome.
-When forming the 'overall_outcome', Explain the overall outcome we had after succeeded, what is the final result and how to retrieve the results( specify key name or (both key prefix and postfix if the key can't be retrieved by jvm.get) ), As there are other tasks will use the result, give hints to next task.
+Your output MUST have these fields: task, thoughts, hints_from_user, end_seq(indicates the maximum instruction sequence number), instructions, overall_outcome.
+When forming the 'overall_outcome', Explain the overall outcome we had after succeeded, what is the final result and how to retrieve the results (specify a correct key name or (both key prefix and postfix if the key can't be retrieved by jvm.get) ), As there are other tasks will use the result, give hints to next task.
 
 Remember, your task is to generate instructions that will run on JVM based on these guidelines, Don't generate non-exist instructions.
-
 """
+        return system_prompt + few_shot_example
 
-    example = example_pool.get_example(example_key)
-    system_prompt += example
-    return system_prompt
 
-def translate_to_instructions(task_info, model: str):
-    hints = ""
+    def translate_to_instructions(self, task_info: Dict[str, Any]):
+        hints = ""
+        if task_info["first_task"]:
+            hints += "This is the first task, so there are no previous tasks or outcomes.\n"
+        else:
+            for item in task_info.get("previous_outcomes", []):
+                hints += f"{item['outcome']}\n"
 
-    if task_info["first_task"]:
-        hints += "  - \"This is the first task, so there are no previous tasks or outcomes.\"\n"
-    else:
-      previous_outcomes = task_info.get("previous_outcomes", [])
-      for item in previous_outcomes:
-          tmp = {
-              f"Previous done task {item['task_num']}": {
-                    "task": item["task"],
-                    "outcome": item["outcome"],
-              }
-          }
-          hints += f"  - {json.dumps(tmp)}\n"
+        for item in task_info.get("hints", []):
+            hints += f"{json.dumps(item)}\n"
 
-    for item in task_info.get("hints", []):
-        hints += f"  - {json.dumps(item)}\n"
-
-    try:
         user_prompt = (
-            f"The current task: {json.dumps(task_info['task'])}\n"
-            f"The objective of current task: {json.dumps(task_info['objective'])}\n"
+            f"Your task: {json.dumps(task_info['task'])}\n"
             f"The starting sequence: {json.dumps(task_info['start_seq'])}\n"
-            "You are going to create a series of JVM instructions to complete the current task and fulfill the stated objective.\n"
+            "You are going to create a series of JVM instructions to complete your task.\n"
             "Ensure you fully utilize the outcomes of previous tasks in user hints.\n"
             "Remember: Every instruction must save its outcome to the database so it can be used in subsequent tasks.\n\n"
         )
@@ -159,18 +156,24 @@ def translate_to_instructions(task_info, model: str):
 
         user_prompt += "Please provide your response in YAML format:\n```yaml\n"
 
-        logging.info(f"user prompt:\n{user_prompt}")
+        logging.info(f"User Prompt:\n{user_prompt}")
 
         #logging.info(f"================================================")
         #logging.info(f"Translate task: {task_info}")
         #logging.info(f"================================================")
 
-        translate_system_prompt = generate_system_prompt("example3")
-        resp = utils.strip_yaml(gpt.complete(prompt=user_prompt, model=model, system_prompt=translate_system_prompt))
+        system_prompt = self.generate_system_prompt(FEW_SHOT_EXAMPLE)
+        resp = gpt.complete(prompt=user_prompt, model=self.model, system_prompt=system_prompt)
+        self.trace_llm_completion(system_prompt, user_prompt, resp, task_info)
 
-        logging.info("Response from AI: \n%s", resp)
+        resp = utils.strip_yaml(resp)
+        logging.info(f"LLM Response: \n{resp}")
         return resp
 
-    except Exception as err:
-        logging.error("Error in main: %s", err)
-        time.sleep(1)
+    def trace_llm_completion(self, system_prompt: str, user_prompt: str, response: str, task_info: Dict[str, Any]):
+        self.messages = []
+        self.messages.append({"role": "system", "content": system_prompt})
+        self.messages.append({"role": "user", "content": user_prompt})
+        self.messages.append({"role": "assistant", "content": response})
+
+        self.task_info = task_info

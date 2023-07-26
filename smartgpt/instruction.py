@@ -21,14 +21,14 @@ class JVMInstruction:
             return
 
         action_id = self.instruction.get("seq")
-        objective = self.instruction.get("objective")
         # clone the args dict!
         args = dict(self.instruction.get("args"))
 
         if action_type == "WebSearch":
+            args["query"] = self.eval_and_patch(args["query"])
             args["save_to"] = self.eval_and_patch(args["save_to"])
 
-        if action_type == "Fetch":
+        if action_type == "FetchWebContent":
             args["url"] = self.eval_and_patch(args["url"])
             args["save_to"] = self.eval_and_patch(args["save_to"])
 
@@ -43,10 +43,9 @@ class JVMInstruction:
                 args["timeout"] = 30
 
         if action_type == "TextCompletion":
-            args["command"] = self.eval_and_patch(args.get("command"))
+            args["operation"] = self.eval_and_patch(args.get("operation"))
             args["content"] = self.eval_and_patch(args.get("content"))
-            args["output_fmt"] = self.eval_and_patch(yaml.safe_dump(args.get("output_fmt")))
-            args["objective"] = objective
+            args["output_format"] = self.eval_and_patch(yaml.safe_dump(args.get("output_format")))
 
         action_data = { "type": action_type, "action_id": action_id }
         action_data.update(args)
@@ -66,13 +65,16 @@ class JVMInstruction:
 
     def eval_and_patch(self, text) -> str:
         if text is None:
-            return "None"
+            return ""
 
         while True:
             tmp_text = jvm.eval(text)
             if tmp_text is None:
                 break
             text = tmp_text
+
+        if "jvm." in text:
+            raise ValueError(f"Error: text still contains 'jvm.' after evaluation. text: {text}")
 
         return text
 
@@ -105,7 +107,7 @@ class JVMInterpreter:
         self.pc = 0
         self.actions = {
             "WebSearch": actions.WebSearchAction,
-            "Fetch": actions.FetchAction,
+            "FetchWebContent": actions.FetchWebContentAction,
             "RunPython": actions.RunPythonAction,
             "TextCompletion": actions.TextCompletionAction,
         }
@@ -151,7 +153,7 @@ class JVMInterpreter:
         for i in range(loop_count):
             # Set the loop index in jvm, to adopt gpt behaviour error
             jvm.set_loop_idx(i)
-            logging.info(f"loop idx: {i}")
+            # logging.info(f"loop idx: {i}")
             # As each loop execution should start from the first instruction, we reset the program counter
             self.pc = 0
             self.run(loop_instructions, jvm_instr.task)
@@ -169,10 +171,9 @@ class JVMInterpreter:
 
         evaluation_action = actions.TextCompletionAction(
             action_id = -1,
-            objective="Evaluate true and false based on input content",
-            command = "Is that true or false?",
+            operation="Evaluate true or false based on input content",
             content = condition,
-            output_fmt = yaml.safe_dump(output_fmt))
+            output_format = yaml.safe_dump(output_fmt))
 
         try:
             evaluation_result = evaluation_action.run()
@@ -199,3 +200,7 @@ class JVMInterpreter:
                 self.pc = 0
                 self.run(jvm_instr.instruction["args"]["else"], jvm_instr.task)
         self.pc = old_pc
+
+    def reset(self):
+        self.pc = 0
+        jvm.set_loop_idx(0)

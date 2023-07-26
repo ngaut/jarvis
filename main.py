@@ -11,6 +11,7 @@ from smartgpt import planner
 from smartgpt import gpt
 from smartgpt import jvm
 from smartgpt import instruction
+from smartgpt.compiler import Compiler
 
 
 #BASE_MODEL = gpt.GPT_4
@@ -26,6 +27,7 @@ if __name__ == "__main__":
     parser.add_argument('--yaml', type=str, help='Path to the yaml file to execute plan from')
     parser.add_argument('--startseq', type=int, default=0, help='Starting sequence number')
     parser.add_argument('--goalfile', type=str, default='', help='Specify the goal description file for Jarvis')
+    parser.add_argument('--compile', type=int, default=0, help='Translate the plan into instructions with the given task number')
 
     args = parser.parse_args()
 
@@ -51,10 +53,14 @@ if __name__ == "__main__":
     args.replan = args.replan or assistant_config.get('replan', False)
     args.goalfile = args.goalfile or assistant_config.get('goalfile', '')
 
-    goal = ''
+    goal = ""
     if args.goalfile:
-        with open(args.goalfile, 'r') as f:
-            goal = f.read()
+        if os.path.isfile(args.goalfile):
+            with open(args.goalfile, 'r') as f:
+                goal = f.read()
+        else:
+            logging.error(f"Goal file {args.goalfile} does not exist")
+            exit(1)
 
     os.makedirs("workspace", exist_ok=True)
     os.chdir("workspace")
@@ -62,27 +68,30 @@ if __name__ == "__main__":
     jvm.load_kv_store()
     actions.load_cache()
 
-    # If a YAML file path is provided, load the plan_with_instrs from the YAML file, otherwise generate a new plan_with_instrs
     if args.yaml:
         # Load the plan_with_instrs from the YAML file
         with open(args.yaml, 'r') as f:
             plan_with_instrs = yaml.safe_load(f)
+
+        logging.info(f"plan_with_instrs: {plan_with_instrs['instructions']}")
+
+        # Make sure start_seq is within bounds
+        start_seq = args.startseq
+        if start_seq < 0 or start_seq >= len(plan_with_instrs["instructions"]):
+            print(f"Invalid start sequence number: {start_seq}")
+            exit(1)
+
+        # Run the instructions starting from start_seq
+        logging.info(f"Running instructions from  {plan_with_instrs['instructions'][start_seq]}\n")
+        interpreter = instruction.JVMInterpreter()
+        interpreter.run(plan_with_instrs["instructions"], task=plan_with_instrs["task"])
     else:
-        # Generate a new plan
-        planner.gen_instructions(BASE_MODEL, replan=args.replan, goal=goal)
-        exit(0)
-
-    # Find the starting sequence number
-    start_seq = args.startseq
-    logging.info(f"plan_with_instrs: {plan_with_instrs['instructions']}")
-
-    # Make sure start_seq is within bounds
-    if start_seq < 0 or start_seq >= len(plan_with_instrs["instructions"]):
-        print(f"Invalid start sequence number: {start_seq}")
-        exit(1)
-
-    # Run the instructions starting from start_seq
-    logging.info(f"Running instructions from  {plan_with_instrs['instructions'][start_seq]}\n")
-
-    interpreter = instruction.JVMInterpreter()
-    interpreter.run(plan_with_instrs["instructions"][start_seq:], task=plan_with_instrs["task"])
+        if args.replan:
+            logging.info("Regenerate plan ...")
+            planner.gen_plan(BASE_MODEL, goal)
+        elif args.compile:
+            logging.info(f"Tranlate the given task[{args.compile}] into JVM instructions ...")
+            Compiler(BASE_MODEL).compile_task_in_plan(args.compile)
+        else:
+            logging.info("Tranlate all tasks in plan ...")
+            Compiler(BASE_MODEL).compile_plan()

@@ -8,8 +8,6 @@ example_pool = {
 ```yaml
 task: "Get current weather data for San Francisco and provide suggestions based on temperature, save the results to file"
 
-objective:  # AI-generated objective content, wrapped in quotes
-
 thoughts:  # AI-generated thoughts content, should be plain text without newlines, wrapped in quotes
 
 hints_from_user:  # A list of hints from the user, each item must be plain text and wrapped in quotes
@@ -27,7 +25,7 @@ instructions:
       save_to: "search_result_urls.seq1.list"
 
   - seq: 2
-    type: Fetch
+    type: FetchWebContent
     inside_loop: false
     rule_num: 2
     objective: "Fetch the content from the first URL from the search results"
@@ -41,8 +39,8 @@ instructions:
     objective: "Get the current temperature in San Francisco from the fetched content"
     rule_num: 3
     args:
-      command: "Get the current temperature and url in San Francisco"
-      output_fmt:
+      operation: "Get the current temperature and url in San Francisco"
+      output_format:
         kvs:
           - key: "temperature.seq3.int"  # without <idx> as not inside a loop
             value: "<to_fill>"
@@ -64,8 +62,8 @@ instructions:
         objective: "Generate outdoor activities suggestions"
         rule_num: 3
         args:
-          command: "What outdoor activities should we recommend to the users? Please generate a weather notes"
-          output_fmt:
+          operation: "What outdoor activities should we recommend to the users? Please generate a weather notes"
+          output_format:
             kvs:
               - key: "weather_notes.seq5.str"
                 value: "<to_fill>"
@@ -77,8 +75,8 @@ instructions:
         objective: "Generate indoor activities suggestions"
         rule_num: 3
         args:
-          command: "What indoor activities should we recommend to the users? Please generate a weather notes"
-          output_fmt:
+          operation: "What indoor activities should we recommend to the users? Please generate a weather notes"
+          output_format:
             kvs:
               - key: "weather_notes.seq6.str"
                 value: "<to_fill>"
@@ -90,8 +88,8 @@ instructions:
     objective: "Generate a complete weather report for San Francisco using the gathered information"
     rule_num: 3
     args:
-      command: "Please generate current weather report for San Francisco"
-      output_fmt:
+      operation: "Please generate current weather report for San Francisco"
+      output_format:
         kvs:
           - key: "weather_report.seq7.str"
             value: "<to_fill>"
@@ -113,14 +111,13 @@ end_seq: 8
 
 overall_outcome: "The current weather report for San Francisco stored, it can be retrieved by jvm.eval(jvm.get('WeatherReport.seq7.str')) or file weather_report.txt, the report includes the source url of weather data, notes on suggestions from AI"
 ```
+
 """,
     'example2': """
 ### Example: An output template with Loop instruction structure
 
 ```yaml
 task: "Conduct research on the internet for AI-related news and write a blog"
-
-objective:  # AI-generated objective content, wrapped in quotes
 
 thoughts:  # AI-generated thoughts content, should be plain text without newlines, wrapped in quotes
 
@@ -148,7 +145,7 @@ instructions:
       idx: "jvm.eval(jvm.get('idx'))"
       instructions:
         - seq: 3
-          type: Fetch
+          type: FetchWebContent
           inside_loop: true
           objective: "Fetch the content from the current URL from the search results"
           rule_num: 2
@@ -162,8 +159,8 @@ instructions:
           objective: "Extract and summarize the key information from the fetched news content"
           rule_num: 3
           args:
-            command: "Extract and summarize the key points from the AI news"
-            output_fmt:
+            operation: "Extract and summarize the key points from the AI news"
+            output_format:
               kvs:
                 - key: "jvm.eval('news_summary_' + str(jvm.get('idx')) + '.seq4.str')"  # with <idx> as inside a loop
                   value: "<to_fill>"
@@ -175,8 +172,8 @@ instructions:
     objective: "Generate the blog content using the summarized news"
     rule_num: 4  # Use TextCompletion instead of Loop when combining a list of multiple news summaries into a single blog post.
     args:
-      command: "Structure the blog post using the summaries of the news"
-      output_fmt:
+      operation: "Structure the blog post using the summaries of the news"
+      output_format:
         kvs:
           - key: "blog_content.seq5.str"
             value: "<to_fill>"
@@ -186,16 +183,15 @@ end_seq: 5
 
 overall_outcome: "A blog post summarizing the latest AI news has been created, it can be retrieved by jvm.eval(jvm.get('blog_content.seq5.str'))"
 ```
+
 """,
     'example3': """
 ### Example: An output template with Loop and If structure
 
 ```yaml
-task: "Fetch the titles of the top 5 articles on Hacker News and decide whether to post them to a Slack channel"
+task: "Retrieve the titles of the top 5 articles on Hacker News and based on their relevance to AI, decide whether to post them to a Slack channel"
 
-objective: "Retrieve the titles of the top 5 articles on Hacker News and based on their relevance to AI, decide whether to post them to a Slack channel"
-
-thoughts: "This task requires fetching the article titles from Hacker News and then making a decision for each title. Therefore, the instructions `WebSearch`, `Fetch`, `TextCompletion`, `If`, and `Loop` will be utilized."
+thoughts: "This task requires fetching the article titles from Hacker News and then making a decision for each title. Therefore, the instructions `WebSearch`, `FetchWebContent`, `TextCompletion`, `If`, and `Loop` will be utilized."
 
 hints_from_user: []
 
@@ -221,7 +217,7 @@ instructions:
       idx: "jvm.eval(jvm.get('idx'))"
       instructions:
         - seq: 3
-          type: Fetch
+          type: FetchWebContent
           inside_loop: true
           objective: "Fetch the title from the current URL"
           rule_num: 2
@@ -235,8 +231,8 @@ instructions:
           objective: "Decide if the article is relevant to AI"
           rule_num: 3
           args:
-            command: "Determine if the article is about AI"
-            output_fmt:
+            operation: "Determine if the article is about AI"
+            output_format:
               kvs:
                 - key: "jvm.eval('is_relevant_' + str(jvm.get('idx')) + '.seq4.bool')"
                   value: "<to_fill>"
@@ -256,8 +252,8 @@ instructions:
                 objective: "Prepare the message to be posted to Slack"
                 rule_num: 3
                 args:
-                  command: "Generate the message to be posted to Slack"
-                  output_fmt:
+                  operation: "Generate the message to be posted to Slack"
+                  output_format:
                     kvs:
                       - key: "jvm.eval('slack_message_' + str(jvm.get('idx')) + '.seq6.str')"
                         value: "<to_fill>"
@@ -268,5 +264,6 @@ end_seq: 6
 
 overall_outcome: "The titles of the top 5 articles on Hacker News have been fetched and decisions have been made on whether to post them to a Slack channel. The messages prepared to be posted to Slack can be retrieved with keys like 'slack_message_<idx>.seq6.str'"
 ```
+
 """
 }
