@@ -157,7 +157,7 @@ class JarvisAgent:
             if skip_gen:
                 instrs = self.load_instructions()
             else:
-                instrs = self.gen_instructions(task, dependent_task_outputs, goal)
+                instrs = self.gen_instructions(task, dependent_task_outputs)
             result = self.execute_instructions(instrs)
         except Exception as e:
             logging.error(f"Error executing task {task}: {e}")
@@ -177,9 +177,7 @@ class JarvisAgent:
             instructions[task_num] = yaml.safe_load(saved)
         return instructions
 
-    def gen_instructions(
-        self, task: str, dependent_tasks: List[TaskInfo], goal: str
-    ) -> Dict:
+    def gen_instructions(self, task: str, dependent_tasks: List[TaskInfo]) -> Dict:
         translator = Translator(BASE_MODEL)
 
         first_task = len(dependent_tasks) == 0
@@ -204,7 +202,6 @@ class JarvisAgent:
             "task_num": task_num,
             "hints": [],
             "task": task,
-            "objective": goal,
             "start_seq": (task_num - 1 << 4) + 1,
             "previous_outcomes": previous_outcomes,
         }

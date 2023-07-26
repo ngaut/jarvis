@@ -124,7 +124,7 @@ key-value API is the only way to pass information between tasks. The database ca
 
 ## Output Requirements
 
-Your output MUST have these fields: task, objective, thoughts, hints_from_user, end_seq(indicates the maximum instruction sequence number), instructions, overall_outcome.
+Your output MUST have these fields: task, thoughts, hints_from_user, end_seq(indicates the maximum instruction sequence number), instructions, overall_outcome.
 When forming the 'overall_outcome', Explain the overall outcome we had after succeeded, what is the final result and how to retrieve the results (specify a correct key name or (both key prefix and postfix if the key can't be retrieved by jvm.get) ), As there are other tasks will use the result, give hints to next task.
 
 Remember, your task is to generate instructions that will run on JVM based on these guidelines, Don't generate non-exist instructions.
@@ -152,9 +152,8 @@ Remember, your task is to generate instructions that will run on JVM based on th
 
         user_prompt = (
             f"The current task: {json.dumps(task_info['task'])}\n"
-            f"Current task is part of global objective: {json.dumps(task_info['objective'])}\n"
             f"The starting sequence: {json.dumps(task_info['start_seq'])}\n"
-            "You are going to create a series of JVM instructions to complete the current task and fulfill the stated objective.\n"
+            "You are going to create a series of JVM instructions to complete the current task.\n"
             "Ensure you fully utilize the outcomes of previous tasks in user hints.\n"
             "Remember: Every instruction must save its outcome to the database so it can be used in subsequent tasks.\n\n"
         )

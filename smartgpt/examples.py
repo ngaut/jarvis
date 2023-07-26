@@ -8,8 +8,6 @@ example_pool = {
 ```yaml
 task: "Get current weather data for San Francisco and provide suggestions based on temperature, save the results to file"
 
-objective:  # AI-generated objective content, wrapped in quotes
-
 thoughts:  # AI-generated thoughts content, should be plain text without newlines, wrapped in quotes
 
 hints_from_user:  # A list of hints from the user, each item must be plain text and wrapped in quotes
@@ -121,8 +119,6 @@ overall_outcome: "The current weather report for San Francisco stored, it can be
 ```yaml
 task: "Conduct research on the internet for AI-related news and write a blog"
 
-objective:  # AI-generated objective content, wrapped in quotes
-
 thoughts:  # AI-generated thoughts content, should be plain text without newlines, wrapped in quotes
 
 hints_from_user:  # A list of hints from the user, each item must be plain text and wrapped in quotes
@@ -193,9 +189,7 @@ overall_outcome: "A blog post summarizing the latest AI news has been created, i
 ### Example: An output template with Loop and If structure
 
 ```yaml
-task: "Fetch the titles of the top 5 articles on Hacker News and decide whether to post them to a Slack channel"
-
-objective: "Retrieve the titles of the top 5 articles on Hacker News and based on their relevance to AI, decide whether to post them to a Slack channel"
+task: "Retrieve the titles of the top 5 articles on Hacker News and based on their relevance to AI, decide whether to post them to a Slack channel"
 
 thoughts: "This task requires fetching the article titles from Hacker News and then making a decision for each title. Therefore, the instructions `WebSearch`, `FetchWebContent`, `TextCompletion`, `If`, and `Loop` will be utilized."
 
