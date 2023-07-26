@@ -68,7 +68,6 @@ if __name__ == "__main__":
     jvm.load_kv_store()
     actions.load_cache()
 
-    # If a YAML file path is provided, load the plan_with_instrs from the YAML file, otherwise generate a new plan_with_instrs
     if args.yaml:
         # Load the plan_with_instrs from the YAML file
         with open(args.yaml, 'r') as f:
@@ -91,7 +90,7 @@ if __name__ == "__main__":
             logging.info("Regenerate plan ...")
             planner.gen_plan(BASE_MODEL, goal)
         elif args.compile:
-            logging.info(f"Tranlate the given task[{args.compile}] in plan ...")
+            logging.info(f"Tranlate the given task[{args.compile}] into JVM instructions ...")
             Compiler(BASE_MODEL).compile_task_in_plan(args.compile)
         else:
             logging.info("Tranlate all tasks in plan ...")

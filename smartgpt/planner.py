@@ -48,7 +48,7 @@ The tools at your disposal include:
 
 - RunPython: Executes Python code but has a higher operational cost. When you need to use Python code, use this tool.
 - WebSearch: Conducts online searches and returns URLs that match the query.
-- Fetch: Retrieves content from a URL and picks out plain text data from HTML forms, then saves it to the database.
+- FetchWebContent: Retrieves content from a URL and picks out plain text data from HTML forms, then saves it to the database.
 - TextCompletion: Generates human-like text. When 'prompt' refers to previous outputs or data, use jvm.eval(jvm.get('key')) to reference the data explicitly.
 - Loop: Repeats instructions for a specific number of iterations.
 - If: Provides conditional control in tasks.
@@ -69,7 +69,7 @@ task_list:
   - task_num: 2
     task: "Retrieve links from database(ref outcome), then loop through each link, fetch the content, and take notes on the key points and features of TiDB Serverless"
     objective: "To gather necessary information and understand the fundamental aspects of TiDB Serverless from the provided links."
-    tools: ["Loop", "Fetch", "TextCompletion"]
+    tools: ["Loop", "FetchWebContent", "TextCompletion"]
     outcome: "A list of notes highlighting the key points and features of TiDB Serverless is available."
 # Additional tasks...
 reasoning_for_each_task: ["explaining how each task leverages other tasks' outcomes"]

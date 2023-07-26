@@ -15,7 +15,7 @@ class Translator:
         self.task_info = {}
 
     def generate_system_prompt(self, example: str) -> str:
-        few_shot = examples.get_example(example)
+        few_shot_example = examples.get_example(example)
 
         system_prompt = """
 # As Jarvis, an AI model with the role of translating task into JVM(AKA Jarvis virtual machine)'s instructions.
@@ -34,7 +34,7 @@ Dynamic keys are particularly useful in loop structures, where data is iterative
 
 - 'WebSearch': Returns a list of URLs from a web search engine based on the provided query.
 
-- 'Fetch': Fetches the content of a specified URL, specifically designed for web pages, and extracts plain text from HTML forms. Please note that Fetch DOES NOT support reading the contents of local files. If needed, consider using the 'RunPython'.
+- 'FetchWebContent': Fetches the content of a specified URL, specifically designed for web pages, and extracts plain text from HTML forms.
 
 - 'TextCompletion': Leverages the AI's capabilities to generate content, complete text, translate code, consolidate content, create summary, or extract information from provided text in an interactive and user-friendly manner.
 
@@ -57,13 +57,13 @@ Common arguments for each instruction:
     "save_to": The dynamic key('type' is always 'list') under which the URLs of search result should be stored in the database.
   }
 
-2. 'Fetch': {
+2. 'FetchWebContent': {
     "url": The URL from which content should be fetched. This URL must be a web page URL, local file paths or non-web URLs are not supported.
     "save_to": This argument specifies the dynamic key under which the fetched results will be stored in the database. If inside a loop, ensure the dynamic key follows the "<idx>" format to guarantee its uniqueness.
   }
 
 3. 'TextCompletion': {
-    "task_description": A narrative that describes the task at hand in a comprehensive way. It includes the context of the task (e.g., information about the input data), the objective of the task (e.g., what needs to be done with the input data), and other requirements for the output.
+    "operation": A narrative that describes the Text Completion operation in a comprehensive way. It includes the context of the task (e.g., information about the input data), the objective of the task (e.g., what needs to be done with the input data), and other requirements for the output.
     "output_format": The output_format must be described what to save by using the json template: {'kvs': [{'key': '<key_name>.seqX.<type>', 'value': '<to_fill>'}, ...]}, and use dynamic key with <idx> if inside a loop, e.g. {'kvs': [{'key': '<key_name>_<idx>.seqX.<type>', 'value': '<to_fill>'}, ...]}.
     "content": This is the content to be processed. It's the raw input that the AI will work on.
   }
@@ -129,7 +129,7 @@ When forming the 'overall_outcome', Explain the overall outcome we had after suc
 
 Remember, your task is to generate instructions that will run on JVM based on these guidelines, Don't generate non-exist instructions.
 """
-        return system_prompt + few_shot
+        return system_prompt + few_shot_example
 
 
     def translate_to_instructions(self, task_info: Dict[str, Any]):

@@ -11,7 +11,7 @@ from smartgpt.reviewer import Reviewer
 class Compiler:
     def __init__(self, model: str):
         self.translator = Translator(model)
-        self.reviewer = Reviewer(model)
+        self.reviewer = Reviewer(model, self.translator)
 
     def load_yaml(self, file_name: str) -> Dict:
         try:
@@ -58,8 +58,7 @@ class Compiler:
             file_name = f"{num}.yaml"
 
             task_info = self.create_task_info(task, num, deps, plan, previous_outcomes)
-            instructions_yaml_str = self.translator.translate_to_instructions(task_info)
-            #self.reviewer.review_instructions_gen(num, self.translator.messages)
+            instructions_yaml_str = self.reviewer.translate_to_instructions(task_info)
             self.write_yaml(file_name, instructions_yaml_str)
             task_outcome = yaml.safe_load(instructions_yaml_str)
 
@@ -97,8 +96,7 @@ class Compiler:
                 task_outcome = self.load_yaml(file_name)
 
             if not task_outcome:
-                instructions_yaml_str = self.translator.translate_to_instructions(task_info)
-                #self.reviewer.review_instructions_gen(num, self.translator.messages)
+                instructions_yaml_str = self.reviewer.translate_to_instructions(task_info)
                 self.write_yaml(file_name, instructions_yaml_str)
                 task_outcome = yaml.safe_load(instructions_yaml_str)
 

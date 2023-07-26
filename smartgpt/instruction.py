@@ -29,7 +29,7 @@ class JVMInstruction:
             args["query"] = self.eval_and_patch(args["query"])
             args["save_to"] = self.eval_and_patch(args["save_to"])
 
-        if action_type == "Fetch":
+        if action_type == "FetchWebContent":
             args["url"] = self.eval_and_patch(args["url"])
             args["save_to"] = self.eval_and_patch(args["save_to"])
 
@@ -44,7 +44,7 @@ class JVMInstruction:
                 args["timeout"] = 30
 
         if action_type == "TextCompletion":
-            args["task_description"] = self.eval_and_patch(args.get("task_description"))
+            args["operation"] = self.eval_and_patch(args.get("operation"))
             args["content"] = self.eval_and_patch(args.get("content"))
             args["output_format"] = self.eval_and_patch(yaml.safe_dump(args.get("output_format")))
             args["objective"] = objective
@@ -109,7 +109,7 @@ class JVMInterpreter:
         self.pc = 0
         self.actions = {
             "WebSearch": actions.WebSearchAction,
-            "Fetch": actions.FetchAction,
+            "FetchWebContent": actions.FetchWebContentAction,
             "RunPython": actions.RunPythonAction,
             "TextCompletion": actions.TextCompletionAction,
         }
@@ -173,7 +173,7 @@ class JVMInterpreter:
 
         evaluation_action = actions.TextCompletionAction(
             action_id = -1,
-            task_description="Evaluate true or false based on input content",
+            operation="Evaluate true or false based on input content",
             content = condition,
             output_format = yaml.safe_dump(output_fmt))
 

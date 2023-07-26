@@ -1,27 +1,22 @@
 from dataclasses import dataclass, field
-import io, subprocess, os, inspect, json, logging, time, re
-import shutil
+import subprocess, os, inspect, json, logging, time
 import venv
-from typing import Union, List, Dict, Tuple
+from typing import Union, List, Dict
 from abc import ABC
-from urllib.error import HTTPError
 import uuid
-from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urlunparse
-import requests
-import time
 import hashlib
+import requests
+
+from bs4 import BeautifulSoup
 import yaml
+
 from selenium import webdriver
-from selenium.webdriver.chrome.webdriver import WebDriver as ChromeWebDriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.chrome.options import Options as ChromeOptions
-from webdriver_manager.chrome import ChromeDriverManager
 
 from smartgpt import gpt
 from smartgpt import jvm
-from smartgpt.spinner import Spinner
 from smartgpt import utils
 
 
@@ -109,19 +104,19 @@ class Action(ABC):
         raise NotImplementedError
 
 @dataclass(frozen=True)
-class FetchAction:
+class FetchWebContentAction:
     action_id: int
     url: str
     save_to: str = ""  # the key that will be used to save content to database
 
     def key(self):
-        return "Fetch"
+        return "FetchWebContent"
 
     def id(self) -> int:
         return self.action_id
 
     def short_string(self):
-        return f"action_id: {self.id()}, Fetch `{self.url}`."
+        return f"action_id: {self.id()}, Fetch URL: `{self.url}`."
 
     @staticmethod
     def ensure_url_scheme(url) -> str:
@@ -175,7 +170,7 @@ class FetchAction:
         cached_key = self.url + self.save_to
         cached_result = get_from_cache(cached_key)
         if cached_result is not None:
-            logging.info(f"\nFetchAction RESULT(cached)\n")
+            logging.info("FetchWebContentAction RESULT(cached).")
             return cached_result
 
         try:
@@ -183,10 +178,10 @@ class FetchAction:
             html = self.get_html(url)
             text = self.extract_text(html)
         except Exception as err:
-            logging.error(f"FetchAction RESULT: An error occurred: {str(err)}")
-            return f"FetchAction RESULT: An error occurred: {str(err)}"
+            logging.error(f"FetchWebContentAction RESULT: An error occurred: {str(err)}")
+            return f"FetchWebContentAction RESULT: An error occurred: {str(err)}"
         else:
-            logging.info(f"\nFetchAction RESULT:\n{text}")
+            logging.info(f"\nFetchWebContentAction RESULT:\n{text}")
             result_str = yaml.safe_dump({"kvs": [{"key": self.save_to, "value": text}]})
 
             save_to_cache(cached_key, result_str)
@@ -342,7 +337,7 @@ class RunPythonAction(Action):
 @dataclass(frozen=True)
 class TextCompletionAction(Action):
     action_id: int
-    task_description: str
+    operation: str
     content: str
     output_format: str
     model_name: str = TEXT_COMPLETION_MODEL
@@ -354,7 +349,7 @@ class TextCompletionAction(Action):
         return self.action_id
 
     def short_string(self) -> str:
-        return f"action_id: {self.id()}, text completion for \"{self.task_description}\"."
+        return f"action_id: {self.id()}, text completion for \"{self.operation}\"."
 
     def generate_messages(self) -> List[Dict[str, str]]:
         # Adjust content to fit within model's max tokens
@@ -382,7 +377,7 @@ class TextCompletionAction(Action):
             {
                 "role": "user",
                 "content": (
-                    f"Task Description: {self.task_description}\n\n"
+                    f"Operation: {self.operation}\n\n"
                     "Output Format:\n"
                     f"```yaml\n{self.output_format}\n```\n\n"
                     "Input Content:\n"
@@ -403,13 +398,13 @@ class TextCompletionAction(Action):
         return model_name
 
     def run(self) -> str:
-        hash_key = self.task_description + str(jvm.get('idx'))
+        hash_key = self.operation + str(jvm.get('idx'))
         hash_str = hashlib.md5(hash_key.encode()).hexdigest()
         cached_key = f"{hash_str}"
         cached_result = get_from_cache(cached_key)
 
         if cached_result is not None:
-            logging.info(f"TextCompletionAction RESULT(cached) for task description: {self.task_description}")
+            logging.info(f"TextCompletionAction RESULT(cached) for operation: {self.operation}")
             return cached_result
 
         messages = self.generate_messages()
@@ -418,7 +413,7 @@ class TextCompletionAction(Action):
         try:
             result = gpt.send_messages(messages, model_name)
             if result is None:
-                raise ValueError(f"Generating text completion appears to have failed.")
+                raise ValueError("Generating text completion appears to have failed.")
             result = utils.strip_yaml(result)
 
             save_to_cache(cached_key, result)
@@ -450,7 +445,7 @@ def _populate_action_classes(action_classes):
     return result
 
 ACTION_CLASSES = _populate_action_classes([
-    FetchAction,
+    FetchWebContentAction,
     RunPythonAction,
     WebSearchAction,
     TextCompletionAction,

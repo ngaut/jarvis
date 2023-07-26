@@ -27,7 +27,7 @@ instructions:
       save_to: "search_result_urls.seq1.list"
 
   - seq: 2
-    type: Fetch
+    type: FetchWebContent
     inside_loop: false
     rule_num: 2
     objective: "Fetch the content from the first URL from the search results"
@@ -41,7 +41,7 @@ instructions:
     objective: "Get the current temperature in San Francisco from the fetched content"
     rule_num: 3
     args:
-      task_description: "Get the current temperature and url in San Francisco"
+      operation: "Get the current temperature and url in San Francisco"
       output_format:
         kvs:
           - key: "temperature.seq3.int"  # without <idx> as not inside a loop
@@ -64,7 +64,7 @@ instructions:
         objective: "Generate outdoor activities suggestions"
         rule_num: 3
         args:
-          task_description: "What outdoor activities should we recommend to the users? Please generate a weather notes"
+          operation: "What outdoor activities should we recommend to the users? Please generate a weather notes"
           output_format:
             kvs:
               - key: "weather_notes.seq5.str"
@@ -77,7 +77,7 @@ instructions:
         objective: "Generate indoor activities suggestions"
         rule_num: 3
         args:
-          task_description: "What indoor activities should we recommend to the users? Please generate a weather notes"
+          operation: "What indoor activities should we recommend to the users? Please generate a weather notes"
           output_format:
             kvs:
               - key: "weather_notes.seq6.str"
@@ -90,7 +90,7 @@ instructions:
     objective: "Generate a complete weather report for San Francisco using the gathered information"
     rule_num: 3
     args:
-      task_description: "Please generate current weather report for San Francisco"
+      operation: "Please generate current weather report for San Francisco"
       output_format:
         kvs:
           - key: "weather_report.seq7.str"
@@ -149,7 +149,7 @@ instructions:
       idx: "jvm.eval(jvm.get('idx'))"
       instructions:
         - seq: 3
-          type: Fetch
+          type: FetchWebContent
           inside_loop: true
           objective: "Fetch the content from the current URL from the search results"
           rule_num: 2
@@ -163,7 +163,7 @@ instructions:
           objective: "Extract and summarize the key information from the fetched news content"
           rule_num: 3
           args:
-            task_description: "Extract and summarize the key points from the AI news"
+            operation: "Extract and summarize the key points from the AI news"
             output_format:
               kvs:
                 - key: "jvm.eval('news_summary_' + str(jvm.get('idx')) + '.seq4.str')"  # with <idx> as inside a loop
@@ -176,7 +176,7 @@ instructions:
     objective: "Generate the blog content using the summarized news"
     rule_num: 4  # Use TextCompletion instead of Loop when combining a list of multiple news summaries into a single blog post.
     args:
-      task_description: "Structure the blog post using the summaries of the news"
+      operation: "Structure the blog post using the summaries of the news"
       output_format:
         kvs:
           - key: "blog_content.seq5.str"
@@ -197,7 +197,7 @@ task: "Fetch the titles of the top 5 articles on Hacker News and decide whether 
 
 objective: "Retrieve the titles of the top 5 articles on Hacker News and based on their relevance to AI, decide whether to post them to a Slack channel"
 
-thoughts: "This task requires fetching the article titles from Hacker News and then making a decision for each title. Therefore, the instructions `WebSearch`, `Fetch`, `TextCompletion`, `If`, and `Loop` will be utilized."
+thoughts: "This task requires fetching the article titles from Hacker News and then making a decision for each title. Therefore, the instructions `WebSearch`, `FetchWebContent`, `TextCompletion`, `If`, and `Loop` will be utilized."
 
 hints_from_user: []
 
@@ -223,7 +223,7 @@ instructions:
       idx: "jvm.eval(jvm.get('idx'))"
       instructions:
         - seq: 3
-          type: Fetch
+          type: FetchWebContent
           inside_loop: true
           objective: "Fetch the title from the current URL"
           rule_num: 2
@@ -237,7 +237,7 @@ instructions:
           objective: "Decide if the article is relevant to AI"
           rule_num: 3
           args:
-            task_description: "Determine if the article is about AI"
+            operation: "Determine if the article is about AI"
             output_format:
               kvs:
                 - key: "jvm.eval('is_relevant_' + str(jvm.get('idx')) + '.seq4.bool')"
@@ -258,7 +258,7 @@ instructions:
                 objective: "Prepare the message to be posted to Slack"
                 rule_num: 3
                 args:
-                  task_description: "Generate the message to be posted to Slack"
+                  operation: "Generate the message to be posted to Slack"
                   output_format:
                     kvs:
                       - key: "jvm.eval('slack_message_' + str(jvm.get('idx')) + '.seq6.str')"
