@@ -157,7 +157,7 @@ class JarvisAgent:
             if skip_gen:
                 instrs = self.load_instructions()
             else:
-                instrs = self.gen_instructions(task, dependent_task_outputs)
+                instrs = self.gen_instructions(task, goal, dependent_task_outputs)
             result = self.execute_instructions(instrs)
         except Exception as e:
             logging.error(f"Error executing task {task}: {e}")
@@ -177,11 +177,8 @@ class JarvisAgent:
             instructions[task_num] = yaml.safe_load(saved)
         return instructions
 
-    def gen_instructions(self, task: str, dependent_tasks: List[TaskInfo]) -> Dict:
-        translator = Translator(BASE_MODEL)
-
-        first_task = len(dependent_tasks) == 0
-
+    def gen_instructions(self, task: str, goal: str, dependent_tasks: List[TaskInfo]) -> Dict:
+        compiler = Compiler(BASE_MODEL)
         previous_outcomes = []
         task_num = 1
 
@@ -193,26 +190,13 @@ class JarvisAgent:
                     "outcome": dt.metadata.get("instruction_outcome", ""),
                 }
             )
-            task_num = (
-                dt.task_num + 1
-            )  # assert the depend task is executed before this task
+            if dt.task_num >= task_num:
+                task_num = (
+                    dt.task_num + 1
+                )
 
-        task_info = {
-            "first_task": first_task,
-            "task_num": task_num,
-            "hints": [],
-            "task": task,
-            "start_seq": (task_num - 1 << 4) + 1,
-            "previous_outcomes": previous_outcomes,
-        }
-
-        generated_instrs = translator.translate_to_instructions(task_info)
-        # call reviewer
-
-        with open(f"{task_num}.yaml", "w") as f:
-            f.write(generated_instrs)
-
-        return {task_num: yaml.safe_load(generated_instrs)}
+        generated_instrs = compiler.compile_task(task_num, task, [f"The current task is a part of gloal goal: {goal}"], previous_outcomes)
+        return {task_num: generated_instrs}
 
     def execute_instructions(self, instructions: Dict) -> TaskInfo | None:
         jvm.load_kv_store()

@@ -35,7 +35,7 @@ class Compiler:
             "task_num": num,
             "hints": hints,
             "task": task,
-            "start_seq": 1000 * num + 1,
+            "start_seq": (num - 1 << 4) + 1,
             "previous_outcomes": previous_outcomes
         }
 
@@ -115,7 +115,6 @@ class Compiler:
 
     def compile_task(self, specified_task_num: int, task: str, hints: List, previous_outcomes: List) -> Dict:
         file_name = f"{specified_task_num}.yaml"
-        origin = self.load_yaml(file_name) if os.path.exists(file_name) else None
         task_info = self.create_task_info(task, specified_task_num, hints, previous_outcomes)
 
         instructions_yaml_str = self.reviewer.translate_to_instructions(task_info)
