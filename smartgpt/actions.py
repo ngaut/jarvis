@@ -137,16 +137,18 @@ class FetchAction:
         chrome_options.headless = True
 
         # Installing and setting up Chrome WebDriver with the defined options
-        driver_path = ChromeDriverManager().install()
+        #driver_path = ChromeDriverManager().install()
 
         # Use context management to ensure the browser is quit
-        with ChromeWebDriver(executable_path=driver_path, options=chrome_options) as browser:
+        # with ChromeWebDriver(executable_path=driver_path, options=chrome_options) as browser:
+        with webdriver.Chrome(options=chrome_options) as browser:
             # Access the provided URL
             browser.get(url)
 
             # Extract HTML content from the body of the web page
             body_element = browser.find_element(By.TAG_NAME, "body")
             page_html = body_element.get_attribute("innerHTML")
+            browser.quit()
 
         return page_html
 
