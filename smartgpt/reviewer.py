@@ -42,12 +42,13 @@ Please review the prompt and your response, then answer the following questions 
                          "Each instruction's objective description should be sufficiently detailed and clear.\n"
                          "The args provided should offer comprehensive information, serving as self-contained input for each instruction execution.\n"
                          "Verify that Jarvis selects the appropriate instruction type to ensure the desired outcome can be achieved through execution.\n"
-                         "The `jvm.get()` method must invariably be encapsulated within `jvm.eval()`. "
-                         "This is crucial to assure correct evaluation within the 'content' field of the TextCompletion instruction.\n"
-                         "The 'FetchWebContent' instruction cannot accept a local file path as a URL argument.\n"
-                         "The 'RunPython' instruction should not contain jvm.eval().\n"
                          "\n"
-                         "If all these stipulations are met, respond with 'Approved'. If not, please reproduce your response in YAML format:\n```yaml\n")
+                         "Checklist:\n"
+                         "1. The `jvm.get()` method must invariably be encapsulated within `jvm.eval()`. This is crucial to assure correct evaluation within the 'content' field of the TextCompletion instruction.\n"
+                         "2. The 'FetchWebContent' instruction cannot accept a local file path as a URL argument.\n"
+                         "3. The 'RunPython' instruction should not contain `jvm.eval()`.\n"
+                         "\n"
+                         "Please check one by one according to the checklist. If all these stipulations are met, respond with 'Approved'. If not, please reproduce your response in YAML format:\n```yaml\n")
 
         messages = deepcopy(self.translator.messages)
         messages.append({"role": "user", "content": review_prompt})

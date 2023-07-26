@@ -5,7 +5,7 @@ from typing import Dict
 
 import yaml
 
-from smartgpt import gpt, reviewer
+from smartgpt import gpt
 from smartgpt import clarify
 from smartgpt import utils
 

@@ -135,25 +135,18 @@ Remember, your task is to generate instructions that will run on JVM based on th
     def translate_to_instructions(self, task_info: Dict[str, Any]):
         hints = ""
         if task_info["first_task"]:
-            hints += "  - \"This is the first task, so there are no previous tasks or outcomes.\"\n"
+            hints += "This is the first task, so there are no previous tasks or outcomes.\n"
         else:
-            previous_outcomes = task_info.get("previous_outcomes", [])
-            for item in previous_outcomes:
-                tmp = {
-                    f"Previous done task {item['task_num']}": {
-                        "task": item["task"],
-                        "outcome": item["outcome"],
-                    }
-                }
-                hints += f"  - {json.dumps(tmp)}\n"
+            for item in task_info.get("previous_outcomes", []):
+                hints += f"{item['outcome']}\n"
 
         for item in task_info.get("hints", []):
-            hints += f"  - {json.dumps(item)}\n"
+            hints += f"{json.dumps(item)}\n"
 
         user_prompt = (
-            f"The current task: {json.dumps(task_info['task'])}\n"
+            f"Your task: {json.dumps(task_info['task'])}\n"
             f"The starting sequence: {json.dumps(task_info['start_seq'])}\n"
-            "You are going to create a series of JVM instructions to complete the current task.\n"
+            "You are going to create a series of JVM instructions to complete your task.\n"
             "Ensure you fully utilize the outcomes of previous tasks in user hints.\n"
             "Remember: Every instruction must save its outcome to the database so it can be used in subsequent tasks.\n\n"
         )
