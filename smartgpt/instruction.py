@@ -117,6 +117,7 @@ class JVMInterpreter:
     def run(self, instrs, task):
         if instrs is not None:
             while self.pc < len(instrs):
+                print(f"Running instruction (pc={self.pc}): {instrs[self.pc]}")
                 jvm_instr = JVMInstruction(instrs[self.pc], self.actions, task)
                 action_type = instrs[self.pc].get("type")
                 if action_type == "If":
@@ -132,6 +133,7 @@ class JVMInterpreter:
         # Extract the count and the list of instructions for the loop
         loop_count = 0
         # if loop_count is integer
+        print(f"loop instruction (seq={jvm_instr.instruction.get('seq', 'N/A')}) args: {args}")
         if isinstance(args["count"], int):
             loop_count = args["count"]
         elif isinstance(args["count"], str):
