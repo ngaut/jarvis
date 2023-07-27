@@ -44,7 +44,7 @@ Please review the prompt and your response, then answer the following questions 
                          "Verify that Jarvis selects the appropriate instruction type to ensure the desired outcome can be achieved through execution.\n"
                          "\n"
                          "Checklist:\n"
-                         "1. The `jvm.get()` method must invariably be encapsulated within `jvm.eval()`. This is crucial to assure correct evaluation within the 'content' field of the TextCompletion instruction.\n"
+                         "1. The `jvm.get()` and `jvm.list_values_with_key_prefix()` method must invariably be encapsulated within the `jvm.eval()`. Correct syntax `jvm.eval(jvm.get(key_name))` and Incorrect syntax `jvm.get(jvm.eval(key_name))`\n"
                          "2. The 'FetchWebContent' instruction cannot accept a local file path as a URL argument.\n"
                          "3. The 'RunPython' instruction should not contain `jvm.eval()`.\n"
                          "\n"

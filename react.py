@@ -25,16 +25,16 @@ from langchain.tools.base import BaseTool
 from langchain.agents.tools import InvalidTool
 
 from smartgpt import gpt
-from extensions.smartgpt_agent import JarvisAgent
+from extensions.smartgpt_agent import JarvisAgent, EMPTY_FIELD_INDICATOR
 
 # Set up the base react template
-react_prompt_template = """Achieve the following objectives as best you can. You have access to the following tools:
+react_prompt_template = """Answer the following question as best you can. You have access to the following tools:
 
 {tools}
 
 Use the following format:
 
-Objective: the input objective you must to achieve
+Question: the input question you must to answer
 Thought: you should always think about what to do
 Action: the action to take. Choose the most appropriate action name from the following tool name list: [{tool_names}]. Don't take the useless tools.
 Action Input: the input to the action
@@ -45,14 +45,14 @@ Final Answer: the final achieve to the original input objective
 
 Begin! Give your final answer and follow the above format.
 
-Objective: {input}
+Question: {input}
 {agent_scratchpad}"""
 
 
 # Set up a prompt template
 class ReactPrompt(StringPromptTemplate):
     # The template to use
-    template:str
+    template: str
     # The list of tools available
     tools: List[Tool]
 
@@ -109,12 +109,20 @@ def setup_react_planner(
     llm = ChatOpenAI(temperature=0.0, model=model, client=openai.ChatCompletion)
 
     # LLM chain consisting of the LLM and a prompt
-    llm_chain = LLMChain(llm=llm, prompt=ReactPrompt(template=react_prompt_template, tools=tools, input_variables = ["input", "intermediate_steps"]))
+    llm_chain = LLMChain(
+        llm=llm,
+        prompt=ReactPrompt(
+            template=react_prompt_template,
+            tools=tools,
+            input_variables=["input", "intermediate_steps"],
+        ),
+    )
     return LLMSingleActionAgent(
         llm_chain=llm_chain,
-        output_parser= ReactOutputParser(),
+        output_parser=ReactOutputParser(),
         stop=["\nObservation:"],
     )
+
 
 class AgentExecutor:
     """Consists of an agent using tools."""
@@ -262,7 +270,7 @@ class AgentExecutor:
 
 
 class JarvisAgentTools:
-    def __init__(self, objective:str):
+    def __init__(self, objective: str):
         self.agent = JarvisAgent()
         self.objective = objective
         self.previous_tasks = []
@@ -280,30 +288,30 @@ class JarvisAgentTools:
         return self.agent.description
 
     def exec(self, tool_input: str) -> str:
-        task_info = self.agent(
-            tool_input, self.previous_tasks, self.objective, subdir=self.subdir
-        )
-        assert task_info is not None, "last_task_info is None"
+        while True:
+            task_info = self.agent(
+                tool_input, self.previous_tasks, self.objective, subdir=self.subdir
+            )
+            assert task_info is not None, "last_task_info is None"
+            if task_info.result != EMPTY_FIELD_INDICATOR:
+                break
+            print(f"Retring.... cause of empty result of task: {task_info}")
+
         self.previous_tasks.append(task_info)
         return task_info.result
 
 
 objective = """
-Your task is to compose a captivating tweet about the trending AI projects from the last 28 days, using trending data from https://ossinsight.io/collections/artificial-intelligence/.  Here's how to do it:
-
-- Step 1: Navigate to https://ossinsight.io/collections/artificial-intelligence/ and explore the 28-day project rankings. The rankings are based on several factors like stars, pull requests, and issues. Look out for the appearance of new projects that have made a swift climb up the ranks. Record your observations concisely, highlighting significant trends.
-
-- Step 2: Next, based on your observations from Step 1, select 1-3 projects that are particularly interesting. These projects may rise rapidly in rankings, or github stars count growth rate is ahead of other projects. Make sure your selection is diverse to represent different observed trends.
-
-- Step 3: With your projects selected, conduct a more detailed online search to understand each project's latest advancements.  Searching for recent progress or news on the official project page, twitter, hacker news. Summarize the findings for each project.
-
-- Step 4: Finally, craft your tweet. Start with a catchy sentence about the overall trends in this field, followed by brief introductions of your chosen projects, highlighting their recent advancements. Try to make your descriptions engaging and amusing, and consider using elements of humor, satire, or hyperbole. Remember to stay within Twitter's character limit.
+Compose a captivating tweet about the trending AI projects from the last 28 days, using trending data from https://ossinsight.io/collections/artificial-intelligence/.  Here's how to do it:
 
 Success Criteria:
 
 - The tweet successfully summarizes overall trends in AI projects from the last 28 days.
-- 1-3 specific projects are featured in the tweet, with their recent advancements accurately described.
+- 1-3 specific projects will be featured in the tweet. These projects may rise rapidly in rankings, or github stars count growth rate is ahead of other projects. Make sure your selection is diverse to represent different observed trends.
+- Collect and summarize recent developments (news) of selected projects to ensure that news is timely (nearly a month) and eye-catching
 - The tweet is engaging, amusing, and adheres to the Twitter's character limit.
+
+Current Date: 2023-07-27
 """
 
 
@@ -312,20 +320,3 @@ jarvisTool = Tool(name=jarvis.name, description=jarvis.description, func=jarvis.
 agent = AgentExecutor([jarvisTool], model="gpt-4")
 
 agent.run(objective)
-exit()
-
-inputs = {"input": objective}
-intermediate_steps: List[Tuple[AgentAction, str]] = []
-step1 = agent._decide_next_step(inputs, intermediate_steps)
-print(f"action 1: {step1}")
-
-step1_output = agent._take_next_step(step1)
-print(f"action 1 result: {step1_output}")
-intermediate_steps.append(step1_output)
-
-step2 = agent._decide_next_step(inputs, intermediate_steps)
-print(f"action 2: {step2}")
-
-step2_output = agent._take_next_step(step2)
-print(f"action 2 result {step2_output}")
-intermediate_steps.append(step2_output)
