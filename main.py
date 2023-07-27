@@ -12,6 +12,7 @@ from smartgpt import gpt
 from smartgpt import jvm
 from smartgpt import instruction
 from smartgpt.compiler import Compiler
+from smartgpt import preprompts
 
 
 #BASE_MODEL = gpt.GPT_4
@@ -61,6 +62,8 @@ if __name__ == "__main__":
         else:
             logging.error(f"Goal file {args.goalfile} does not exist")
             exit(1)
+
+    preprompts.load("prompts")
 
     os.makedirs("workspace", exist_ok=True)
     os.chdir("workspace")
