@@ -28,24 +28,24 @@ from smartgpt import gpt
 from extensions.smartgpt_agent import JarvisAgent
 
 # Set up the base react template
-react_prompt_template = """Answer the following questions as best you can. You have access to the following tools:
+react_prompt_template = """Achieve the following objectives as best you can. You have access to the following tools:
 
 {tools}
 
 Use the following format:
 
-Question: the input question you must answer
+Objective: the input objective you must to achieve
 Thought: you should always think about what to do
-Action: the action to take. Choose the most appropriate action from the following tool name list: [{tool_names}]. Don't take the useless tools.
+Action: the action to take. Choose the most appropriate action name from the following tool name list: [{tool_names}]. Don't take the useless tools.
 Action Input: the input to the action
 Observation: the result of the action
 ... (this Thought/Action/Action Input/Observation can repeat N times)
 Thought: I now know the final answer
-Final Answer: the final answer to the original input question
+Final Answer: the final achieve to the original input objective
 
 Begin! Give your final answer and follow the above format.
 
-Objective: {objective}
+Objective: {input}
 {agent_scratchpad}"""
 
 
@@ -109,7 +109,7 @@ def setup_react_planner(
     llm = ChatOpenAI(temperature=0.0, model=model, client=openai.ChatCompletion)
 
     # LLM chain consisting of the LLM and a prompt
-    llm_chain = LLMChain(llm=llm, prompt=ReactPrompt(template=react_prompt_template, tools=tools, input_variables = ["objective", "intermediate_steps"]))
+    llm_chain = LLMChain(llm=llm, prompt=ReactPrompt(template=react_prompt_template, tools=tools, input_variables = ["input", "intermediate_steps"]))
     return LLMSingleActionAgent(
         llm_chain=llm_chain,
         output_parser= ReactOutputParser(),
@@ -311,8 +311,10 @@ jarvis = JarvisAgentTools(objective)
 jarvisTool = Tool(name=jarvis.name, description=jarvis.description, func=jarvis.exec)
 agent = AgentExecutor([jarvisTool], model="gpt-4")
 
+agent.run(objective)
+exit()
 
-inputs = {"objective": objective}
+inputs = {"input": objective}
 intermediate_steps: List[Tuple[AgentAction, str]] = []
 step1 = agent._decide_next_step(inputs, intermediate_steps)
 print(f"action 1: {step1}")
