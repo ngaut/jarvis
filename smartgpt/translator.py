@@ -3,10 +3,10 @@ from typing import Dict, Any
 
 from smartgpt import gpt
 from smartgpt import utils
-from smartgpt import examples
+from smartgpt import fewshot
 from smartgpt import preprompts
 
-FEW_SHOT_EXAMPLE = "example3"
+FEW_SHOT_EXAMPLE = "3"
 
 class Translator:
     def __init__(self, model):
@@ -14,10 +14,10 @@ class Translator:
         self.messages = []
         self.task_info = {}
 
-    def generate_system_prompt(self, example: str) -> str:
+    def generate_system_prompt(self) -> str:
         system_prompt = preprompts.get("translator_sys")
-        few_shot_example = examples.get_example(example)
-        return system_prompt + few_shot_example
+        example = fewshot.get(FEW_SHOT_EXAMPLE)
+        return system_prompt + "\n" + example
 
 
     def translate_to_instructions(self, task_info: Dict[str, Any]):
@@ -47,7 +47,7 @@ class Translator:
         #logging.info(f"Translate task: {task_info}")
         #logging.info(f"================================================")
 
-        system_prompt = self.generate_system_prompt(FEW_SHOT_EXAMPLE)
+        system_prompt = self.generate_system_prompt()
         resp = gpt.complete(prompt=user_prompt, model=self.model, system_prompt=system_prompt)
         self.trace_llm_completion(system_prompt, user_prompt, resp, task_info)
 

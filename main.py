@@ -13,10 +13,12 @@ from smartgpt import jvm
 from smartgpt import instruction
 from smartgpt.compiler import Compiler
 from smartgpt import preprompts
+from smartgpt import fewshot
 
 
-#BASE_MODEL = gpt.GPT_4
-BASE_MODEL = gpt.GPT_3_5_TURBO_16K
+PLANNER_MODEL = gpt.GPT_4
+TRANSLATOR_MODEL = gpt.GPT_3_5_TURBO_16K
+REVIEWER_MODEL = gpt.GPT_4
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -28,7 +30,7 @@ if __name__ == "__main__":
     parser.add_argument('--yaml', type=str, help='Path to the yaml file to execute plan from')
     parser.add_argument('--startseq', type=int, default=0, help='Starting sequence number')
     parser.add_argument('--goalfile', type=str, default='', help='Specify the goal description file for Jarvis')
-    parser.add_argument('--compile', type=int, default=0, help='Translate the plan into instructions with the given task number')
+    parser.add_argument('--compile', type=int, default=0, help='Translate plan into instructions with given task number')
 
     args = parser.parse_args()
 
@@ -63,7 +65,8 @@ if __name__ == "__main__":
             logging.error(f"Goal file {args.goalfile} does not exist")
             exit(1)
 
-    preprompts.load("prompts")
+    preprompts.initialize("prompts")
+    fewshot.initialize("examples")
 
     os.makedirs("workspace", exist_ok=True)
     os.chdir("workspace")
@@ -91,10 +94,10 @@ if __name__ == "__main__":
     else:
         if args.replan:
             logging.info("Regenerate plan ...")
-            planner.gen_plan(BASE_MODEL, goal)
+            planner.gen_plan(PLANNER_MODEL, goal)
         elif args.compile:
             logging.info(f"Tranlate the given task[{args.compile}] into JVM instructions ...")
-            Compiler(BASE_MODEL).compile_task_in_plan(args.compile)
+            Compiler(TRANSLATOR_MODEL, REVIEWER_MODEL).compile_task_in_plan(args.compile)
         else:
             logging.info("Tranlate all tasks in plan ...")
-            Compiler(BASE_MODEL).compile_plan()
+            Compiler(TRANSLATOR_MODEL, REVIEWER_MODEL).compile_plan()

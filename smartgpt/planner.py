@@ -15,7 +15,7 @@ def gen_plan(model: str, goal: str) -> Dict:
     if not goal:
         # input the goal
         input_goal = input("Please input your goal:\n")
-        goal = clarify.clarify_and_summarize(input_goal)
+        goal = clarify.clarify_and_summarize(input_goal, model)
 
     try:
         logging.info("========================")

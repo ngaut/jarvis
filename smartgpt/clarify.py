@@ -4,19 +4,15 @@ from smartgpt import gpt
 from smartgpt import preprompts
 
 
-CLARIFY_MODEL_NAME = gpt.GPT_3_5_TURBO_16K
-
-def clarify(goal: str) -> List[Dict[str, str]]:
+def clarify(goal: str, model: str) -> List[Dict[str, str]]:
     messages = [{"role": "system", "content": preprompts.get("clarify_sys")}]
-    user_input = f"The goal: {goal}"
+    user_input = f"The goal:\n{goal}\n"
 
     while True:
         print()
-        messages = gpt.chat(messages, CLARIFY_MODEL_NAME, user_input)
-
+        messages = gpt.chat(messages, model, user_input)
         if messages[-1]["content"].strip() == "Nothing more to clarify.":
             break
-
         if messages[-1]["content"].strip().lower().startswith("no"):
             print("Nothing more to clarify.")
             break
@@ -28,7 +24,7 @@ def clarify(goal: str) -> List[Dict[str, str]]:
             print("\n(letting Jarvis make its own assumptions)\n")
             messages = gpt.chat(
                 messages,
-                CLARIFY_MODEL_NAME,
+                model,
                 "Make your own assumptions and state them explicitly before starting",
             )
             return messages
@@ -38,12 +34,13 @@ def clarify(goal: str) -> List[Dict[str, str]]:
     return messages
 
 
-def clarify_and_summarize(goal: str) -> str:
+def clarify_and_summarize(goal: str, model: str) -> str:
     # Interactively clarify user goals
-    messages = clarify(goal)
+    messages = clarify(goal, model)
 
     # Summarize the messages to a clear goal
     messages = [{"role": "system", "content": "You are an AI assistant to clarify user's goal"}] + messages[1:]
 
-    resp = gpt.complete_with_messages("Summary the goal into a single sentence to make it clear and detailed", CLARIFY_MODEL_NAME, messages)
+    user_prompt = "Summary the goal into a single sentence to make it clear and detailed"
+    resp = gpt.complete_with_messages(user_prompt, model, messages)
     return resp

@@ -9,9 +9,9 @@ from smartgpt.reviewer import Reviewer
 
 
 class Compiler:
-    def __init__(self, model: str):
-        self.translator = Translator(model)
-        self.reviewer = Reviewer(model, self.translator)
+    def __init__(self, translator_model: str, reviewer_model: str):
+        self.translator = Translator(translator_model)
+        self.reviewer = Reviewer(reviewer_model, self.translator)
 
     def load_yaml(self, file_name: str) -> Dict:
         try:
