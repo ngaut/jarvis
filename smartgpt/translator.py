@@ -1,4 +1,3 @@
-import json
 import logging
 from typing import Dict, Any
 
@@ -16,34 +15,31 @@ class Translator:
         self.task_info = {}
 
     def generate_system_prompt(self, example: str) -> str:
+        system_prompt = preprompts.get("translator_sys")
         few_shot_example = examples.get_example(example)
-        system_prompt = preprompts.get("translator_sys_prompt")
         return system_prompt + few_shot_example
 
 
     def translate_to_instructions(self, task_info: Dict[str, Any]):
-        hints = ""
+        previous_task_outcomes = ""
         if task_info["first_task"]:
-            hints += "This is the first task, so there are no previous tasks or outcomes.\n"
+            previous_task_outcomes += "* This is the first task, so there are no previous tasks or outcomes.\n"
         else:
             for item in task_info.get("previous_outcomes", []):
-                hints += f"{item['outcome']}\n"
+                previous_task_outcomes += f"* {item['outcome']}\n"
 
+        hints = ""
         for item in task_info.get("hints", []):
-            hints += f"{json.dumps(item)}\n"
+            hints += f"* {item}\n"
+        if hints == "":
+            hints = "No hints\n"
 
-        user_prompt = (
-            f"Your task: {json.dumps(task_info['task'])}\n"
-            f"The starting sequence: {json.dumps(task_info['start_seq'])}\n"
-            "You are going to create a series of JVM instructions to complete your task.\n"
-            "Ensure you fully utilize the outcomes of previous tasks in user hints.\n"
-            "Remember: Every instruction must save its outcome to the database so it can be used in subsequent tasks.\n\n"
+        user_prompt = preprompts.get("translator_user").format(
+            task = task_info["task"],
+            start_seq = task_info["start_seq"],
+            hints = hints,
+            previous_task_outcomes = previous_task_outcomes,
         )
-
-        if hints != "":
-            user_prompt += f"Here are some hints from user:\n{hints}\n"
-
-        user_prompt += "Please provide your response in YAML format:\n```yaml\n"
 
         logging.info(f"User Prompt:\n{user_prompt}")
 

@@ -1,0 +1,15 @@
+Task:
+{operation}
+
+Output Format:
+```yaml
+{output_format}
+```
+
+Content:
+"""
+{content}
+"""
+
+Please formulate your response in the provided output format:
+```yaml

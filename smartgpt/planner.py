@@ -21,14 +21,14 @@ def gen_plan(model: str, goal: str) -> Dict:
         logging.info("========================")
         logging.info(f"The goal: {goal}")
 
+        system_prompt = preprompts.get("planner_sys")
         user_prompt = (
             f"The goal: \"\"\"\n{goal}\n\"\"\"\n\n"
             "Please generate the task list that can finish the goal.\n"
             "Your YAML response:```yaml\n"
         )
 
-        resp = gpt.complete(user_prompt, model, preprompts.get("planner_sys_prompt"))
-        # reviewer.Reviewer().review_plan_gen(resp)
+        resp = gpt.complete(user_prompt, model, system_prompt)
 
         resp = sort_plan(utils.strip_yaml(resp))
         with open("plan.yaml", "w") as stream:
