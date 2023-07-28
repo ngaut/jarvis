@@ -18,6 +18,7 @@ from selenium.webdriver.chrome.options import Options as ChromeOptions
 from smartgpt import gpt
 from smartgpt import jvm
 from smartgpt import utils
+from smartgpt import preprompts
 
 
 TEXT_COMPLETION_MODEL = gpt.GPT_3_5_TURBO_16K
@@ -28,7 +29,6 @@ _ENABLE_CACHE = True
 
 def load_cache():
     global _CACHE
-    global _ENABLE_CACHE
 
     if _ENABLE_CACHE:
         if os.path.exists("cache.json"):
@@ -361,31 +361,24 @@ class TextCompletionAction(Action):
             # If content is too long, truncate it to fit within model's max tokens.
             content = gpt.truncate_to_tokens(content, max_token_count)
 
-        return [
+        user_prompt = preprompts.get("text_completion_user").format(
+            operation=self.operation,
+            output_format=self.output_format,
+            content=content,
+        )
+
+        messages = [
             {
                 "role": "system",
-                "content": (
-                    "As an AI language model, your task is to process user's task request based on the provided content and respond in a structured manner as per the given output format.\n"
-                    "The keys in the output format follow this pattern: 'key_<idx>.seqX.<type>'. "
-                    "In this pattern, 'X' remains constant, '<idx>' dynamically varies, and '<type>' represents Python's data types, including {int, str, list}. "
-                    "'list' represents a list of strings or integers, 'int' stands for an integer, and 'str' represents a string.\n"
-                    "In the output format, the term '<to_fill>' appears in place of the values that you need to provide. "
-                    "It's important to remember that in YAML, when dealing with a value that is a multiline text "
-                    "or contains special characters such as single quotes, double quotes, or colons, you should prioritize using the `|` symbol."
-                )
+                "content": preprompts.get("text_completion_sys"),
             },
             {
                 "role": "user",
-                "content": (
-                    f"Operation: {self.operation}\n\n"
-                    "Output Format:\n"
-                    f"```yaml\n{self.output_format}\n```\n\n"
-                    "Input Content:\n"
-                    f"\"\"\"\n{content}\n\"\"\"\n\n"
-                    "Please formulate your response in the provided output format:\n```yaml\n"
-                )
-            }
+                "content": user_prompt,
+            },
         ]
+
+        return messages
 
     def adjust_token_and_model(self, messages: List[Dict[str, str]]) -> str:
         request_token_count = gpt.count_tokens(messages)

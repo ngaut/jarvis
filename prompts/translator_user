@@ -1,0 +1,17 @@
+Your task:
+{task}
+
+Previous task outcomes:
+{previous_task_outcomes}
+
+Hints from user:
+{hints}
+
+The starting sequence: {start_seq}
+
+Remember:
+* Ensure you fully utilize the outcomes of previous tasks
+* Every instruction must save its outcome to the database so it can be used in subsequent tasks.
+
+Please provide your response in YAML format:
+```yaml
