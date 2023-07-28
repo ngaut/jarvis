@@ -9,4 +9,3 @@ Checklist:
 3. The 'RunPython' instruction should not contain `jvm.eval()`.
 
 Please check one by one according to the checklist. If all these stipulations are met, respond with 'Approved'. If not, please reproduce your response in YAML format:
-```yaml

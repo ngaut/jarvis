@@ -72,6 +72,7 @@ if __name__ == "__main__":
     os.chdir("workspace")
 
     jvm.load_kv_store()
+    actions.disable_cache()
     actions.load_cache()
 
     if args.yaml:

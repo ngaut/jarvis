@@ -46,9 +46,6 @@ def disable_cache():
     _ENABLE_CACHE = False
 
 def get_from_cache(key):
-    global _CACHE
-    global _ENABLE_CACHE
-
     if _ENABLE_CACHE:
         return _CACHE.get(key, None)
     else:
