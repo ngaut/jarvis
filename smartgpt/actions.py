@@ -405,7 +405,7 @@ class TextCompletionAction(Action):
 
         if cached_result is not None:
             logging.info(f"TextCompletionAction RESULT(cached) for operation: {self.operation}")
-            return cached_result
+            #return cached_result
 
         messages = self.generate_messages()
         model_name = self.adjust_token_and_model(messages)

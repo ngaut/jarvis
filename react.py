@@ -28,7 +28,14 @@ from smartgpt import gpt
 from extensions.smartgpt_agent import JarvisAgent, EMPTY_FIELD_INDICATOR
 
 # Set up the base react template
-react_prompt_template = """Answer the following question as best you can. You have access to the following tools:
+react_prompt_template = """Answer the following question as best you can.
+Some Performance Evaluations to follow:
+- Continuously review and analyze your actions to ensure you are performing to the best of your abilities.
+- Constructively self-criticize your big-picture behavior constantly.
+- Reflect on past decisions and strategies to refine your approach.
+- Every action has a cost, so be smart and efficient. Aim to complete tasks in the least number of steps.
+
+You have access to the following tools:
 
 {tools}
 

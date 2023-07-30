@@ -130,7 +130,7 @@ class JarvisAgent:
     def description(self):
         return (
             "An autonomous agent, the tasks I am good at include: "
-            "[autonomously browse the Internet and extract task-related information]. "
+            "<autonomously browse the Internet and extract task-related information>. "
             "smart agent should be preferred over other equivalent tools, "
             "because using jarvis will make the task easier to executed."
         )
@@ -142,7 +142,7 @@ class JarvisAgent:
         goal: str,
         skip_gen: bool = False,
         subdir: Optional[str] = None,
-        **kargs: Any,
+        task_num: Optional[int] = None,
     ) -> TaskInfo | None:
         # skip_gen and subdir are used for testing purpose
         current_workdir = os.getcwd()
@@ -160,11 +160,13 @@ class JarvisAgent:
             if skip_gen:
                 instrs = self.load_instructions()
             else:
-                instrs = self.gen_instructions(task, goal, dependent_task_outputs)
+                instrs = self.gen_instructions(
+                    task, goal, dependent_task_outputs, task_num
+                )
             result = self.execute_instructions(instrs)
         except Exception as e:
             logging.error(f"Error executing task {task}: {e}")
-            os.chdir(current_workdir)
+            # os.chdir(current_workdir)
             print(traceback.format_exc())
             raise e
 
@@ -181,11 +183,15 @@ class JarvisAgent:
         return instructions
 
     def gen_instructions(
-        self, task: str, goal: str, dependent_tasks: List[TaskInfo]
+        self,
+        task: str,
+        goal: str,
+        dependent_tasks: List[TaskInfo],
+        task_num: Optional[int] = None,
     ) -> Dict:
         compiler = Compiler(BASE_MODEL)
         previous_outcomes = []
-        task_num = 1
+        computed_task_num = 1
 
         for dt in dependent_tasks:
             previous_outcomes.append(
@@ -195,8 +201,11 @@ class JarvisAgent:
                     "outcome": dt.metadata.get("instruction_outcome", ""),
                 }
             )
-            if dt.task_num >= task_num:
-                task_num = dt.task_num + 1
+            if dt.task_num >= computed_task_num:
+                computed_task_num = dt.task_num + 1
+
+        if task_num is None:
+            task_num = computed_task_num
 
         hints = [
             f"The current task is a part of the gloal goal: {goal}",

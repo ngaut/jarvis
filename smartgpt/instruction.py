@@ -73,8 +73,10 @@ class JVMInstruction:
                 break
             text = tmp_text
 
+        """
         if "jvm." in text:
             raise ValueError(f"Error: text still contains 'jvm.' after evaluation. text: {text}")
+        """
 
         return text
 

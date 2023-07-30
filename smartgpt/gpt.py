@@ -104,7 +104,7 @@ def send_messages(messages: List[Dict[str, str]], model: str) -> str:
 
             if model == GPT_4:
                 logging.info("Sleeping for 60 seconds in GPT-4 model")
-                time.sleep(60)
+                time.sleep(10)
 
             return response.choices[0].message["content"] # type: ignore
 
