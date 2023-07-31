@@ -189,12 +189,7 @@ class TaskRegistry:
             ]
 
             prompt = (
-                f"You are an expert task manager, review the task output to add new tasks or not.\n"
-                "Performance Evaluation:\n"
-                " - Continuously review and analyze your actions to ensure you are performing to the best of your abilities.\n"
-                " - Constructively self-criticize your big-picture behavior constantly.\n"
-                " - Reflect on past decisions and strategies to refine your approach.\n"
-                " - Every command has a cost, so be smart and efficient. Aim to complete tasks in the least number of steps.\n\n"
+                f"You are an expert task manager, review the output of last task and the current task list, and decide whether new tasks need to be added to enhance the execution plan.\n"
                 f"As you add a new task, see if there are any tasks that need to be updated (such as updating dependencies for the task need its output)."
                 f"Use the current task list as reference."
                 f"Do not add duplicate tasks to those in the current task list."
@@ -211,6 +206,11 @@ class TaskRegistry:
                 f"AVAILABLE SKILLS: {skill_descriptions}.###"
                 f"\n###Here is the last task output: {task_output}"
                 f"\n###Here is the current task list: {self.tasks}"
+                f"\n###Here are the performance ervaluations to follow:"
+                " 1. Continuously review and analyze your actions to ensure you are performing to the best of your abilities."
+                " 2. Constructively self-criticize your big-picture behavior constantly."
+                " 2. Reflect on past decisions and strategies to refine your approach."
+                " 3. Every command has a cost, so be smart and efficient. Aim to complete tasks in the least number of steps."
                 f"\n###EXAMPLE OUTPUT FORMAT = {json.dumps(example)}"
                 f"\nEnsure that the output is a valid JSON array."
                 f"\n###OUTPUT = "
