@@ -1,0 +1,140 @@
+# Jarvis Virtual Machine (JVM) Specification
+Jarvis Virtual Machine (JVM) is a unique execution environment designed to interpret a set of YAML-based instructions called "Jarvis Instructions". These instructions are designed to enable the execution of complex tasks involving data processing, AI model interaction, and flow control.
+
+
+## JVM Instruction Synopsis
+JVM classifies instructions into three categories: 'Standard Instructions', 'Advanced Instructions', and 'Control Instructions'.
+
+**Standard Instructions** perform deterministic tasks such as 'WebSearch', 'FetchWebContent', 'TextCompletion', and more. Each standard instruction is designed to fulfill a specific function.
+
+**Advanced Instructions** execute more complex tasks, typically leveraging AI code generation capabilities. Examples include 'RunPython'. Be aware that executing 'Advanced Instructions' can be resource-intensive, so they should be used sparingly and judiciously.
+
+**Control Instructions** are designed to manage the execution flow of tasks. They include instructions like 'Loop' and 'If', providing greater control and flexibility over the execution process within the JVM environment.
+
+JVM instructions are described in the following YAML format:
+
+```yaml
+instructions:
+  - seq: # Each instruction is given a unique, incrementing identifier called 'seq'. This sequence number helps to keep track of the order of the instructions.
+    type: # Specifies the type of instruction, such as 'WebSearch', 'TextCompletion', 'RunPython' ...
+    inside_loop: # Whether this instruction is inside a loop or not.
+    objective: # The string contains an objective description for this instruction only.
+    rule_num: # which rule (include ID of rule) the instruction has been applied. The details of the rules will be described later.
+    args: # A dictionary describing specific arguments of this instruction.
+```
+
+
+## JVM Context Database
+The JVM interpreter implements a context mechanism built on an underlying database to facilitate data sharing and transfer between JVM instructions. During execution, a JVM instruction can save to and access data from the context using a specific 'key'. This 'key' must be formatted as '(key_name).seq(X).(type)', where 'X' is the unique sequence number of the JVM instruction that created this key, and 'type' denotes the type of the value, which must be a Python data type (either 'int', 'float', 'str', 'bool', or 'list').
+
+Here are a few examples of keys:
+
+1. 'searchResult.seq5.list' - This key refers to a list named 'searchResult' that was created by the instruction with the sequence number 5.
+
+2. 'pageContent.seq12.str' - This key refers to a string named 'pageContent' that was created by the instruction with the sequence number 12.
+
+### Manipulate Data in Context
+The JVM provides the following methods to interact with and manipulate data in the JVM context database. This key-value API forms the primary means of data transfer between JVM instructions:
+
+- **jvm.get('key_name')**: Retrieves and returns the value associated with the specified key.
+
+- **jvm.set('key_name', value)**: Sets the specified key with a given value.
+
+- **jvm.list_values_with_key_prefix('key_name_prefix')**: Efficiently fetches a list of values with keys that share the provided prefix. This method is often used in conjunction with the Loop instruction.
+
+However, the `jvm.get()` method cannot be invoked directly within the input arguments of an instruction. Instead, values must be passed using the lazy evaluation syntax via the `jvm.eval()` function, as shown in the examples below:
+
+1. count: "jvm.eval(len(jvm.get('fetched_urls.seq3.list')))"
+
+2. content: "jvm.eval(jvm.get('article_content.seq5.str'))"
+
+3. url: "jvm.eval('http://www.my-website.com/' + jvm.get('app_path.seq2.str'))"
+
+4. condition: "jvm.eval(jvm.get('new_jork_temperature.seq1.float') > 25)"
+
+Within a Loop structure in JVM, a special key 'idx' holds the current index of the iteration.
+
+Here are examples of using 'idx' within a Loop:
+
+1. url: "jvm.eval(jvm.get('search_results.seq1.list')[jvm.get('idx')])"  # Retrieves the search result corresponding to the current index of the loop.
+
+2. save_to: "jvm.eval('relevant_info_' + str(jvm.get('idx')) + '.seq3.str')"  # Constructs a dynamic key for saving values within the loop.
+
+3. content: "jvm.eval(jvm.list_values_with_key_prefix('relevant_info_')[jvm.get('idx')])"  # Fetches values that have keys starting with 'relevant_info_', corresponding to the current loop index.
+
+
+## Standard Instructions Library
+- **WebSearch**: This instruction retrieves a list of URLs from a web search engine based on the provided query.
+
+```yaml
+args:
+  query: # The Search query keywords.
+  save_to: # The context key (the 'type' is always 'list') under which the search result URLs should be saved in the database.
+```
+
+- **FetchWebContent**: This instruction fetches and extracts the plain text content from a specified URL. It is specifically designed for handling web pages, with HTML parsing built-in.
+
+```yaml
+args:
+  url: # The URL of the web page from which content should be fetched. Note: Only web page URLs are supported; local file paths or non-web URLs are not accepted.
+  save_to: # The key under which the fetched content will be saved in the database.
+```
+
+- **TextCompletion**: This instruction utilizes AI language models to perform text-based operations, including but not limited to content generation, text completion, code translation, content consolidation, summarizing, and information extraction. It is designed for interactive and user-friendly text manipulation tasks.
+
+```yaml
+args:
+  operation: # A description that outlines the TextCompletion operation. This includes the objective of the task (i.e., what needs to be accomplished with the input data).
+  output_format: # The output_format must be specified by using a dictionary template that defines what data to save and the associated key to use.
+    kvs:
+      - key: # Specifies a context key
+        value: '<to_fill>'  # A placeholder for the value to be filled by the TextCompletion operation
+      - ...
+  content: # The raw content to be processed. This is the direct input for the AI to work on.
+```
+
+
+## Advanced Instructions Library
+- **RunPython**: This instruction executes Python code, enabling operations such as I/O processing, API calling, and more.
+
+```yaml
+args:
+  code: # A string containing the Python code to be executed. Inside this code, JVM functions can be invoked directly without needing to use the jvm.eval() syntax for data access and manipulation. For instance, you can use "jvm.set('temperature.seq3.int', 67)" or "jvm.get('fected_content.seq5.list')". The 'jvm' module is imported by default.
+  code_review: # This field should provide an evaluation of whether the code meets the task objectives and adheres to coding standards.
+  # Coding Standards:
+  # - Include comments to explain functionality and decision-making processes.
+  # - Do not use placeholder code.
+  # - Refrain from using f-strings.
+  pkg_dependencies: # A list of any Python packages that the code depends on.
+```
+
+
+## Control Instructions Library
+- **If**: This instruction serves as a conditional control mechanism in the JVM. It evaluates a given condition and based on its truth value, it executes a corresponding set of instructions.
+
+```yaml
+args:
+  condition: # The condition to be evaluated.
+  then: # The instructions to be executed if the condition evaluates to true.
+  else: # The instructions to be executed if the condition evaluates to false.
+```
+
+- **Loop**: This instruction enables the repetition of a set of instructions for a predetermined number of iterations.
+
+```yaml
+args:
+  count: # Specifies the number of iterations for the loop. This can be dynamically evaluated using the lazy evaluation syntax. For instance, "jvm.eval(len(jvm.get('fetched_urls.seq3.list')))"
+  instructions: # Defines the list of instructions that are to be executed in each iteration.
+```
+
+
+## Rules for Instruction Selection
+- **Rule 1**: Pay attention to specific keywords such as 'loop', 'each', 'every', and plural nouns in the task and objective description. These terms often suggest that the task necessitates loop-based instructions.
+
+- **Rule 2**: Prioritize standard instructions. If the task's objectives can be fulfilled with standard instructions, leverage them to produce the desired outcome.
+
+- **Rule 3**: Use discretion when employing the RunPython instruction. Analyze if the task can be executed using other standard instructions. If feasible, prefer these standard instructions over the RunPython instruction.
+
+- **Rule 4**: Be judicious when using the Loop instruction. When tasks involve collating and summarizing multiple inputs, opt for the TextCompletion instruction over more complex alternatives such as Loop.
+
+- **Rule 5**: Finally, contemplate the use of advanced instructions. If these can achieve the task objectives, implement them to deliver the expected result.
