@@ -30,7 +30,7 @@ def gen_plan(model: str, goal: str) -> Dict:
 
         resp = gpt.complete(user_prompt, model, system_prompt)
 
-        resp = sort_plan(utils.strip_yaml(resp))
+        resp = reorder_plan(utils.strip_yaml(resp))
         with open("plan.yaml", "w") as stream:
             stream.write(resp)
 
@@ -41,8 +41,7 @@ def gen_plan(model: str, goal: str) -> Dict:
         time.sleep(1)
         raise err
 
-
-def sort_plan(plan_yaml_str: str) -> str:
+def reorder_plan(plan_yaml_str: str) -> str:
     try:
         plan = yaml.safe_load(plan_yaml_str)
     except yaml.YAMLError as err:
