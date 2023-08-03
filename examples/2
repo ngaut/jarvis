@@ -5,6 +5,8 @@ task: "Conduct research on the internet for AI-related news and write a blog"
 
 thoughts:  # AI-generated thoughts content, should be plain text without newlines, wrapped in quotes
 
+previous_task_outcomes:  # A list of previous task outcomes, each item must be plain text and wrapped in quotes
+
 hints_from_user:  # A list of hints from the user, each item must be plain text and wrapped in quotes
 
 start_seq: 1  # user-specified start_seq

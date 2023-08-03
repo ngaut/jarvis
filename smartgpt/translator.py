@@ -26,10 +26,10 @@ class Translator:
     def translate_to_instructions(self, task_info: Dict[str, Any]):
         previous_task_outcomes = ""
         if task_info.get("first_task", False):
-            previous_task_outcomes += "* This is the first task, so there are no previous tasks or outcomes.\n"
+            previous_task_outcomes += "- This is the first task, so there are no previous tasks or outcomes.\n"
         else:
             for item in task_info.get("previous_outcomes", []):
-                previous_task_outcomes += f"* {item['outcome']}\n"
+                previous_task_outcomes += f"- {item['outcome']}\n"
 
         hints = ""
         for item in task_info.get("hints", []):
@@ -37,7 +37,6 @@ class Translator:
         if not hints:
             hints = "No hints\n"
 
-        system_prompt = self.generate_system_prompt()
         user_prompt = preprompts.get("translator_user").format(
             task = task_info.get("task", ""),
             start_seq = task_info.get("start_seq", ""),
@@ -47,6 +46,7 @@ class Translator:
 
         logging.info(f"User Prompt:\n{user_prompt}")
 
+        system_prompt = self.generate_system_prompt()
         resp = gpt.complete(prompt=user_prompt, model=self.model, system_prompt=system_prompt)
         resp = utils.strip_yaml(resp)
 

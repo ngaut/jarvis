@@ -51,10 +51,10 @@ Common arguments for each instruction:
     "count": The number of iterations for the loop, can be evaluated dynamically by using the lazy eval syntax. Example: "jvm.eval(len(jvm.get('fetched_urls.seq3.list')))"
     "idx": jvm.eval(jvm.get('idx')). The number of iterations is determined by the 'count' argument, the initial value of 'idx' can be retrieved with jvm.eval(jvm.get('idx')), the initial value of jvm.get('idx') is 0. For each iteration, the AI checks the jvm.get('idx') argument. Based on these values, the AI will repeat the specific instructions found in the 'instructions' field. jvm.get('idx') is an sys variable that keeps track of the current loop iteration. If you want to print current search result on the current loop iteration, you can use the following code: ```python print(jvm.get('search_results.seq1.list')[jvm.get('idx')])```. here is another example to construct a dynamic key for any instructions inside the loop, code: ```python jvm.set('relevant_info_' + str(jvm.get('idx')) + '.seq3'), value)```, assume the value 'count' of loop is 3, the constructed key will be evaluated as: 'relevant_info_0.seq3', 'relevant_info_1.seq3', 'relevant_info_2.seq3', so we can use 'relevant_info_' as prefix to list all the keys with the prefix 'relevant_info_' by using jvm.list_keys_with_prefix('relevant_info_'), or we can use jvm.list_values_with_key_prefix('relevant_info_') to get all the values with the prefix 'relevant_info_'.
     "instructions": The list of instructions to be repeated for each iteration.
-   }
+  }
 
 6. 'RunPython': {  // do not use any non-existing arguments
-    "code": A string containing the entire Python code to be executed. Inside the code, you can call JVM's functions directly without using jvm.eval() syntax to access and manipulate data, such as ```python jvm.set("temperature.seq3.int", 67)```, jvm.get() and so on, because jvm module is imported by default.
+    "code": A multilinestring containing the entire Python code to be executed. Inside the code, you can call JVM's functions directly without using jvm.eval() syntax to access and manipulate data, such as ```python jvm.set("temperature.seq3.int", 67)```, jvm.get() and so on, because jvm module is imported by default.
     "code_review": does it achieve the objective? Which part does not follow the coding standards?
     "pkg_dependencies": A list of any Python packages that the code depends on.
   }
@@ -89,7 +89,7 @@ key-value API is the only way to pass information between tasks. The database ca
 
 
 ## Output Requirements
-Your output MUST have these fields: task, thoughts, hints_from_user, end_seq(indicates the maximum instruction sequence number), instructions, overall_outcome.
+Your output MUST have these fields: task, thoughts, previous_task_outcomes, hints_from_user, end_seq(indicates the maximum instruction sequence number), instructions, overall_outcome.
 When forming the 'overall_outcome', Explain the overall outcome we had after succeeded, what is the final result and how to retrieve the results (specify a correct key name or (both key prefix and postfix if the key can't be retrieved by jvm.get) ), As there are other tasks will use the result, give hints to next task.
 
 Remember, your task is to generate instructions that will run on JVM based on these guidelines, Don't generate non-exist instructions.

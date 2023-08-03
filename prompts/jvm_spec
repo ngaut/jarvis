@@ -15,6 +15,7 @@ instructions:
     type: # Specifies the type of instruction, such as 'WebSearch', 'TextCompletion', 'RunPython' ...
     inside_loop: # Whether this instruction is inside a loop or not.
     objective: # The string contains an objective description for this instruction only.
+    rule_num: # The ID of the rule that was ultimately used to select this instruction.
     args: # A dictionary describing specific arguments of this instruction.
 ```
 
@@ -78,7 +79,7 @@ args:
 - **RunPython**: This instruction executes Python code, enabling operations such as I/O processing, API calling, and more.
 ```yaml
 args:
-  code: # A string containing the Python code to be executed. Inside this code, JVM functions can be invoked directly without needing to use the jvm.eval() syntax for data access and manipulation. For instance, you can use "jvm.set('temperature.seq3.int', 67)" or "jvm.get('fected_content.seq5.list')". The 'jvm' module is imported by default.
+  code: # A multiline string containing the Python code to be executed. Inside this code, JVM functions can be invoked directly without needing to use the jvm.eval() syntax for data access and manipulation. For instance, you can use "jvm.set('temperature.seq3.int', 67)" or "jvm.get('fected_content.seq5.list')". The 'jvm' module is imported by default.
   code_review: # This field should provide an evaluation of whether the code meets the task objectives and adheres to coding standards.
   # Coding Standards:
   # - Include comments to explain functionality and decision-making processes.

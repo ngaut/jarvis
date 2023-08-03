@@ -10,8 +10,8 @@ Hints from user:
 The starting sequence: {start_seq}
 
 Remember:
-* Ensure you fully utilize the outcomes of previous tasks
-* Every instruction must save its outcome to the database so it can be used in subsequent tasks.
+- Ensure you fully utilize the outcomes of previous tasks
+- Every instruction must save its outcome to the database so it can be used in subsequent tasks.
 
 Please provide your response in YAML format:
 ```yaml

@@ -1,6 +1,7 @@
 import logging
 import os
 from typing import Dict, List
+
 import yaml
 
 from smartgpt.translator import Translator

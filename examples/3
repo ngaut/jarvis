@@ -5,7 +5,9 @@ task: "Retrieve the titles of the top 5 articles on Hacker News and based on the
 
 thoughts: "This task requires fetching the article titles from Hacker News and then making a decision for each title. Therefore, the instructions `WebSearch`, `FetchWebContent`, `TextCompletion`, `If`, and `Loop` will be utilized."
 
-hints_from_user: []
+previous_task_outcomes: # A list of previous task outcomes, each item must be plain text and wrapped in quotes
+
+hints_from_user:  # A list of hints from the user, each item must be plain text and wrapped in quotes
 
 start_seq: 1
 
