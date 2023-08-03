@@ -10,8 +10,8 @@ import server.jarvis_pb2_grpc as jarvis_pb2_grpc
 
 from extensions.smartgpt_agent import JarvisAgent, EMPTY_FIELD_INDICATOR
 
-class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
 
+class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
     def __init__(self):
         self.agents = {}
 
@@ -20,7 +20,11 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
         # TODO: Implement your service logic here
 
         if len(request.task.strip()) <= 0:
-            return jarvis_pb2.ExecuteResponse(agent_id=request.agent_id, task_id=request.task_id, error="task is not provided")
+            return jarvis_pb2.ExecuteResponse(
+                agent_id=request.agent_id,
+                task_id=request.task_id,
+                error="task is not provided",
+            )
         task = request.task.strip()
 
         agent_id = None
@@ -30,23 +34,31 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
             agent = self.agents.get(agent_id, None)
 
         goal = task
-        if  agent is not None:
+        if agent is not None:
             goal = agent["goal"]
 
         if len(request.goal.strip()) > 0:
             if agent is not None and request.goal.strip() != goal:
-                return jarvis_pb2.ExecuteResponse(agent_id=request.agent_id, task_id=request.task_id,  error=f"found agent, but goal is not matched:{request.goal.strip()} and {goal}. Please check your request")
+                return jarvis_pb2.ExecuteResponse(
+                    agent_id=request.agent_id,
+                    task_id=request.task_id,
+                    error=f"found agent, but goal is not matched:{request.goal.strip()} and {goal}. Please check your request",
+                )
             goal = request.goal.strip()
 
         dependent_tasks = request.dependent_tasks
         if agent is None and len(dependent_tasks) > 0:
-            return jarvis_pb2.ExecuteResponse(agent_id=request.agent_id, task_id=request.task_id,  error="not found agent, but dependent tasks provied. Please check your request")
-        
+            return jarvis_pb2.ExecuteResponse(
+                agent_id=request.agent_id,
+                task_id=request.task_id,
+                error="not found agent, but dependent tasks provied. Please check your request",
+            )
+
         if agent_id is None:
             agent_id = hashlib.md5(f"{goal}-{datetime.now()}".encode()).hexdigest()
 
         if agent is None:
-            agent = {"executor":JarvisAgent(), "goal":goal, "previous_tasks":[]}
+            agent = {"executor": JarvisAgent(), "goal": goal, "previous_tasks": []}
             self.agents[agent_id] = agent
 
         task_id = None
@@ -71,19 +83,37 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
             retry_num += 1
 
         if retry_num >= 3:
-            return jarvis_pb2.ExecuteResponse(agent_id = agent_id, task_id=task_id, task=task, result="", error="failed to get execution result")
+            return jarvis_pb2.ExecuteResponse(
+                agent_id=agent_id,
+                task_id=task_id,
+                task=task,
+                result="",
+                error="failed to get execution result",
+            )
 
-        task_info = jarvis_pb2.TaskInfo(task_id=task_id, task=task, result=task_info.result, metadata=task_info.metadata)
+        task_info = jarvis_pb2.TaskInfo(
+            task_id=task_id,
+            task=task,
+            result=task_info.result,
+            metadata=task_info.metadata,
+        )
         agent["previous_tasks"].append(task_info)
 
-        return jarvis_pb2.ExecuteResponse(agent_id = agent_id, task_id=task_info.task_id, task=task_info.task, result=task_info.result)  
+        return jarvis_pb2.ExecuteResponse(
+            agent_id=agent_id,
+            task_id=task_info.task_id,
+            task=task_info.task,
+            result=task_info.result,
+        )
+
 
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     jarvis_pb2_grpc.add_JarvisServicer_to_server(JarvisServicer(), server)
-    server.add_insecure_port('[::]:51155')
+    server.add_insecure_port("[::]:51155")
     server.start()
     server.wait_for_termination()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     serve()
