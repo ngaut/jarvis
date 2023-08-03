@@ -6,6 +6,7 @@ from typing import Optional, List, Dict
 import openai
 import tiktoken
 
+
 API_TYPE = os.getenv("OPENAI_API_TYPE")
 
 # Set OpenAI or Azure API based on the OPENAI_API_TYPE

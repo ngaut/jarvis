@@ -1,3 +1,1 @@
-Jarvis, please locate all the test case files that start with 'sp' in the 't' subdirectory within the 'mysql-test' directory in your local workspace. These are MySQL stored procedure test cases that are not compatible with TiDB. Your task is to convert these test cases into Python scripts. These scripts, when run against the TiDB database, should replicate the same functionality as the original MySQL stored procedures.
-
-Once you have created the Python scripts, output the test results to indicate whether the test has passed or failed. Finally, save these converted Python test case scripts in a new directory named 'tidb-test' in your current working directory. Please note, you only need to save the Python scripts in the 'tidb-test' directory, there's no need to create a 't' subdirectory or an 'r' subdirectory.
+Jarvis, summarize the latest progress of superconducting LK-99 and generate a Markdown.
