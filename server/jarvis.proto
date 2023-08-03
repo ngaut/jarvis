@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package server;
+
+// The TaskInfo message represents a single task.
+message TaskInfo {
+  int32 task_id = 1;
+  string task = 2;
+  string result = 3;
+  // used to store task overall outcome and other useful information
+  map<string, string> metadata = 4;
+}
+
+// The ExecuteRequest message represents the parameters of the execute function.
+message ExecuteRequest {
+    // Task id is the task num representative of the current task. If not provided, the task number will be automatically generated.
+    int32 task_id = 1;
+    string task = 2;
+    // Goal is the overall goal of the task. It is used to generate hints for the. If not provided, the task will be treated as a standalone task.
+    string goal = 3;
+    // dependent_tasks are the tasks that the current task depends on. If not provided, the task will be treated as a standalone task
+    repeated TaskInfo dependent_tasks = 4;
+}
+
+// The ExecuteResponse message represents the result of the execute function.
+message ExecuteResponse {
+    int32 task_id = 1;
+    string task = 2;
+    string result = 3;
+    string error = 4;
+}
+
+// The Jarvis service provides an execute RPC method.
+service Jarvis {
+  rpc Execute(ExecuteRequest) returns (ExecuteResponse);
+}
