@@ -18,7 +18,6 @@ from smartgpt import fewshot
 
 PLANNER_MODEL = gpt.GPT_4
 TRANSLATOR_MODEL = gpt.GPT_3_5_TURBO_16K
-REVIEWER_MODEL = gpt.GPT_4
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -98,7 +97,7 @@ if __name__ == "__main__":
             planner.gen_plan(PLANNER_MODEL, goal)
         elif args.compile:
             logging.info(f"Tranlate the given task[{args.compile}] into JVM instructions ...")
-            Compiler(TRANSLATOR_MODEL, REVIEWER_MODEL).compile_task_in_plan(args.compile)
+            Compiler(TRANSLATOR_MODEL).compile_task_in_plan(args.compile)
         else:
             logging.info("Tranlate all tasks in plan ...")
-            Compiler(TRANSLATOR_MODEL, REVIEWER_MODEL).compile_plan()
+            Compiler(TRANSLATOR_MODEL).compile_plan()

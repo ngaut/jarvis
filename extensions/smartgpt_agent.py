@@ -5,9 +5,9 @@ import os
 import uuid
 import logging
 from datetime import datetime
-from pydantic import BaseModel
 from typing import Any, List, Dict, Optional
 import traceback
+from pydantic import BaseModel
 import yaml
 
 from smartgpt import actions
@@ -16,7 +16,7 @@ from smartgpt import instruction
 from smartgpt import jvm
 from smartgpt import gpt
 from smartgpt.compiler import Compiler
-from smartgpt.translator import Translator
+
 
 BASE_MODEL = gpt.GPT_3_5_TURBO_16K
 # BASE_MODEL = gpt.GPT_4

@@ -5,13 +5,11 @@ from typing import Dict, List
 import yaml
 
 from smartgpt.translator import Translator
-from smartgpt.reviewer import Reviewer
 
 
 class Compiler:
-    def __init__(self, translator_model: str, reviewer_model: str):
+    def __init__(self, translator_model: str):
         self.translator = Translator(translator_model)
-        self.reviewer = Reviewer(reviewer_model, self.translator)
 
     def load_yaml(self, file_name: str) -> Dict:
         try:
@@ -39,15 +37,15 @@ class Compiler:
             "previous_outcomes": previous_outcomes
         }
 
-    def check_diff(self, task_outcome, origin) -> bool:
+    def check_outcome_changed(self, task_outcome, origin) -> bool:
         return task_outcome['overall_outcome'] != origin['overall_outcome']
 
     def compile_plan(self) -> List[Dict]:
         plan = self.load_yaml('plan.yaml')
-
         hints = plan.get("hints_from_user", [])
         task_list = plan.get("task_list", [])
         task_dependency = plan.get("task_dependency", {})
+
         task_outcomes = {}
         result = []
 
@@ -55,31 +53,32 @@ class Compiler:
             num = task['task_num']
             deps = task_dependency.get(str(num), [])
             previous_outcomes = [task_outcomes[i] for i in deps]
-            file_name = f"{num}.yaml"
 
             task_info = self.create_task_info(task['task'], num, hints, previous_outcomes)
-            instructions_yaml_str = self.reviewer.translate_to_instructions(task_info)
-            self.write_yaml(file_name, instructions_yaml_str)
-            task_outcome = yaml.safe_load(instructions_yaml_str)
+            instructions_yaml_str = self.translator.translate_to_instructions(task_info)
 
-            result.append(task_outcome)
+            self.write_yaml(f"{num}.yaml", instructions_yaml_str)
+
+            task_instrs = yaml.safe_load(instructions_yaml_str)
+            result.append(task_instrs)
+
             task_outcomes[num] = {
                 "task_num": num,
-                "task": task_outcome['task'],
-                "outcome": task_outcome['overall_outcome'],
+                "task": task_instrs['task'],
+                "outcome": task_instrs['overall_outcome'],
             }
 
         return result
 
     def compile_task_in_plan(self, specified_task_num: int) -> List[Dict]:
         plan = self.load_yaml('plan.yaml')
-
         hints = plan.get("hints_from_user", [])
         task_list = plan.get("task_list", [])
         task_dependency = plan.get("task_dependency", {})
+
         task_outcomes = {}
         result = []
-        need_to_recompile_subsequent_tasks = False
+        recompile_subsequent_tasks = False
 
         for task in task_list:
             num = task['task_num']
@@ -87,38 +86,37 @@ class Compiler:
             previous_outcomes = [task_outcomes[i] for i in deps]
             file_name = f"{num}.yaml"
 
-            task_info = self.create_task_info(task['task'], num, hints, previous_outcomes)
             origin = self.load_yaml(file_name) if os.path.exists(file_name) else None
 
-            task_outcome = None
+            task_instrs = None
             if num < specified_task_num and os.path.exists(file_name):
-                task_outcome = self.load_yaml(file_name)
-            elif num > specified_task_num and os.path.exists(file_name) and not need_to_recompile_subsequent_tasks:
-                task_outcome = self.load_yaml(file_name)
+                task_instrs = self.load_yaml(file_name)
+            elif num > specified_task_num and os.path.exists(file_name) and not recompile_subsequent_tasks:
+                task_instrs = self.load_yaml(file_name)
 
-            if not task_outcome:
-                instructions_yaml_str = self.reviewer.translate_to_instructions(task_info)
+            if not task_instrs:
+                task_info = self.create_task_info(task['task'], num, hints, previous_outcomes)
+                instructions_yaml_str = self.translator.translate_to_instructions(task_info)
                 self.write_yaml(file_name, instructions_yaml_str)
-                task_outcome = yaml.safe_load(instructions_yaml_str)
+                task_instrs = yaml.safe_load(instructions_yaml_str)
 
-            if num == specified_task_num:
-                need_to_recompile_subsequent_tasks = self.check_diff(task_outcome, origin) if origin else True
+            result.append(task_instrs)
 
-            result.append(task_outcome)
             task_outcomes[num] = {
                 "task_num": num,
-                "task": task_outcome['task'],
-                "outcome": task_outcome['overall_outcome'],
+                "task": task_instrs['task'],
+                "outcome": task_instrs['overall_outcome'],
             }
+
+            if num == specified_task_num:
+                recompile_subsequent_tasks = self.check_outcome_changed(task_instrs, origin) if origin else True
 
         return result
 
     def compile_task(self, specified_task_num: int, task: str, hints: List, previous_outcomes: List) -> Dict:
-        file_name = f"{specified_task_num}.yaml"
         task_info = self.create_task_info(task, specified_task_num, hints, previous_outcomes)
+        instructions_yaml_str = self.translator.translate_to_instructions(task_info)
 
-        instructions_yaml_str = self.reviewer.translate_to_instructions(task_info)
-        self.write_yaml(file_name, instructions_yaml_str)
+        self.write_yaml(f"{specified_task_num}.yaml", instructions_yaml_str)
         result = yaml.safe_load(instructions_yaml_str)
-
         return result

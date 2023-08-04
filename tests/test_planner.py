@@ -36,7 +36,7 @@ task_dependency:
 """
 
     def test_sort_plan(self):
-        sorted_plan_yaml_str = planner.sort_plan(self.plan_yaml_str)
+        sorted_plan_yaml_str = planner.reorder_task(self.plan_yaml_str)
         sorted_plan = yaml.safe_load(sorted_plan_yaml_str)
 
         # Test if the tasks are sorted correctly
@@ -51,4 +51,3 @@ task_dependency:
 
 if __name__ == '__main__':
     unittest.main()
-    

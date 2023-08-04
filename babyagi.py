@@ -523,7 +523,7 @@ def execution_agent(objective: str, task: str) -> str:
 
     prompt = f'Perform one task based on the following objective: {objective}.\n'
     if context:
-        prompt += 'Take into account these previously completed tasks:' + '\n'.join(context)
+        prompt += 'Take into account these previously completed tasks:' + '\n'.join(context) # type: ignore
     prompt += f'\nYour task: {task}\nResponse:'
     return openai_call(prompt, max_tokens=2000)
 
