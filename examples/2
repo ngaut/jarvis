@@ -1,0 +1,71 @@
+### Example: An output template with Loop instruction structure
+
+```yaml
+task: "Conduct research on the internet for AI-related news and write a blog"
+
+thoughts:  # AI-generated thoughts content, should be plain text without newlines, wrapped in quotes
+
+previous_task_outcomes:  # A list of previous task outcomes, each item must be plain text and wrapped in quotes
+
+hints_from_user:  # A list of hints from the user, each item must be plain text and wrapped in quotes
+
+start_seq: 1  # user-specified start_seq
+
+instructions:
+  - seq: 1
+    type: WebSearch
+    inside_loop: false
+    objective: "Find URLs related to recent AI news"
+    rule_num: 2
+    args:
+      query: "recent AI news"
+      save_to: "news_urls.seq1.list"
+
+  - seq: 2
+    type: Loop
+    inside_loop: false
+    objective: "Loop through the top 5 URLs to fetch and summarize the news"
+    rule_num: 1
+    args:
+      count: "5"  # we want 5 news articles for the blog
+      idx: "jvm.eval(jvm.get('idx'))"
+      instructions:
+        - seq: 3
+          type: FetchWebContent
+          inside_loop: true
+          objective: "Fetch the content from the current URL from the search results"
+          rule_num: 2
+          args:
+            url: "jvm.eval(jvm.get('news_urls.seq1.list')[jvm.get('idx')])"
+            save_to: "jvm.eval('news_content_' + str(jvm.get('idx')) + '.seq3.str')"  # with <idx> as inside a loop
+
+        - seq: 4
+          type: TextCompletion
+          inside_loop: true
+          objective: "Extract and summarize the key information from the fetched news content"
+          rule_num: 3
+          args:
+            operation: "Extract and summarize the key points from the AI news"
+            output_format:
+              kvs:
+                - key: "jvm.eval('news_summary_' + str(jvm.get('idx')) + '.seq4.str')"  # with <idx> as inside a loop
+                  value: "<to_fill>"
+            content: "jvm.eval(jvm.get('news_content_' + str(jvm.get('idx')) + '.seq3.str'))"
+
+  - seq: 5
+    type: TextCompletion
+    inside_loop: false
+    objective: "Generate the blog content using the summarized news"
+    rule_num: 4  # Use TextCompletion instead of Loop when combining a list of multiple news summaries into a single blog post.
+    args:
+      operation: "Structure the blog post using the summaries of the news"
+      output_format:
+        kvs:
+          - key: "blog_content.seq5.str"
+            value: "<to_fill>"
+      content: "jvm.eval('\\n'.join(jvm.list_values_with_key_prefix('news_summary_')))"
+
+end_seq: 5
+
+overall_outcome: "A blog post summarizing the latest AI news has been created, it can be retrieved by jvm.eval(jvm.get('blog_content.seq5.str'))"
+```

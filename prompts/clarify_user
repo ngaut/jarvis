@@ -1,0 +1,9 @@
+Please check if there are any areas that remain unclear. If there are, I need you to respond in the following format:
+
+```yaml
+Unresolved areas:
+  - {List the unclear topics here, in bullet points}
+My question is: {Choose one question from the list above and explicitly ask for a response to it}
+```
+
+If everything is understood, please simply respond with "Nothing more to clarify".

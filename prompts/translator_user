@@ -1,0 +1,14 @@
+Please fill in the following YAML template with your response, making sure to leverage the outcomes of previous tasks.
+```yaml
+task: {task}
+thoughts: <to_fill>
+previous_task_outcomes: {previous_task_outcomes}
+hints_from_user: {hints}
+start_seq: {start_seq}
+instructions: <to_fill>
+end_seq: <to_fill>
+overall_outcome: <to_fill>
+```
+
+Your Response:
+```yaml

@@ -6,6 +6,7 @@ from typing import Optional, List, Dict
 import openai
 import tiktoken
 
+
 API_TYPE = os.getenv("OPENAI_API_TYPE")
 
 # Set OpenAI or Azure API based on the OPENAI_API_TYPE
@@ -55,16 +56,12 @@ GPT_LOCAL = "mpt-7b-chat"
 def get_max_tokens(model: str) -> int:
     return MODELS[model] - TOKEN_BUFFER
 
-
-def count_tokens(input) -> int:
+def count_tokens(messages) -> int:
     # abstracted token count logic
-    if isinstance(input, str):
-        return len(ENCODING.encode(input))
+    if isinstance(messages, str):
+        return len(ENCODING.encode(messages))
 
-    return sum(len(ENCODING.encode(msg["content"])) for msg in input) + (
-        len(input) * TOKENS_PER_MESSAGE
-    )
-
+    return sum(len(ENCODING.encode(item['content'])) for item in messages) + (len(messages) * TOKENS_PER_MESSAGE)
 
 def truncate_to_tokens(content: str, max_token_count: int) -> str:
     """Truncates the content to fit within the model's max tokens."""
