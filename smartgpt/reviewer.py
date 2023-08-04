@@ -38,12 +38,32 @@ class EvalSyntaxReviewer(Reviewer):
         messages.append({"role": "assistant", "content": review_response})
 
         review_response = utils.strip_yaml(review_response)
-        review_result = yaml.safe_load(review_response)
+        result = yaml.safe_load(review_response)
 
-        if review_result.get("approved", False):
+        if result.get("approved", False):
             return resp_instructions, messages
         else:
-            if "revised_version" in review_result:
-                return review_result.get("revised_version"), messages
+            if "revised_version" in result:
+                return result.get("revised_version"), messages
+            else:
+                return resp_instructions, messages
+
+class LoopIndexKeyReviewer(Reviewer):
+    def review(self, resp_instructions: str) -> Tuple[str, List[Dict]]:
+        messages = self.buildSystemMessages()
+        messages.append({"role": "user", "content": self.buildReviewContent(resp_instructions)})
+        messages.append({"role": "user", "content": preprompts.get('reviewer_index_key')})
+
+        review_response = gpt.send_messages(messages, self.model)
+        messages.append({"role": "assistant", "content": review_response})
+
+        review_response = utils.strip_yaml(review_response)
+        result = yaml.safe_load(review_response)
+
+        if result.get("approved", False):
+            return resp_instructions, messages
+        else:
+            if "revised_version" in result:
+                return result.get("revised_version"), messages
             else:
                 return resp_instructions, messages

@@ -7,7 +7,6 @@ When handling data, bear in mind that dynamic keys are critical to the operation
 Dynamic keys, must be the format: 'key_name_<idx>.seqX.<type>', where 'X' could vary based on context, 'idx' is related to the loop index(can be optional if current instruction is not inside a loop), 'type' is type of the value(which is one of Python's type: {int, str, list}) allow the AI to structure and access data in a flexible, non-static way.
 Dynamic keys are particularly useful in loop structures, where data is iteratively processed or collected. They allow the AI to dynamically create and access individual data entries, thus providing a more granular control over data. Be sure to construct and utilize dynamic keys wisely, allowing for efficient data manipulation and access across various tasks.
 
-
 ## JVM Instructions
 ### Basic Instructions:
 - 'WebSearch': Returns a list of URLs from a web search engine based on the provided query.
@@ -62,6 +61,7 @@ Common arguments for each instruction:
     - Include comments to explain functionality and decision-making processes.
     - Avoid placeholder code.
     - Avoid use f-strings.
+    - Avoid call functions that do not exist.
 
 Everything inside output_format argument of a instruction will be evaluated and persist to database. No further persist/save action is required.
 
@@ -90,6 +90,7 @@ key-value API is the only way to pass information between tasks. The database ca
 
 ## Output Requirements
 Your output MUST have these fields: task, thoughts, previous_task_outcomes, hints_from_user, end_seq(indicates the maximum instruction sequence number), instructions, overall_outcome.
+
 When forming the 'overall_outcome', Explain the overall outcome we had after succeeded, what is the final result and how to retrieve the results (specify a correct key name or (both key prefix and postfix if the key can't be retrieved by jvm.get) ), As there are other tasks will use the result, give hints to next task.
 
 Remember, your task is to generate instructions that will run on JVM based on these guidelines, Don't generate non-exist instructions.
