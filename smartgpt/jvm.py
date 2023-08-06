@@ -85,7 +85,7 @@ def eval(text, lazy_eval_prefix=LAZY_EVAL_PREFIX):
         return text
 
     if not text.startswith("jvm.get("):
-            # find last occurrence of "jvm.eval("
+        # find last occurrence of "jvm.eval("
         start = text.rfind(lazy_eval_prefix)
         if start == -1:
             return None
