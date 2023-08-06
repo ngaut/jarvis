@@ -82,7 +82,7 @@ if LLM_MODEL.startswith("human"):
 # Jarvis mode extension
 if ENABLE_SMARTGPT:
     if can_import("extensions.smartgpt_agent"):
-        from extensions import smartgpt_agent
+        from jarvis.extensions import smartgpt_agent
 
 # Load additional environment variables for enabled extensions
 # TODO: This might override the following command line arguments as well:

@@ -18,7 +18,11 @@ from jarvis.smartgpt import instruction
 from jarvis.smartgpt import jvm
 from jarvis.smartgpt import gpt
 from jarvis.smartgpt.compiler import Compiler
+from jarvis.smartgpt import initializer
 
+
+# Initialize the Jarvis environment
+initializer.setup()
 
 BASE_MODEL = gpt.GPT_3_5_TURBO_16K
 # BASE_MODEL = gpt.GPT_4

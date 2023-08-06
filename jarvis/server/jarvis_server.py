@@ -8,11 +8,7 @@ import grpc
 import jarvis.server.jarvis_pb2 as jarvis_pb2
 import jarvis.server.jarvis_pb2_grpc as jarvis_pb2_grpc
 from jarvis.extensions.smartgpt_agent import JarvisAgent, EMPTY_FIELD_INDICATOR
-from jarvis.smartgpt import initializer
 
-
-# Initialize the Jarvis environment
-initializer.setup()
 
 class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
     def __init__(self):
