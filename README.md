@@ -15,20 +15,20 @@
 Run the following command to start the program:
 
 ```bash
-python main.py --continuous --timeout 3 --config=./config.yaml --startseq=0 --verbose --replan
+python -m jarvis --continuous --timeout 3 --config=./config.yaml --startseq=0 --verbose --replan
 ```
 
 
 Once we have a plan, simplify it by running the command:
 ```bash
-python main.py --continuous --timeout 3 --config=./config.yaml --startseq=0 --verbose --replan
+python -m jarvis --continuous --timeout 3 --config=./config.yaml --startseq=0 --verbose
 ```
 
 
 Then we can run the generated instructions by executing the following commands:
 ```bash
-python main.py --continuous --timeout 3 --config=./config.yaml --startseq=0 --verbose --yaml=1.yaml
-python main.py --continuous --timeout 3 --config=./config.yaml --startseq=0 --verbose --yaml=2.yaml
+python -m jarvis --continuous --timeout 3 --config=./config.yaml --startseq=0 --verbose --yaml=1.yaml
+python -m jarvis --continuous --timeout 3 --config=./config.yaml --startseq=0 --verbose --yaml=2.yaml
 ```
 
 

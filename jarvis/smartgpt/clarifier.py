@@ -1,7 +1,7 @@
 from typing import Dict, List
 
-from smartgpt import gpt
-from smartgpt import preprompts
+from jarvis.smartgpt import gpt
+from jarvis.smartgpt import preprompts
 
 
 def clarify(goal: str, model: str) -> List[Dict[str, str]]:

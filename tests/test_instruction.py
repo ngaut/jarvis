@@ -1,7 +1,8 @@
-import json
 import unittest
 from unittest import mock
-from smartgpt.instruction import JVMInstruction
+import json
+
+from jarvis.smartgpt.instruction import JVMInstruction
 
 class TestInstruction(unittest.TestCase):
     def setUp(self):

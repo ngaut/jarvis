@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import server.jarvis_pb2 as jarvis__pb2
+import jarvis.server.jarvis_pb2 as jarvis__pb2
 
 
 class JarvisStub(object):

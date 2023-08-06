@@ -1,13 +1,18 @@
 import os
 
-from smartgpt import utils
+from jarvis.smartgpt import utils
 
 # Initialize the singleton to None
 _prompts_db = None
 
-def initialize(prompt_dir: str):
+def init():
     global _prompts_db
-    prompt_dir_path = os.path.join(os.getcwd(), prompt_dir)
+    prompt_dir_path = os.path.join(os.getcwd(), "data/prompts")
+
+    # Check if prompt_dir_path exists
+    if not os.path.exists(prompt_dir_path):
+        raise FileNotFoundError(f"The directory '{prompt_dir_path}' does not exist.")
+
     if _prompts_db is None:
         _prompts_db = utils.DB(prompt_dir_path)
 

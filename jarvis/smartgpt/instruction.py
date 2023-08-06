@@ -1,9 +1,9 @@
 import logging
 import yaml
 
-from smartgpt import actions
-from smartgpt import jvm
-from smartgpt import utils
+from jarvis.smartgpt import actions
+from jarvis.smartgpt import jvm
+from jarvis.smartgpt import utils
 
 
 class JVMInstruction:
@@ -114,28 +114,32 @@ class JVMInterpreter:
             "TextCompletion": actions.TextCompletionAction,
         }
 
+        jvm.load_kv_store()
+        actions.disable_cache()
+        actions.load_cache()
         jvm.set_loop_idx(0)
 
     def run(self, instrs, task):
         if instrs is not None:
             while self.pc < len(instrs):
-                print(f"Running instruction (pc={self.pc}): {instrs[self.pc]}")
-                jvm_instr = JVMInstruction(instrs[self.pc], self.actions, task)
+                logging.info(f"Running Instruction [pc={self.pc}, seq={instrs[self.pc].get('seq')}]: \n{instrs[self.pc]}")
+                jvm_instruction = JVMInstruction(instrs[self.pc], self.actions, task)
+
                 action_type = instrs[self.pc].get("type")
                 if action_type == "If":
-                    self.conditional(jvm_instr)
+                    self.conditional(jvm_instruction)
                 elif action_type == "Loop":
-                    self.loop(jvm_instr)
+                    self.loop(jvm_instruction)
                 else:
-                    jvm_instr.execute()
+                    jvm_instruction.execute()
                 self.pc += 1
 
-    def loop(self, jvm_instr: JVMInstruction):
-        args = jvm_instr.instruction.get("args", {})
+    def loop(self, jvm_instruction: JVMInstruction):
+        args = jvm_instruction.instruction.get("args", {})
         # Extract the count and the list of instructions for the loop
         loop_count = 0
         # if loop_count is integer
-        print(f"loop instruction (seq={jvm_instr.instruction.get('seq', 'N/A')}) args: {args}")
+        print(f"loop instruction (seq={jvm_instruction.instruction.get('seq', 'N/A')}) args: {args}")
         if isinstance(args["count"], int):
             loop_count = args["count"]
         elif isinstance(args["count"], str):
@@ -160,12 +164,12 @@ class JVMInterpreter:
             # logging.info(f"loop idx: {i}")
             # As each loop execution should start from the first instruction, we reset the program counter
             self.pc = 0
-            self.run(loop_instructions, jvm_instr.task)
+            self.run(loop_instructions, jvm_instruction.task)
         self.pc = old_pc
 
-    def conditional(self, jvm_instr: JVMInstruction):
-        condition = jvm_instr.instruction.get("args", {}).get("condition", None)
-        condition = jvm_instr.eval_and_patch(condition)
+    def conditional(self, jvm_instruction: JVMInstruction):
+        condition = jvm_instruction.instruction.get("args", {}).get("condition", None)
+        condition = jvm_instruction.eval_and_patch(condition)
         output_fmt = {
             "kvs": [
                 {"key": "result", "value": "<to_fill>"},
@@ -195,14 +199,14 @@ class JVMInterpreter:
         old_pc = self.pc
         if condition_eval_result:
             # instruction.instruction["then"] is a list of instructions
-            if "then" in jvm_instr.instruction.get("args", {}):
+            if "then" in jvm_instruction.instruction.get("args", {}):
                 self.pc = 0
-                self.run(jvm_instr.instruction["args"]["then"], jvm_instr.task)
+                self.run(jvm_instruction.instruction["args"]["then"], jvm_instruction.task)
         else:
             # maybe use pc to jump is a better idea.
-            if "else" in jvm_instr.instruction.get("args", {}):
+            if "else" in jvm_instruction.instruction.get("args", {}):
                 self.pc = 0
-                self.run(jvm_instr.instruction["args"]["else"], jvm_instr.task)
+                self.run(jvm_instruction.instruction["args"]["else"], jvm_instruction.task)
         self.pc = old_pc
 
     def reset(self):

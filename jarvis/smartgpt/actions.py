@@ -1,5 +1,10 @@
 from dataclasses import dataclass, field
-import subprocess, os, inspect, json, logging, time
+import subprocess
+import os
+import inspect
+import json
+import logging
+import time
 import venv
 from typing import Union, List, Dict
 from abc import ABC
@@ -15,27 +20,24 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 
-from smartgpt import gpt
-from smartgpt import jvm
-from smartgpt import utils
-from smartgpt import preprompts
+from jarvis.smartgpt import gpt
+from jarvis.smartgpt import jvm
+from jarvis.smartgpt import utils
+from jarvis.smartgpt import preprompts
 
 
 TEXT_COMPLETION_MODEL = gpt.GPT_3_5_TURBO_16K
-#TEXT_COMPLETION_MODEL = gpt.GPT_4
 
 _CACHE = {}
 _ENABLE_CACHE = True
 
 def load_cache():
     global _CACHE
-
-    if _ENABLE_CACHE:
-        if os.path.exists("cache.json"):
-            with open("cache.json", "r") as f:
-                _CACHE = json.load(f)
-        else:
-            _CACHE = {}
+    if os.path.exists("cache.json"):
+        with open("cache.json", "r") as f:
+            _CACHE = json.load(f)
+    else:
+        _CACHE = {}
 
 def enable_cache():
     global _ENABLE_CACHE
@@ -52,9 +54,6 @@ def get_from_cache(key):
         return None
 
 def save_to_cache(key, value):
-    global _CACHE
-    global _ENABLE_CACHE
-
     if not _ENABLE_CACHE:
         return None
 

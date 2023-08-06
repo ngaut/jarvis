@@ -1,15 +1,18 @@
+import os
+import logging
 from datetime import datetime
 import hashlib
-from pydantic import BaseModel
-from typing import Callable
-
 from concurrent import futures
 import grpc
-import server.jarvis_pb2 as jarvis_pb2
-import server.jarvis_pb2_grpc as jarvis_pb2_grpc
 
-from extensions.smartgpt_agent import JarvisAgent, EMPTY_FIELD_INDICATOR
+import jarvis.server.jarvis_pb2 as jarvis_pb2
+import jarvis.server.jarvis_pb2_grpc as jarvis_pb2_grpc
+from jarvis.extensions.smartgpt_agent import JarvisAgent, EMPTY_FIELD_INDICATOR
+from jarvis.smartgpt import initializer
 
+
+# Initialize the Jarvis environment
+initializer.setup()
 
 class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
     def __init__(self):
@@ -108,6 +111,15 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
 
 
 def serve():
+    # Logging file name and line number
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s",
+    )
+
+    os.makedirs("workspace", exist_ok=True)
+    os.chdir("workspace")
+
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     jarvis_pb2_grpc.add_JarvisServicer_to_server(JarvisServicer(), server)
     server.add_insecure_port("[::]:51155")

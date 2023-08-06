@@ -3,7 +3,7 @@
 import unittest
 from unittest.mock import patch
 
-from smartgpt import jvm
+from jarvis.smartgpt import jvm
 
 class TestUtils(unittest.TestCase):
     @patch('smartgpt.jvm.get', return_value=0)

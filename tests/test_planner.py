@@ -1,11 +1,11 @@
 import unittest
+
 import yaml
 
-from smartgpt import planner
+from jarvis.smartgpt import planner
 
 
 class TestPlaner(unittest.TestCase):
-
     def setUp(self):
         self.plan_yaml_str = """
 task_list:

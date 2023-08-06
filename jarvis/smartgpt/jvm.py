@@ -3,7 +3,7 @@ import ast
 import logging
 import json
 
-from smartgpt import utils
+from jarvis.smartgpt import utils
 
 # initialize a dictionary when the module is imported
 kv_store_file = "kv_store.json"
@@ -16,7 +16,6 @@ def reset_kv_store():
 
 def load_kv_store():
     global kv_store
-    global kv_store_file
     # Load the kv_store dictionary from the file if it exists
     if os.path.exists(kv_store_file):
         with open(kv_store_file, 'r') as f:
@@ -25,13 +24,10 @@ def load_kv_store():
         kv_store = {}
 
 def save_kv_store():
-    global kv_store
-    global kv_store_file
     with open(kv_store_file, 'w') as f:
         json.dump(kv_store, f)
 
 def get(key, default=None):
-    global kv_store
     try:
         value = kv_store.get(key, None)
         if value is None:
@@ -45,7 +41,6 @@ def get(key, default=None):
         return default
 
 def set(key, value):
-    global kv_store
     try:
         if isinstance(value, list):
             value = repr(value)

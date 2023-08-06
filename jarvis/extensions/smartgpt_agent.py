@@ -6,33 +6,23 @@ import os
 import uuid
 import logging
 from datetime import datetime
-from typing import Any, List, Dict, Optional
+from typing import List, Dict, Optional
 import traceback
+
 from pydantic import BaseModel
 import yaml
-import time
 
-from smartgpt import actions
-from smartgpt import planner
-from smartgpt import instruction
-from smartgpt import jvm
-from smartgpt import gpt
-from smartgpt.compiler import Compiler
+from jarvis.smartgpt import actions
+from jarvis.smartgpt import planner
+from jarvis.smartgpt import instruction
+from jarvis.smartgpt import jvm
+from jarvis.smartgpt import gpt
+from jarvis.smartgpt.compiler import Compiler
 
 
-# BASE_MODEL = gpt.GPT_3_5_TURBO_16K
-BASE_MODEL = gpt.GPT_4
+BASE_MODEL = gpt.GPT_3_5_TURBO_16K
+# BASE_MODEL = gpt.GPT_4
 EMPTY_FIELD_INDICATOR = "EMPTY_FIELD_INDICATOR"
-
-os.makedirs("workspace", exist_ok=True)
-os.chdir("workspace")
-
-# Logging file name and line number
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s",
-)
-
 
 def execute_task(objective: str, task: str, context: list) -> str:
     sys_prompt = """
