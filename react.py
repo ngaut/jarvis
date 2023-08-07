@@ -1,6 +1,8 @@
 import re
 import time
 import uuid
+import os
+import logging
 from datetime import datetime
 from typing import List, Optional, Union, Sequence, Callable, Any, Dict, Tuple
 
@@ -26,6 +28,14 @@ from langchain.agents.tools import InvalidTool
 
 from jarvis.smartgpt import gpt
 from jarvis.extensions.smartgpt_agent import JarvisAgent, EMPTY_FIELD_INDICATOR
+
+# Logging file name and line number
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s",
+)
+os.makedirs("workspace", exist_ok=True)
+os.chdir("workspace")
 
 # Set up the base react template
 react_prompt_template = """Answer the following question as best you can.
@@ -313,10 +323,10 @@ Compose a captivating tweet about the trending AI projects from the last 28 days
 
 Success Criteria:
 
-- The tweet successfully summarizes overall trends in AI projects from the last 28 days.
-- 1-3 specific projects will be featured in the tweet. These projects may rise rapidly in rankings, or github stars count growth rate is ahead of other projects. Make sure your selection is diverse to represent different observed trends.
-- Collect and summarize recent developments (news) of selected projects to ensure that news is timely (nearly a month) and eye-catching
-- The tweet is engaging, amusing, and adheres to the Twitter's character limit.
+- The tweet must summarizes overall trends in AI projects from the last 28 days.
+- 1-3 specific projects need to be featured in the tweet. These projects may rise rapidly in rankings, or github stars count growth rate is ahead of other projects. Make sure your selection is diverse to represent different observed trends.
+- Collect and summarize recent developments (news) of selected projects to ensure that news is timely (nearly a month, current Date: 2023-07-27) and eye-catching
+- The tweet should be engaging, amusing, and adheres to the Twitter's character limit.
 
 Current Date: 2023-07-27
 """

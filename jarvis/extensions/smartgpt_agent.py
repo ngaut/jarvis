@@ -28,6 +28,7 @@ BASE_MODEL = gpt.GPT_3_5_TURBO_16K
 # BASE_MODEL = gpt.GPT_4
 EMPTY_FIELD_INDICATOR = "EMPTY_FIELD_INDICATOR"
 
+
 def execute_task(objective: str, task: str, context: list) -> str:
     sys_prompt = """
 As a smart AI agent, you will perform one task based on the given objective.
