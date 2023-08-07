@@ -4,22 +4,22 @@ import argparse
 import logging
 
 import yaml
-from dotenv import load_dotenv
 
-from smartgpt import actions
-from smartgpt import planner
-from smartgpt import gpt
-from smartgpt import jvm
-from smartgpt import instruction
-from smartgpt.compiler import Compiler
-from smartgpt import preprompts
-from smartgpt import fewshot
+from jarvis.smartgpt import gpt
+from jarvis.smartgpt import planner
+from jarvis.smartgpt import instruction
+from jarvis.smartgpt import compiler
+from jarvis.smartgpt import initializer
 
 
 PLANNER_MODEL = gpt.GPT_4
 TRANSLATOR_MODEL = gpt.GPT_3_5_TURBO_16K
 
-if __name__ == "__main__":
+# Initialize the Jarvis environment
+initializer.setup()
+
+def run():
+    # Parse command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str, default='config.yaml', help='Path to the configuration file')
     parser.add_argument('--timeout', type=int, default=1, help='Timeout for user input')
@@ -33,11 +33,16 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    load_dotenv()
-
     # Load configuration from YAML file
     with open(args.config, 'r') as f:
         config = yaml.safe_load(f)
+
+    assistant_config = config.get('assistant', {})
+    args.timeout = args.timeout or assistant_config.get('timeout', 30)
+    args.verbose = args.verbose or assistant_config.get('verbose', False)
+    args.continuous = args.continuous or assistant_config.get('continuous', False)
+    args.replan = args.replan or assistant_config.get('replan', False)
+    args.goalfile = args.goalfile or assistant_config.get('goalfile', '')
 
     # Logging file name and line number
     logging.basicConfig(
@@ -48,56 +53,41 @@ if __name__ == "__main__":
 
     print("Welcome to Jarvis, your personal assistant for everyday tasks!\n")
 
-    assistant_config = config.get('assistant', {})
-    args.timeout = args.timeout or assistant_config.get('timeout', 30)
-    args.verbose = args.verbose or assistant_config.get('verbose', False)
-    args.continuous = args.continuous or assistant_config.get('continuous', False)
-    args.replan = args.replan or assistant_config.get('replan', False)
-    args.goalfile = args.goalfile or assistant_config.get('goalfile', '')
-
-    goal = ""
-    if args.goalfile:
-        if os.path.isfile(args.goalfile):
-            with open(args.goalfile, 'r') as f:
-                goal = f.read()
-        else:
-            logging.error(f"Goal file {args.goalfile} does not exist")
-            exit(1)
-
-    preprompts.initialize("prompts")
-    fewshot.initialize("examples")
-
     os.makedirs("workspace", exist_ok=True)
     os.chdir("workspace")
 
-    jvm.load_kv_store()
-    actions.disable_cache()
-    actions.load_cache()
-
     if args.yaml:
-        # Load the plan_with_instrs from the YAML file
+        # Load the JVM instructions from the YAML file
         with open(args.yaml, 'r') as f:
-            plan_with_instrs = yaml.safe_load(f)
-
-        logging.info(f"plan_with_instrs: {plan_with_instrs['instructions']}")
+            task_instrs = yaml.safe_load(f)
+        logging.info(f"Running JVM Instructions:\n{task_instrs}")
 
         # Make sure start_seq is within bounds
         start_seq = args.startseq
-        if start_seq < 0 or start_seq >= len(plan_with_instrs["instructions"]):
+        if start_seq < 0 or start_seq >= len(task_instrs["instructions"]):
             print(f"Invalid start sequence number: {start_seq}")
             exit(1)
 
-        # Run the instructions starting from start_seq
-        logging.info(f"Running instructions from  {plan_with_instrs['instructions'][start_seq]}\n")
         interpreter = instruction.JVMInterpreter()
-        interpreter.run(plan_with_instrs["instructions"], task=plan_with_instrs["task"])
+        interpreter.run(task_instrs["instructions"], task=task_instrs["task"])
     else:
         if args.replan:
+            goal = ""
+            if args.goalfile:
+                if not os.path.isfile(args.goalfile):
+                    logging.error(f"The goal file {args.goalfile} does not exist")
+                    exit(1)
+                with open(args.goalfile, 'r') as f:
+                    goal = f.read()
             logging.info("Regenerate plan ...")
             planner.gen_plan(PLANNER_MODEL, goal)
         elif args.compile:
             logging.info(f"Tranlate the given task[{args.compile}] into JVM instructions ...")
-            Compiler(TRANSLATOR_MODEL).compile_task_in_plan(args.compile)
+            compiler.Compiler(TRANSLATOR_MODEL).compile_task_in_plan(args.compile)
         else:
             logging.info("Tranlate all tasks in plan ...")
-            Compiler(TRANSLATOR_MODEL).compile_plan()
+            compiler.Compiler(TRANSLATOR_MODEL).compile_plan()
+
+
+if __name__ == "__main__":
+    run()

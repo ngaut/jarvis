@@ -4,7 +4,7 @@ from typing import Dict, List
 
 import yaml
 
-from smartgpt.translator import Translator
+from jarvis.smartgpt.translator import Translator
 
 
 class Compiler:

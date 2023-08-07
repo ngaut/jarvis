@@ -1,11 +1,12 @@
-import hashlib
-import yaml
 import unittest
 from unittest.mock import patch
-from smartgpt.actions import FetchWebContentAction
-from smartgpt.actions import WebSearchAction
-from smartgpt.actions import RunPythonAction
-from smartgpt.actions import TextCompletionAction
+
+import yaml
+
+from jarvis.smartgpt.actions import FetchWebContentAction
+from jarvis.smartgpt.actions import WebSearchAction
+from jarvis.smartgpt.actions import RunPythonAction
+from jarvis.smartgpt.actions import TextCompletionAction
 
 class TestFetchWebContentAction(unittest.TestCase):
     def setUp(self):

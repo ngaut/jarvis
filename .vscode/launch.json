@@ -1,57 +1,57 @@
 {
-    "version": "0.2.0",
+    "version": "0.3.0",
     "configurations": [
         {
-            "name": "Python: Run yaml",
+            "name": "Python: Run Server",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/main.py",
-            "args": ["--continuous", "--verbose", "--timeout", "3", "--config", "./config.yaml", "--startseq", "0", "--yaml", "4.yaml"],
+            "module": "jarvis.server",
+            "args": [],
             "console": "integratedTerminal",
             "justMyCode": true
         },
         {
-            "name": "Python: Replan",
+            "name": "Python: Run JVM Instructions",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/main.py",
+            "module": "jarvis",
+            "args": ["--continuous", "--verbose", "--timeout", "3", "--config", "./config.yaml", "--startseq", "0", "--yaml", "1.yaml"],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Python: Generate Tasks Execution Plan",
+            "type": "python",
+            "request": "launch",
+            "module": "jarvis",
             "args": ["--continuous", "--verbose", "--timeout", "3", "--config", "./config.yaml", "--startseq", "0", "--replan"],
             "console": "integratedTerminal",
             "justMyCode": true
         },
         {
-            "name": "Python: Replan with goalfile",
+            "name": "Python: Generate Tasks Execution Plan with Goalfile",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/main.py",
+            "module": "jarvis",
             "args": ["--continuous", "--verbose", "--timeout", "3", "--config", "./config.yaml", "--startseq", "0", "--replan", "--goalfile=goal"],
             "console": "integratedTerminal",
             "justMyCode": true
         },
         {
-            "name": "Python: Translate all tasks in plan",
+            "name": "Python: Translate all Tasks into JVM Instructions",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/main.py",
+            "module": "jarvis",
             "args": ["--continuous", "--verbose", "--timeout", "3", "--config", "./config.yaml", "--startseq", "0"],
             "console": "integratedTerminal",
             "justMyCode": true
         },
         {
-            "name": "Python: Translate the given task in plan",
+            "name": "Python: Translate the specified Task into JVM Instructions",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/main.py",
-            "args": ["--continuous", "--verbose", "--timeout", "3", "--config", "./config.yaml", "--startseq", "0", "--compile", "2"],
-            "console": "integratedTerminal",
-            "justMyCode": true
-        },
-        {
-            "name": "Python: Run babyagi",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/babyagi.py",
-            "args": [],
+            "module": "jarvis",
+            "args": ["--continuous", "--verbose", "--timeout", "3", "--config", "./config.yaml", "--startseq", "0", "--compile", "1"],
             "console": "integratedTerminal",
             "justMyCode": true
         }

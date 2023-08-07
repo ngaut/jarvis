@@ -3,7 +3,7 @@ import ast
 import logging
 import json
 
-from smartgpt import utils
+from jarvis.smartgpt import utils
 
 # initialize a dictionary when the module is imported
 kv_store_file = "kv_store.json"
@@ -16,7 +16,6 @@ def reset_kv_store():
 
 def load_kv_store():
     global kv_store
-    global kv_store_file
     # Load the kv_store dictionary from the file if it exists
     if os.path.exists(kv_store_file):
         with open(kv_store_file, 'r') as f:
@@ -25,13 +24,10 @@ def load_kv_store():
         kv_store = {}
 
 def save_kv_store():
-    global kv_store
-    global kv_store_file
     with open(kv_store_file, 'w') as f:
         json.dump(kv_store, f)
 
 def get(key, default=None):
-    global kv_store
     try:
         value = kv_store.get(key, None)
         if value is None:
@@ -45,7 +41,6 @@ def get(key, default=None):
         return default
 
 def set(key, value):
-    global kv_store
     try:
         if isinstance(value, list):
             value = repr(value)
@@ -84,36 +79,42 @@ def eval(text, lazy_eval_prefix=LAZY_EVAL_PREFIX):
     if not isinstance(text, str):
         return text
 
-    # find last occurrence of "jvm.eval("
-    start = text.rfind(lazy_eval_prefix)
-    if start == -1:
-        return None
+    if not text.startswith("jvm.get("):
+        # find last occurrence of "jvm.eval("
+        start = text.rfind(lazy_eval_prefix)
+        if start == -1:
+            return None
+        prefix_len = len(lazy_eval_prefix)
+        # find the corresponding closing tag with parentheses balance
+        rest = text[start+prefix_len:]
+        balance = 0
+        end = 0
+        for char in rest:
+            if char == '(':
+                balance += 1
+            elif char == ')':
+                if balance == 0:
+                    break
+                balance -= 1
+            end += 1
 
-    prefix_len = len(lazy_eval_prefix)
-    # find the corresponding closing tag with parentheses balance
-    rest = text[start+prefix_len:]
-    balance = 0
-    end = 0
-    for char in rest:
-        if char == '(':
-            balance += 1
-        elif char == ')':
-            if balance == 0:
-                break
-            balance -= 1
-        end += 1
+        if balance != 0:
+            logging.critical(f"Error: parentheses are not balanced in {text}")
+            return None
 
-    if balance != 0:
-        logging.critical(f"Error: parentheses are not balanced in {text}")
-        return None
+        logging.info(f"eval_and_patch_template_before_exec, {start}-{end} text: {text}\n")
 
-    logging.info(f"eval_and_patch_template_before_exec, {start}-{end} text: {text}\n")
+        # adjust the end position relative to the original string
+        end = end + start + prefix_len
+        # evaluate the substring between jvm.eval( and )
+        expression = text[start+prefix_len:end].strip()
+    else:
+        start = 0
+        end = len(text)
+        prefix_len = 0
 
-    # adjust the end position relative to the original string
-    end = end + start + prefix_len
-    # evaluate the substring between jvm.eval( and )
     expression = text[start+prefix_len:end].strip()
-
+    logging.info(f"eval_and_patch_template_before_exec, expression: {expression}\n")
     try:
         evaluated = utils.sys_eval(expression)
     except Exception as err:

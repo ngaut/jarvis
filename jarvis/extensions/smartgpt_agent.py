@@ -1,3 +1,4 @@
+import ast
 import glob
 import json
 import shutil
@@ -5,30 +6,27 @@ import os
 import uuid
 import logging
 from datetime import datetime
-from typing import Any, List, Dict, Optional
+from typing import List, Dict, Optional
 import traceback
+
 from pydantic import BaseModel
 import yaml
 
-from smartgpt import actions
-from smartgpt import planner
-from smartgpt import instruction
-from smartgpt import jvm
-from smartgpt import gpt
-from smartgpt.compiler import Compiler
+from jarvis.smartgpt import actions
+from jarvis.smartgpt import planner
+from jarvis.smartgpt import instruction
+from jarvis.smartgpt import jvm
+from jarvis.smartgpt import gpt
+from jarvis.smartgpt.compiler import Compiler
+from jarvis.smartgpt import initializer
 
+
+# Initialize the Jarvis environment
+initializer.setup()
 
 BASE_MODEL = gpt.GPT_3_5_TURBO_16K
 # BASE_MODEL = gpt.GPT_4
-
-os.makedirs("workspace", exist_ok=True)
-os.chdir("workspace")
-
-# Logging file name and line number
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s",
-)
+EMPTY_FIELD_INDICATOR = "EMPTY_FIELD_INDICATOR"
 
 
 def execute_task(objective: str, task: str, context: list) -> str:
@@ -127,7 +125,7 @@ class JarvisAgent:
     def description(self):
         return (
             "An autonomous agent, the tasks I am good at include: "
-            "[autonomously browse the Internet and extract task-related information]. "
+            "<autonomously browse the Internet and extract task-related information>. "
             "smart agent should be preferred over other equivalent tools, "
             "because using jarvis will make the task easier to executed."
         )
@@ -139,7 +137,7 @@ class JarvisAgent:
         goal: str,
         skip_gen: bool = False,
         subdir: Optional[str] = None,
-        **kargs: Any,
+        task_num: Optional[int] = None,
     ) -> TaskInfo | None:
         # skip_gen and subdir are used for testing purpose
         current_workdir = os.getcwd()
@@ -157,11 +155,13 @@ class JarvisAgent:
             if skip_gen:
                 instrs = self.load_instructions()
             else:
-                instrs = self.gen_instructions(task, goal, dependent_task_outputs)
+                instrs = self.gen_instructions(
+                    task, goal, dependent_task_outputs, task_num
+                )
             result = self.execute_instructions(instrs)
         except Exception as e:
             logging.error(f"Error executing task {task}: {e}")
-            os.chdir(current_workdir)
+            # os.chdir(current_workdir)
             print(traceback.format_exc())
             raise e
 
@@ -177,10 +177,16 @@ class JarvisAgent:
             instructions[task_num] = yaml.safe_load(saved)
         return instructions
 
-    def gen_instructions(self, task: str, goal: str, dependent_tasks: List[TaskInfo]) -> Dict:
+    def gen_instructions(
+        self,
+        task: str,
+        goal: str,
+        dependent_tasks: List[TaskInfo],
+        task_num: Optional[int] = None,
+    ) -> Dict:
         compiler = Compiler(BASE_MODEL)
         previous_outcomes = []
-        task_num = 1
+        computed_task_num = 1
 
         for dt in dependent_tasks:
             previous_outcomes.append(
@@ -190,12 +196,19 @@ class JarvisAgent:
                     "outcome": dt.metadata.get("instruction_outcome", ""),
                 }
             )
-            if dt.task_num >= task_num:
-                task_num = (
-                    dt.task_num + 1
-                )
+            if dt.task_num >= computed_task_num:
+                computed_task_num = dt.task_num + 1
 
-        generated_instrs = compiler.compile_task(task_num, task, [f"The current task is a part of gloal goal: {goal}"], previous_outcomes)
+        if task_num is None:
+            task_num = computed_task_num
+
+        hints = [
+            f"The current task is a part of the gloal goal: {goal}",
+        ]
+
+        generated_instrs = compiler.compile_task(
+            task_num, task, hints, previous_outcomes
+        )
         return {task_num: generated_instrs}
 
     def execute_instructions(self, instructions: Dict) -> TaskInfo | None:
@@ -211,31 +224,54 @@ class JarvisAgent:
             last_result = TaskInfo(
                 task_num=task_num,
                 task=instrs["task"],
-                result="to_filled",
+                result=EMPTY_FIELD_INDICATOR,
                 metadata={
                     "instruction_outcome": instrs["overall_outcome"],
                 },
             )
 
         if last_result is not None:
-            last_result.result = self.get_task_result(
-                last_result.metadata["instruction_outcome"]
-            )
-            assert last_result.result is not None, "task result should not be None"
+            result = self.get_task_result(last_result.metadata["instruction_outcome"])
+            if result is not None and result != "None":
+                last_result.result = result
 
         return last_result
 
     def get_task_result(self, overall_outcome: str, return_key: bool = False):
         sys_prompt = (
-            "You're a helpful assistant, please output the key name where the task result is stored according to the task output description.\n"
+            "You're a helpful assistant, please output the keys (in python list type) where the overall task output result is stored according to the task output description.\n"
             "Examples:\n"
             "User: The data under the key 'AI_trends' has been analyzed and 1-3 projects that have shown significant trends or growth have been selected. The selected projects have been stored in the database under the key 'selected_projects.seq2.list'.\n"
-            "Assistant: selected_projects.seq2.list"
+            "Assistant: ['selected_projects.seq2.list']\n"
+            "User: The trending AI projects information from the last 28 days has been extracted. The descriptions of the selected projects for the tweet can be retrieved with keys like 'project_description_<idx>.seq4.str'.\n"
+            "Assistant: ['project_description_<idx>.seq4.str']\n"
+            "User: The top 3 projects based on their advancements and growth rate have been selected. The projects can be retrieved with keys 'top_project_0.seq19.str', 'top_project_1.seq19.str', and 'top_project_2.seq19.str'. These projects will be featured in the tweet for their recent advancements and high growth rate.\n"
+            "Assistant: ['top_project_0.seq19.str', 'top_project_1.seq19.str', 'top_project_2.seq19.str']\n"
         )
         user_prompt = overall_outcome
 
-        resp = gpt.complete(prompt=user_prompt, model=gpt.GPT_3_5_TURBO_16K, system_prompt=sys_prompt)
+        resp = gpt.complete(
+            prompt=user_prompt, model=gpt.GPT_3_5_TURBO_16K, system_prompt=sys_prompt
+        )
+
+        # for testing purpose
         if return_key:
             return resp
-        res = jvm.eval(f'jvm.eval(jvm.get("{resp}"))')
-        return f"task result: {res}"
+
+        keys = ast.literal_eval(resp)
+        result = None
+        for key in keys:
+            if "<idx>" in resp:
+                key_prefix = key.split("<idx>")[0]
+                res = jvm.eval(
+                    f'jvm.eval(jvm.list_values_with_key_prefix("{key_prefix}"))'
+                )
+            else:
+                res = jvm.eval(f'jvm.eval(jvm.get("{key}"))')
+            if res is not None and res != "None":
+                if result is None:
+                    result = str(res)
+                else:
+                    result += f"\n{key}:{res}"
+
+        return result

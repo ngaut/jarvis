@@ -3,9 +3,9 @@ from abc import ABC, abstractmethod
 
 import yaml
 
-from smartgpt import gpt
-from smartgpt import utils
-from smartgpt import preprompts
+from jarvis.smartgpt import gpt
+from jarvis.smartgpt import utils
+from jarvis.smartgpt import preprompts
 
 
 class Reviewer(ABC):

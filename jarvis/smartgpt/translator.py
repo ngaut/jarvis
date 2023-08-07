@@ -1,11 +1,11 @@
 import logging
 from typing import List, Dict, Any
 
-from smartgpt import gpt
-from smartgpt import utils
-from smartgpt import fewshot
-from smartgpt import preprompts
-from smartgpt import reviewer
+from jarvis.smartgpt import gpt
+from jarvis.smartgpt import utils
+from jarvis.smartgpt import fewshot
+from jarvis.smartgpt import preprompts
+from jarvis.smartgpt import reviewer
 
 
 REVIEWER_CLASSES = [

@@ -5,17 +5,17 @@ from typing import Dict
 
 import yaml
 
-from smartgpt import gpt
-from smartgpt import clarify
-from smartgpt import utils
-from smartgpt import preprompts
+from jarvis.smartgpt import gpt
+from jarvis.smartgpt import clarifier
+from jarvis.smartgpt import utils
+from jarvis.smartgpt import preprompts
 
 
 def gen_plan(model: str, goal: str) -> Dict:
     if not goal:
         # input the goal
         input_goal = input("Please input your goal:\n")
-        goal = clarify.clarify_and_summarize(input_goal, model)
+        goal = clarifier.clarify_and_summarize(input_goal, model)
 
     try:
         logging.info("========================")

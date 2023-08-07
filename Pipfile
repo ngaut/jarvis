@@ -18,6 +18,8 @@ chromadb = "==0.3.21"
 pre-commit = ">=3.2.0"
 llama-cpp-python = ">=0.1.42"
 pydantic = "*"
+grpcio = "*"
+grpcio-tools = "*"
 
 [dev-packages]
 pylint = "*"
