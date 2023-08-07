@@ -1,5 +1,5 @@
 Review Requirement:
-Please conduct a thorough inspection of each individual JVM instruction, paying particular attention to their arguments (args). If the 'jvm.get()' or 'jvm.list_values_with_key_prefix()' functions are utilized within the instructions, it's MANDATORY to evaluate them using the 'jvm.eval()' method. However, no nested 'jvm.eval()' is allowed.
+Conduct a thorough inspection of each JVM Instruction, paying attention to Instruction's arguments (args). If the 'jvm.get()' or 'jvm.list_values_with_key_prefix()' are utilized within the arguments, it's MANDATORY to evaluate them using the 'jvm.eval()' method. However, no nested 'jvm.eval()' is allowed.
 
 Your YAML response:
 ```yaml

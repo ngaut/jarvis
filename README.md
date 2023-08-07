@@ -31,5 +31,20 @@ python -m jarvis --continuous --timeout 3 --config=./config.yaml --startseq=0 --
 python -m jarvis --continuous --timeout 3 --config=./config.yaml --startseq=0 --verbose --yaml=2.yaml
 ```
 
+## Run within Docker
+
+### Build a local image
+```bash
+docker build -t jarvis-server:latest .
+```
+
+### Run jarvis-server
+```bash
+docker run --rm -p 51155:51155 \
+-v $(pwd)/data:/app/data \
+-v $(pwd)/workspace:/app/workspace \
+-v $(pwd)/.env:/app/.env \
+jarvis-server:latest
+```
 
 And so on.

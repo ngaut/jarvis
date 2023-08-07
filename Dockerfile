@@ -8,6 +8,11 @@ RUN pip install pipenv
 COPY Pipfile Pipfile.lock ./
 RUN pipenv install --deploy --ignore-pipfile --verbose
 
+# Install browsers
+RUN apt-get update && apt-get install -y \
+    chromium-driver firefox-esr \
+    ca-certificates libnss3
+
 COPY data/ ./data/
 COPY jarvis/ ./jarvis/
 

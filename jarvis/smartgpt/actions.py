@@ -126,6 +126,9 @@ class FetchWebContentAction:
         # Setting up Chrome Options
         chrome_options = ChromeOptions()
         chrome_options.headless = True
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
 
         # Installing and setting up Chrome WebDriver with the defined options
         #driver_path = ChromeDriverManager().install()
