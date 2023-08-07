@@ -20,7 +20,7 @@
             "justMyCode": true
         },
         {
-            "name": "Python: Re-generate Tasks DAG",
+            "name": "Python: Generate Tasks Execution Plan",
             "type": "python",
             "request": "launch",
             "module": "jarvis",
@@ -29,7 +29,7 @@
             "justMyCode": true
         },
         {
-            "name": "Python: Re-generate Tasks DAG with given Goalfile",
+            "name": "Python: Generate Tasks Execution Plan with Goalfile",
             "type": "python",
             "request": "launch",
             "module": "jarvis",
