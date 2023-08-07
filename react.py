@@ -24,8 +24,8 @@ from langchain.schema import (
 from langchain.tools.base import BaseTool
 from langchain.agents.tools import InvalidTool
 
-from smartgpt import gpt
-from extensions.smartgpt_agent import JarvisAgent, EMPTY_FIELD_INDICATOR
+from jarvis.smartgpt import gpt
+from jarvis.extensions.smartgpt_agent import JarvisAgent, EMPTY_FIELD_INDICATOR
 
 # Set up the base react template
 react_prompt_template = """Answer the following question as best you can.
@@ -320,7 +320,6 @@ Success Criteria:
 
 Current Date: 2023-07-27
 """
-
 
 jarvis = JarvisAgentTools(objective)
 jarvisTool = Tool(name=jarvis.name, description=jarvis.description, func=jarvis.exec)

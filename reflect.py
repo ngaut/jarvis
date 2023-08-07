@@ -1,6 +1,7 @@
 import openai
 import json
 import threading
+import logging
 
 import uuid
 import json
@@ -9,7 +10,14 @@ import concurrent.futures
 import time
 from datetime import datetime
 
-from extensions.smartgpt_agent import JarvisAgent, EMPTY_FIELD_INDICATOR
+from jarvis.extensions.smartgpt_agent import JarvisAgent, EMPTY_FIELD_INDICATOR
+
+# Logging file name and line number
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s",
+)
+
 
 OBJECTIVE_EXAMPLE = {
     "objective": "Research untapped.vc",
