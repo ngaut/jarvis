@@ -254,12 +254,8 @@ class RunPythonAction(Action):
     pkg_dependencies: List[str] = field(default_factory=list)
     cmd_args: str = ""
 
-    # Use the current directory as the working environment
-    work_dir = os.path.join(os.getcwd(), "workspace")
+    # Keep the project's Python path
     project_dir = os.getcwd()
-
-    # Generate a random file name for each execution
-    file_name = f'run_{uuid.uuid4()}.py'
 
     def key(self) -> str:
         return "RunPython"
@@ -268,31 +264,37 @@ class RunPythonAction(Action):
         return self.action_id
 
     def short_string(self) -> str:
-        return f"action_id: {self.id()}, Run Python file `{self.file_name} {self.cmd_args}`"
+        return f"action_id: {self.id()}, Run Python code."
 
     def run(self) -> str:
+        # Use the current directory as the working environment
+        work_dir = os.getcwd()
+
+        # Generate a random file name for each execution
+        file_name = f'run_{uuid.uuid4()}.py'
+
         # Make sure code isn't None
         if not self.code:
             return "RunPythonAction failed: The 'code' argument can not be empty"
 
         # Create or use existing virtual environment
-        venv_path = self._create_or_use_virtual_env()
+        venv_path = self._create_or_use_virtual_env(work_dir)
 
         # Install dependencies in virtual environment
 
         self._install_dependencies(venv_path)
 
         # Write code to file
-        self._write_code_to_file()
+        self._write_code_to_file(work_dir, file_name)
 
         # Run the python script and fetch the output
-        exit_code, stdout_output, stderr_error = self._run_script(venv_path)
-        output = self._construct_output(exit_code, stdout_output, stderr_error)
+        exit_code, stdout_output, stderr_error = self._run_script(venv_path, work_dir, file_name)
+        output = self._construct_output(exit_code, stdout_output, stderr_error, work_dir, file_name)
 
         return output
 
-    def _create_or_use_virtual_env(self):
-        venv_dir = os.path.join(self.work_dir, 'venv')
+    def _create_or_use_virtual_env(self, work_dir):
+        venv_dir = os.path.join(work_dir, 'venv')
         if not os.path.exists(venv_dir):
             venv.EnvBuilder(with_pip=True).create(venv_dir)
         return os.path.join(venv_dir, 'bin')
@@ -301,17 +303,18 @@ class RunPythonAction(Action):
         for dependency in self.pkg_dependencies:
             subprocess.check_call([os.path.join(venv_path, 'pip'), 'install', dependency])
 
-    def _write_code_to_file(self):
-        with open(os.path.join(self.work_dir, self.file_name), mode="w", encoding="utf-8") as file:
+    def _write_code_to_file(self, work_dir, file_name):
+        with open(os.path.join(work_dir, file_name), mode="w", encoding="utf-8") as file:
             file.write("import sys\n")
             file.write(f"sys.path.append('{self.project_dir}')\n")
             file.write("from jarvis.smartgpt import jvm\n")
             file.write("jvm.load_kv_store()\n")
             file.write(self.code)
 
-    def _run_script(self, venv_path):
+    def _run_script(self, venv_path, work_dir, file_name):
+        script_full_path = os.path.join(work_dir, file_name)
         with subprocess.Popen(
-            [os.path.join(venv_path, 'python'), os.path.join(self.work_dir, self.file_name)] + self.cmd_args.split(),
+            [os.path.join(venv_path, 'python'), script_full_path] + self.cmd_args.split(),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             universal_newlines=True,
@@ -321,10 +324,11 @@ class RunPythonAction(Action):
                 return process.returncode, stdout_output, stderr_error
             except subprocess.TimeoutExpired:
                 process.kill()
-                return 1, "", f"RunPythonAction failed: The Python script at `{self.file_name} {self.cmd_args}` timed out after {self.timeout} seconds."
+                return 1, "", f"RunPythonAction failed: The Python script at `{script_full_path} {self.cmd_args}` timed out after {self.timeout} seconds."
 
-    def _construct_output(self, exit_code, stdout_output, stderr_error):
-        output = f"\n`python {self.file_name} {self.cmd_args}` returned: \n#exit code {exit_code}\n"
+    def _construct_output(self, exit_code, stdout_output, stderr_error, work_dir, file_name):
+        script_full_path = os.path.join(work_dir, file_name)
+        output = f"\n`python {script_full_path} {self.cmd_args}` returned: \n#exit code {exit_code}\n"
         if stdout_output:
             output += f"#stdout of process:\n{stdout_output}"
         if stderr_error:

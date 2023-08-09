@@ -8,18 +8,19 @@ from jarvis.smartgpt import preprompts
 from jarvis.smartgpt import reviewer
 
 
-#REVIEWER_CLASSES = [
-#    (reviewer.EvalSyntaxReviewer, [gpt.GPT_3_5_TURBO_16K]),
-#    (reviewer.LoopIndexKeyReviewer, [gpt.GPT_3_5_TURBO_16K])]
-
-REVIEWER_CLASSES = []
+REVIEWER_CLASSES = [
+    (reviewer.EvalSyntaxReviewer, [gpt.GPT_3_5_TURBO_16K]),
+    (reviewer.LoopIndexKeyReviewer, [gpt.GPT_3_5_TURBO_16K])]
 
 FEW_SHOT_EXAMPLE = "3"
 
 class Translator:
     def __init__(self, model):
         self.model = model
-        self.reviewers = [cls(*params) for cls, params in REVIEWER_CLASSES]
+        if model != gpt.GPT_4:
+            self.reviewers = [cls(*params) for cls, params in REVIEWER_CLASSES]
+        else:
+            self.reviewers = []
 
     def build_system_prompt(self) -> List[Dict]:
         messages = []
