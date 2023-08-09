@@ -8,9 +8,11 @@ from jarvis.smartgpt import preprompts
 from jarvis.smartgpt import reviewer
 
 
-REVIEWER_CLASSES = [
-    (reviewer.EvalSyntaxReviewer, [gpt.GPT_3_5_TURBO_16K]),
-    (reviewer.LoopIndexKeyReviewer, [gpt.GPT_3_5_TURBO_16K])]
+#REVIEWER_CLASSES = [
+#    (reviewer.EvalSyntaxReviewer, [gpt.GPT_3_5_TURBO_16K]),
+#    (reviewer.LoopIndexKeyReviewer, [gpt.GPT_3_5_TURBO_16K])]
+
+REVIEWER_CLASSES = []
 
 FEW_SHOT_EXAMPLE = "3"
 
@@ -28,19 +30,19 @@ class Translator:
     def translate_to_instructions(self, task_info: Dict[str, Any]):
         previous_task_outcomes = ""
         if task_info.get("first_task", False):
-            previous_task_outcomes += "This is the first task, so there are no previous tasks or outcomes."
+            previous_task_outcomes = "\"This is the first task, so there are no previous tasks or outcomes.\""
         else:
             for item in task_info.get("previous_outcomes", []):
-                previous_task_outcomes += f"\n  - {item.get('outcome')}"
+                previous_task_outcomes += f"\n  - \"{item.get('outcome')}\""
 
         hints = ""
         for item in task_info.get("hints", []):
-            hints += f"\n  - {item}"
+            hints += f"\n  - \"{item}\""
         if not hints:
             hints = "[]"
 
         user_prompt = preprompts.get("translator_user").format(
-            task = task_info.get("task", ""),
+            task = f"\"{task_info.get('task', '')}\"",
             start_seq = task_info.get("start_seq", ""),
             hints = hints,
             previous_task_outcomes = previous_task_outcomes,

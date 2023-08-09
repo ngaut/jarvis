@@ -18,52 +18,37 @@ class Reviewer(ABC):
 
     def buildSystemMessages(self) -> List[Dict]:
         messages = []
-        messages.append({"role": "system", "content": preprompts.get('reviewer_sys')})
-        messages.append({"role": "user", "content": preprompts.get('jvm_spec')})
+        prompt = preprompts.get('reviewer_sys') + "\n" + preprompts.get('jvm_spec')
+        messages.append({"role": "system", "content": prompt})
         return messages
 
-    def buildReviewContent(self, resp_instructions: str) -> str:
-        review_content = preprompts.get("reviewer_content").format(
-            instructions = resp_instructions
+    def generalReview(self, resp_instructions: str, review_prompt: str) -> Tuple[str, List[Dict]]:
+        messages = self.buildSystemMessages()
+
+        review_content = preprompts.get(review_prompt).format(
+            instructions = '\n'.join('  ' + line for line in resp_instructions.splitlines())
         )
-        return review_content
+        messages.append({"role": "user", "content": review_content})
+
+        review_response = gpt.send_messages(messages, self.model)
+        messages.append({"role": "assistant", "content": review_response})
+
+        review_response = utils.strip_yaml(review_response)
+        result = yaml.safe_load(review_response)
+
+        if result.get("approved", False):
+            return resp_instructions, messages
+        else:
+            if "revised_version" in result:
+                return result.get("revised_version"), messages
+            else:
+                return resp_instructions, messages
+
 
 class EvalSyntaxReviewer(Reviewer):
     def review(self, resp_instructions: str) -> Tuple[str, List[Dict]]:
-        messages = self.buildSystemMessages()
-        messages.append({"role": "user", "content": self.buildReviewContent(resp_instructions)})
-        messages.append({"role": "user", "content": preprompts.get('reviewer_eval_syntax')})
-
-        review_response = gpt.send_messages(messages, self.model)
-        messages.append({"role": "assistant", "content": review_response})
-
-        review_response = utils.strip_yaml(review_response)
-        result = yaml.safe_load(review_response)
-
-        if result.get("approved", False):
-            return resp_instructions, messages
-        else:
-            if "revised_version" in result:
-                return result.get("revised_version"), messages
-            else:
-                return resp_instructions, messages
+        return self.generalReview(resp_instructions, "reviewer_eval_syntax")
 
 class LoopIndexKeyReviewer(Reviewer):
     def review(self, resp_instructions: str) -> Tuple[str, List[Dict]]:
-        messages = self.buildSystemMessages()
-        messages.append({"role": "user", "content": self.buildReviewContent(resp_instructions)})
-        messages.append({"role": "user", "content": preprompts.get('reviewer_index_key')})
-
-        review_response = gpt.send_messages(messages, self.model)
-        messages.append({"role": "assistant", "content": review_response})
-
-        review_response = utils.strip_yaml(review_response)
-        result = yaml.safe_load(review_response)
-
-        if result.get("approved", False):
-            return resp_instructions, messages
-        else:
-            if "revised_version" in result:
-                return result.get("revised_version"), messages
-            else:
-                return resp_instructions, messages
+        return self.generalReview(resp_instructions, "reviewer_index_key")

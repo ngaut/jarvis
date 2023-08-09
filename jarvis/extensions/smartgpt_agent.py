@@ -184,7 +184,7 @@ class JarvisAgent:
         dependent_tasks: List[TaskInfo],
         task_num: Optional[int] = None,
     ) -> Dict:
-        compiler = Compiler(BASE_MODEL)
+        compiler = Compiler(gpt.GPT_4)
         previous_outcomes = []
         computed_task_num = 1
 

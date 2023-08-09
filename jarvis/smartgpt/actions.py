@@ -169,7 +169,7 @@ class FetchWebContentAction:
         cached_key = self.url + self.save_to
         cached_result = get_from_cache(cached_key)
         if cached_result is not None:
-            logging.info("FetchWebContentAction RESULT(cached).")
+            logging.debug("FetchWebContentAction RESULT(cached).")
             return cached_result
 
         try:
@@ -180,7 +180,7 @@ class FetchWebContentAction:
             logging.error(f"FetchWebContentAction RESULT: An error occurred: {str(err)}")
             return f"FetchWebContentAction RESULT: An error occurred: {str(err)}"
         else:
-            logging.info(f"\nFetchWebContentAction RESULT:\n{text}")
+            logging.debug(f"\nFetchWebContentAction RESULT:\n{text}")
             result_str = yaml.safe_dump({"kvs": [{"key": self.save_to, "value": text}]})
 
             save_to_cache(cached_key, result_str)
@@ -229,7 +229,7 @@ class WebSearchAction:
 
                 # return a list of links
                 result = [item['link'] for item in search_results['items']]
-                logging.info(f"WebSearchAction RESULT: {result}")
+                logging.debug(f"WebSearchAction RESULT: {result}")
 
                 result_str = yaml.safe_dump({"kvs": [{"key": self.save_to, "value": result}]})
 
@@ -396,7 +396,7 @@ class TextCompletionAction(Action):
         cached_result = get_from_cache(cached_key)
 
         if cached_result is not None:
-            logging.info(f"TextCompletionAction RESULT(cached) for operation: {self.operation}")
+            logging.debug(f"TextCompletionAction RESULT(cached) for operation: {self.operation}")
             return cached_result
 
         messages = self.generate_messages()
