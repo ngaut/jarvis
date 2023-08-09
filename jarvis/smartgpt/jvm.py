@@ -102,7 +102,7 @@ def eval(text, lazy_eval_prefix=LAZY_EVAL_PREFIX):
             logging.critical(f"Error: parentheses are not balanced in {text}")
             return None
 
-        logging.info(f"eval_and_patch_template_before_exec, {start}-{end} text: {text}\n")
+        logging.debug(f"eval_and_patch_template_before_exec, {start}-{end} text: {text}\n")
 
         # adjust the end position relative to the original string
         end = end + start + prefix_len
@@ -114,7 +114,7 @@ def eval(text, lazy_eval_prefix=LAZY_EVAL_PREFIX):
         prefix_len = 0
 
     expression = text[start+prefix_len:end].strip()
-    logging.info(f"eval_and_patch_template_before_exec, expression: {expression}\n")
+    logging.debug(f"eval_and_patch_template_before_exec, expression: {expression}\n")
     try:
         evaluated = utils.sys_eval(expression)
     except Exception as err:
@@ -123,6 +123,6 @@ def eval(text, lazy_eval_prefix=LAZY_EVAL_PREFIX):
 
     # replace the evaluated part in the original string
     text = text[:start] + str(evaluated) + text[end+1:]
-    logging.info(f"text after patched: {text}\n")
+    logging.debug(f"text after patched: {text}\n")
 
     return text

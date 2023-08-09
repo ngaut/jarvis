@@ -2,7 +2,7 @@
 Jarvis Virtual Machine (JVM) is a unique execution environment designed to interpret a set of YAML-based instructions called "Jarvis Instructions". These instructions are designed to enable the execution of complex tasks involving data processing, AI model interaction, and information search.
 
 ## JVM Instruction Synopsis
-JVM classifies instructions into: 'Basic Instructions', 'Advanced Instructions', and 'Flow Control Instructions'.
+JVM classifies instructions into:
 **Basic Instructions** like 'WebSearch', 'FetchWebContent' or 'TextCompletion' perform defined tasks.
 **Advanced Instructions** like 'RunPython' use AI for complex tasks but are resource-heavy.
 **Flow Control Instructions** like 'Loop' or 'If' manage task execution flow in JVM.
@@ -21,33 +21,32 @@ instructions:
 ### Flow Control Instructions
 **If**: This instruction serves as a conditional control mechanism in the JVM. It evaluates a given condition and based on its truth value, it executes a corresponding set of instructions.
 ```yaml
-instructions:
-  - seq:
-    type: If
-    inside_loop:
-    objective:
-    rule_num:
-    args:
-      condition: # The condition to be evaluated.
-      then: # The instructions to be executed if the condition evaluates to true.
-      else: # The instructions to be executed if the condition evaluates to false.
+seq:
+type: If
+inside_loop:
+objective:
+rule_num:
+args:
+  condition: # The condition to be evaluated.
+  then: # The instructions to be executed if the condition evaluates to true.
+  else: # The instructions to be executed if the condition evaluates to false.
 ```
 
 **Loop**: This instruction enables the repetition of a set of instructions for a predetermined number of iterations.
 ```yaml
-instructions:
-  - seq:
-    type: Loop
-    inside_loop:
-    objective:
-    rule_num:
-    args:
-      count: # Specifies the number of iterations for the loop. This can be dynamically evaluated using the evaluation syntax. For instance, "jvm.eval(len(jvm.get('fetched_urls.seq3.list')))"
-      instructions: # Defines the list of instructions that are to be executed in each iteration.
+seq:
+type: Loop
+inside_loop:
+objective:
+rule_num:
+args:
+  count: # Specifies the number of iterations for the loop. This can be dynamically evaluated using the evaluation syntax. For instance, "jvm.eval(len(jvm.get('fetched_urls.seq3.list')))"
+  instructions: # Defines the list of instructions that are to be executed in each iteration.
 ```
 
 ## Manipulate Data in JVM Context
-The JVM interpreter implements a context mechanism built on an underlying database to facilitate data sharing and transfer between JVM instructions. During execution, a JVM instruction can save to and access data from the context using a specific 'key'. This 'key' must be formatted as '(key_name).seq(X).(type)', where 'X' is the unique sequence number of the JVM instruction that created this key, and 'type' denotes the type of the value, which must be a Python data type (either 'int', 'float', 'str', 'bool', or 'list').
+The JVM interpreter implements a context mechanism built on an underlying database to facilitate data sharing and transfer between JVM instructions. During execution, JVM instructions can save to and access data from the context using a specific 'key'. This 'key' must be formatted as '(key_name).seq(X).(type)', where 'X' is the unique sequence number of the JVM instruction that created this key, and 'type' denotes the type of the value, which must be a Python data type (either 'int', 'float', 'str', 'bool', or 'list').
+
 For example:
 - 'searchResult.seq5.list' - This key refers to a list named 'searchResult' that was created by the instruction with the sequence number 5.
 - 'weatherData.seq4.float' - This key refers to a floating-point number named 'weatherData' that was created by the instruction with the sequence number 4.
@@ -57,9 +56,11 @@ The JVM provides the following methods to interact with and manipulate data in t
 - **jvm.set('key_name', value)**: Sets the specified key with a given value. Only used in generated code from 'RunPython', e.g. `jvm.set('temperature.seq3.int', 67)`
 - **jvm.list_values_with_key_prefix('key_name_prefix')**: Efficiently fetches a list of values with keys that share the provided prefix. This method is often used in conjunction with the Loop instruction.
 
-However, the `jvm.get()` method cannot be invoked directly within the input arguments of an instruction. Instead, values must be passed using the evaluation syntax via the `jvm.eval()` function, as shown in the examples below:
+However, the `jvm.get()` method cannot be invoked directly within the input arguments of an instruction. Instead, values must be passed using the evaluation syntax via the `jvm.eval()` function.
+
+For example:
 - count: "jvm.eval(len(jvm.get('fetched_urls.seq3.list')))"
-- content: "jvm.eval(jvm.get('article_content.seq5.str'))"
+- content: "jvm.eval('\n'.join(jvm.list_values_with_key_prefix('article_content_')))"
 - url: "jvm.eval('http://www.my-website.com/' + jvm.get('page_path.seq2.str'))"
 - condition: "jvm.eval(jvm.get('new_york_temperature.seq1.float') > 25)"
 
@@ -71,7 +72,7 @@ Assuming the name of index key is 'idx', some examples:
 - save_to: "jvm.eval('relevant_info_' + str(jvm.get('idx')) + '.seq3.str')"  # Constructs a dynamic key for saving values within the loop.
 - content: "jvm.eval(jvm.list_values_with_key_prefix('relevant_info_')[jvm.get('idx')])"  # Retrieves a value that corresponds to the current loop index from the values whose keys start with 'relevant_info_'."
 
-## Instruction References
+## JVM Instruction References
 ### Basic Instructions
 **WebSearch**: This instruction retrieves a list of URLs from a web search engine based on the provided query.
 ```yaml
@@ -87,7 +88,6 @@ args:
   save_to: # e.g. 'fetched_content.seq3.str' The key (with the 'type' always being 'str') under which the fetched content will be saved in the JVM context.
 ```
 
-### Advanced Instructions
 **TextCompletion**: This instruction utilizes AI language models to perform text-based operations, including but not limited to content generation, text completion, code translation, content consolidation, summarizing, and information extraction. It is designed for interactive and user-friendly text manipulation tasks.
 ```yaml
 args:
@@ -100,6 +100,7 @@ args:
   content: # The raw content to be processed. This is the direct input for the TextCompletion to work on.
 ```
 
+### Advanced Instructions
 **RunPython**: This instruction executes Python code, enabling operations such as I/O processing, API calling, and more.
 ```yaml
 args:
@@ -110,3 +111,26 @@ args:
     # An assessment of the code's compliance with task objectives and coding standards. This review should be performed by the user creating the instruction or a designated code reviewer.
   pkg_dependencies: # A list of any Python packages that the code depends on.
 ```
+
+
+## Output Example
+A complete JVM Instructions description should contain these fields:
+```yaml
+task:
+thoughts:
+previous_task_outcomes:
+hints_from_user:
+start_seq:
+instructions:
+  - seq:
+    type:
+    inside_loop:
+    objective:
+    rule_num:
+    args:
+      ...
+end_seq:
+overall_outcome:
+```
+
+When forming the 'overall_outcome', Explain the overall outcome we had after succeeded, what is the final result and how to retrieve the results (specify a correct key name or (both key prefix and postfix if the key can't be retrieved by `jvm.get`)), As there are other tasks will use the result, give hints to next task.
