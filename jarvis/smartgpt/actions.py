@@ -305,7 +305,7 @@ class RunPythonAction(Action):
         with open(os.path.join(self.work_dir, self.file_name), mode="w", encoding="utf-8") as file:
             file.write("import sys\n")
             file.write(f"sys.path.append('{self.project_dir}')\n")
-            file.write("from smartgpt import jvm\n")
+            file.write("from jarvis.smartgpt import jvm\n")
             file.write("jvm.load_kv_store()\n")
             file.write(self.code)
 
