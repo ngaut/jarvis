@@ -118,7 +118,7 @@ def rank2_subfix(llm, llm_rank_args, cand1, cand2):
             {"role": "user", "content": LLM_PAIRWISE_RANK_USER_PROMPT},
         ]
     )
-    output, _, total_tokens = llm.parse()
+    output, total_tokens = llm.parse([])
     if output["content"].strip().lower()[-1] == "a":
         return 1, 1, total_tokens
     else:
@@ -267,7 +267,7 @@ class Executor:
 
     def step(self, function_name, function_args):
         for tool in self.tools:
-            if tool.get_name() == function_name.lower().strip():
+            if tool.get_name().lower() == function_name.lower().strip():
                 return tool.execute(function_args)
             
         return (f"invalid hallucination function_name {function_name}", 4)
@@ -309,7 +309,7 @@ class TreeNode:
         """
         max_depth = 0
         for child in self.children:
-            max_depth = max(max_depth, child.get_max_depth())
+            max_depth = max(max_depth, child.down_to_leaf_depth())
         return max_depth + 1
 
     def depth(self):
@@ -318,7 +318,7 @@ class TreeNode:
         """
         if self.father is None:
             return 0
-        return self.father.get_depth() + 1
+        return self.father.depth() + 1
 
     def get_size(self):
         """
@@ -385,8 +385,8 @@ class TreeNode:
             return None
         if node1 == node2:
             return node1
-        length1 = node1.get_up_depth()
-        length2 = node2.get_up_depth()
+        length1 = node1.depth()
+        length2 = node2.depth()
         if length1 > length2:
             return TreeNode.find_ancestor_intersection(node1.father, node2)
         else:
@@ -549,7 +549,7 @@ class DFSReact:
             for node in self.terminal_node:
                 if node.pruned is False:  # has answer
                     json_obj["compare_candidates"].append(
-                        node.get_chain_from_this_node(use_messages=False)
+                        node.get_chain_from_this_node(with_messages=False)
                     )
         else:
             json_obj = {}
@@ -632,7 +632,7 @@ class DFSReact:
         now_node.expand_num = self.now_expand_num
         self.now_expand_num += 1
         if (
-            now_node.get_up_depth() >= single_chain_max_step
+            now_node.depth() >= single_chain_max_step
             or now_node.pruned
             or now_node.is_terminal
         ):
@@ -660,7 +660,7 @@ class DFSReact:
                 for _, child in enumerate(temp_now_node.children):
                     obj_dict = {
                         "name": child.function_name,
-                        "arguments": child.function_arguments,
+                        "arguments": child.function_args,
                         "function_output": child.observation,
                     }
                     js_list.append(obj_dict)
@@ -684,8 +684,16 @@ class DFSReact:
                     delete_former_diversity_message = True
 
             # on_llm_start
+
             self.llm.change_messages(temp_now_node.messages)
             new_message, total_tokens = self.llm.parse(functions=self.executor.get_tools_function())
+            """
+            print("************************************************************")
+            for i, message in enumerate(temp_now_node.messages):
+                print(f"message[{i}]: {message}")
+            print(f"new generate message: {new_message}")
+            print("************************************************************")
+            """
             # on_llm_end
             self.query_count += 1
             self.total_tokens += total_tokens
@@ -709,7 +717,7 @@ class DFSReact:
                 temp_node.function_args = function_input
                 args = json.loads(function_input)
 
-                temp_node.print()
+                # temp_node.print()
 
                 # on_tool_start
                 observation, status = self.executor.step(function_name, args)
@@ -922,25 +930,7 @@ class ChatGPTFunction:
 if __name__ == "__main__":
     tools = [FinishTool(), TextCompletionTool()]
     executor = Executor(tools)
-    messages = []
-
-    tool_descriptions = executor.get_tools_descriptions()
-    system = FORMAT_INSTRUCTIONS_SYSTEM_FUNCTION
-    system = system.replace("{tool_description}", tool_descriptions)
-    messages.append({"role": "system", "content": system})
-
-    user = FORMAT_INSTRUCTIONS_USER_FUNCTION
-    user = user.replace("{input_description}", "Where is beijing")
-    messages.append({"role": "user", "content": user})
-    print(messages)
-
     llm = ChatGPTFunction(openai_key=os.getenv("OPENAI_API_KEY", ""))
-    llm.change_messages(messages)
-    response, token = llm.parse(functions=executor.get_tools_function())
-    print(response, token)
-    function_name = response['function_call']['name']
-    function_args = response['function_call']['arguments']
-
-    args = json.loads(function_args)
-    res, code = executor.step(function_name, args)
-    print(res, code)
+    agent = DFSReact(llm, executor, "where is beijing")
+    agent.start(3, with_filter=False)
+    print(agent.to_json())
