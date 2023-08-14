@@ -117,8 +117,8 @@ args:
 A complete JVM Instructions description should contain these fields:
 ```yaml
 task:
+objective:
 thoughts:
-previous_task_outcomes:
 hints_from_user:
 start_seq:
 instructions:

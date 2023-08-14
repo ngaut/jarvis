@@ -27,14 +27,16 @@ class Compiler:
             logging.error(f"Error writing to file {file_name}: {e}")
             raise
 
-    def create_task_info(self, task, num, hints, previous_outcomes) -> Dict:
+    def create_task_info(self, task, objective, num, hints, previous_outcomes, goal) -> Dict:
         return {
             "first_task": num == 1,
             "task_num": num,
             "hints": hints,
             "task": task,
+            "objective": objective,
             "start_seq": (num - 1 << 4) + 1,
-            "previous_outcomes": previous_outcomes
+            "previous_outcomes": previous_outcomes,
+            "goal": goal
         }
 
     def check_outcome_changed(self, task_outcome, origin) -> bool:
@@ -43,6 +45,7 @@ class Compiler:
     def compile_plan(self) -> List[Dict]:
         plan = self.load_yaml('plan.yaml')
         hints = plan.get("hints_from_user", [])
+        goal = plan.get("goal", "")
         task_list = plan.get("task_list", [])
         task_dependency = plan.get("task_dependency", {})
 
@@ -54,7 +57,7 @@ class Compiler:
             deps = task_dependency.get(str(num), [])
             previous_outcomes = [task_outcomes[i] for i in deps]
 
-            task_info = self.create_task_info(task['task'], num, hints, previous_outcomes)
+            task_info = self.create_task_info(task['task'], task['objective'], num, hints, previous_outcomes, goal)
             instructions_yaml_str = self.translator.translate_to_instructions(task_info)
 
             self.write_yaml(f"{num}.yaml", instructions_yaml_str)
@@ -73,6 +76,7 @@ class Compiler:
     def compile_task_in_plan(self, specified_task_num: int) -> List[Dict]:
         plan = self.load_yaml('plan.yaml')
         hints = plan.get("hints_from_user", [])
+        goal = plan.get("goal", "")
         task_list = plan.get("task_list", [])
         task_dependency = plan.get("task_dependency", {})
 
@@ -95,7 +99,7 @@ class Compiler:
                 task_instrs = self.load_yaml(file_name)
 
             if not task_instrs:
-                task_info = self.create_task_info(task['task'], num, hints, previous_outcomes)
+                task_info = self.create_task_info(task['task'], task['objective'], num, hints, previous_outcomes, goal)
                 instructions_yaml_str = self.translator.translate_to_instructions(task_info)
                 self.write_yaml(file_name, instructions_yaml_str)
                 task_instrs = yaml.safe_load(instructions_yaml_str)
@@ -113,10 +117,9 @@ class Compiler:
 
         return result
 
-    def compile_task(self, specified_task_num: int, task: str, hints: List, previous_outcomes: List) -> Dict:
-        task_info = self.create_task_info(task, specified_task_num, hints, previous_outcomes)
+    def compile_task(self, task_num: int, task: str, objective: str, hints: List, previous_outcomes: List, goal: str) -> Dict:
+        task_info = self.create_task_info(task, objective, task_num, hints, previous_outcomes, goal)
         instructions_yaml_str = self.translator.translate_to_instructions(task_info)
-
-        self.write_yaml(f"{specified_task_num}.yaml", instructions_yaml_str)
+        self.write_yaml(f"{task_num}.yaml", instructions_yaml_str)
         result = yaml.safe_load(instructions_yaml_str)
         return result

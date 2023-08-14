@@ -29,25 +29,29 @@ class Translator:
         return messages
 
     def translate_to_instructions(self, task_info: Dict[str, Any]):
-        previous_task_outcomes = ""
+        hints = ""
         if task_info.get("first_task", False):
-            previous_task_outcomes = "\"This is the first task, so there are no previous tasks or outcomes.\""
+            hints = "\n  - \"This is the first task, so there are no previous tasks or outcomes.\""
         else:
             for item in task_info.get("previous_outcomes", []):
-                previous_task_outcomes += f"\n  - \"{item.get('outcome')}\""
+                hints += f"\n  - \"This is the #{task_info.get('task_num')} task, the previous task #{item.get('task_num')} has outcome: \'{item.get('outcome')}\'\""
 
-        hints = ""
+        if task_info.get("goal", ""):
+            hints += f"\n  - \"The user's original request: {task_info.get('goal')}\""
+
         for item in task_info.get("hints", []):
             hints += f"\n  - \"{item}\""
+
         if not hints:
             hints = "[]"
 
         user_prompt = preprompts.get("translator_user").format(
             task = f"\"{task_info.get('task', '')}\"",
+            objective = f"\"{task_info.get('objective', '')}\"",
             start_seq = task_info.get("start_seq", ""),
             hints = hints,
-            previous_task_outcomes = previous_task_outcomes,
         )
+
         logging.info(f"User Prompt: \n{user_prompt}")
 
         messages = self.build_system_prompt()

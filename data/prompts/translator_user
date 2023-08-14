@@ -1,8 +1,8 @@
-Please fill in the following YAML template with your response, making sure to leverage the outcomes of previous tasks.
+Please fill in the following YAML template within your response, making sure to leverage the outcomes of the previous tasks in user's hints, and fulfill the stated objective.
 ```yaml
 task: {task}
+objective: {objective}
 thoughts: <to_fill>
-previous_task_outcomes: {previous_task_outcomes}
 hints_from_user: {hints}
 start_seq: {start_seq}
 instructions: <to_fill>
