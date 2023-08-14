@@ -1,4 +1,4 @@
-Please review the JVM Instructions below to check if the objective is achievable. You should break down the provided instructions and simulate the execution of the instructions line by line:
+Please review the JVM Instructions below to check if the objective is achievable. You should simulate the execution of the instructions line by line:
 
 ```yaml
 {instructions}
