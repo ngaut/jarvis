@@ -12,15 +12,17 @@ REVIEWER_CLASSES = [
     (reviewer.EvalSyntaxReviewer, [gpt.GPT_3_5_TURBO_16K]),
     (reviewer.LoopIndexKeyReviewer, [gpt.GPT_3_5_TURBO_16K])]
 
+REVIEWER_GPT4_CLASSES = [(reviewer.SimulationReviewer, [gpt.GPT_4])]
+
 FEW_SHOT_EXAMPLE = "3"
 
 class Translator:
     def __init__(self, model):
         self.model = model
-        if model != gpt.GPT_4:
-            self.reviewers = [cls(*params) for cls, params in REVIEWER_CLASSES]
+        if model == gpt.GPT_4:
+            self.reviewers = [cls(*params) for cls, params in REVIEWER_GPT4_CLASSES]
         else:
-            self.reviewers = []
+            self.reviewers = [cls(*params) for cls, params in REVIEWER_CLASSES]
 
     def build_system_prompt(self) -> List[Dict]:
         messages = []

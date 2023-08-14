@@ -1,6 +1,6 @@
 Please complete the following YAML template for your response:
 ```yaml
-user-submitted: |
+original_version: |
 {instructions}
 review_requirement: |
   Carefully inspect all instructions within Loop structures. Alert any occurrences where an index key is not utilized in output argument. This is crucial as data overwriting could occur from key reuse, often indicating a bug. Your keen observation is vital for ensuring proper data manipulation within loop structures.

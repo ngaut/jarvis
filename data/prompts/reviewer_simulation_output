@@ -1,0 +1,11 @@
+Please complete the following YAML template within your response:
+```yaml
+is_correct: <to_fill>
+review_conclusion: |
+  <to_fill>
+revised_version: |
+  <to_fill>
+```
+
+Your response:
+```yaml
