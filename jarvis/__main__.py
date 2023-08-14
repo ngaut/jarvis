@@ -5,20 +5,20 @@ import logging
 
 import yaml
 
+from jarvis.smartgpt import initializer
 from jarvis.smartgpt import gpt
 from jarvis.smartgpt import planner
 from jarvis.smartgpt import instruction
 from jarvis.smartgpt import compiler
-from jarvis.smartgpt import initializer
 
 
 PLANNER_MODEL = gpt.GPT_4
-TRANSLATOR_MODEL = gpt.GPT_3_5_TURBO_16K
-
-# Initialize the Jarvis environment
-initializer.setup()
+TRANSLATOR_MODEL = gpt.GPT_4
 
 def run():
+    # Initialize the Jarvis environment
+    initializer.setup()
+
     # Parse command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str, default='config.yaml', help='Path to the configuration file')

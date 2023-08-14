@@ -38,7 +38,7 @@
             "justMyCode": true
         },
         {
-            "name": "Python: Translate all Tasks into JVM Instructions",
+            "name": "Python: Translate all tasks in plan into JVM Instructions",
             "type": "python",
             "request": "launch",
             "module": "jarvis",
@@ -47,7 +47,7 @@
             "justMyCode": true
         },
         {
-            "name": "Python: Translate the specified Task into JVM Instructions",
+            "name": "Python: Translate the specified task into JVM Instructions",
             "type": "python",
             "request": "launch",
             "module": "jarvis",

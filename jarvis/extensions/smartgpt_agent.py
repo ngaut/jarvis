@@ -185,6 +185,7 @@ class JarvisAgent:
         task_num: Optional[int] = None,
     ) -> Dict:
         compiler = Compiler(gpt.GPT_4)
+        hints = []
         previous_outcomes = []
         computed_task_num = 1
 
@@ -202,12 +203,8 @@ class JarvisAgent:
         if task_num is None:
             task_num = computed_task_num
 
-        hints = [
-            f"The current task is a part of the gloal goal: {goal}",
-        ]
-
         generated_instrs = compiler.compile_task(
-            task_num, task, hints, previous_outcomes
+            task_num, task, "", hints, previous_outcomes, goal
         )
         return {task_num: generated_instrs}
 

@@ -36,7 +36,7 @@ class Reviewer(ABC):
         review_response = utils.strip_yaml(review_response)
         result = yaml.safe_load(review_response)
 
-        if result.get("approved", False):
+        if result.get("approved", True):
             return resp_instructions, messages
         else:
             if "revised_version" in result:
@@ -52,3 +52,28 @@ class EvalSyntaxReviewer(Reviewer):
 class LoopIndexKeyReviewer(Reviewer):
     def review(self, resp_instructions: str) -> Tuple[str, List[Dict]]:
         return self.generalReview(resp_instructions, "reviewer_index_key")
+
+class SimulationReviewer(Reviewer):
+    def review(self, resp_instructions: str) -> Tuple[str, List[Dict]]:
+        messages = []
+        messages.append({"role": "system", "content": preprompts.get("reviewer_simulation_sys")})
+        review_content = preprompts.get("reviewer_simulation_user").format(
+            instructions = resp_instructions
+        )
+        messages.append({"role": "user", "content": review_content})
+
+        response = gpt.send_messages(messages, self.model)
+        messages.append({"role": "assistant", "content": response})
+
+        messages.append({"role": "user", "content": preprompts.get("reviewer_simulation_output")})
+        response = gpt.send_messages(messages, self.model)
+        messages.append({"role": "assistant", "content": response})
+
+        review_response = yaml.safe_load(utils.strip_yaml(response))
+        if review_response.get("is_correct", True):
+            return resp_instructions, messages
+        else:
+            if "revised_version" in review_response:
+                return review_response.get("revised_version"), messages
+            else:
+                return resp_instructions, messages
