@@ -7,6 +7,14 @@ def run():
     channel = grpc.insecure_channel("localhost:51155")
     stub = jarvis_pb2_grpc.JarvisStub(channel)
 
+    response = stub.ChainExecute(
+        jarvis_pb2.GoalExecuteRequest(
+            goal="tell me what's tidb",
+        )
+    )
+    print(f"Jarvis client received: {response}")
+    return
+
     response = stub.Execute(jarvis_pb2.ExecuteRequest(task="tell me what's tidb"))
     print("Jarvis client received: " + response.result)
 

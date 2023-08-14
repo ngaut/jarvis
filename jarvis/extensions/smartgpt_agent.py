@@ -19,7 +19,7 @@ initializer.setup()
 BASE_MODEL = gpt.GPT_3_5_TURBO_16K
 
 
-def execute_task(objective: str, task: str, context: Optional[list]=None) -> str:
+def execute_task(objective: str, task: str, context: Optional[list] = None) -> str:
     sys_prompt = """
 As a smart AI agent, you will perform one task based on the given objective.
 

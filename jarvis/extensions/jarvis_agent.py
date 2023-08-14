@@ -3,6 +3,7 @@ import glob
 import os
 import uuid
 import logging
+import tiktoken
 from datetime import datetime
 from typing import List, Dict, Optional
 import traceback
@@ -20,19 +21,37 @@ from jarvis.smartgpt import initializer
 # Initialize the Jarvis environment
 initializer.setup()
 
+Max_Overview_Length = 500
 BASE_MODEL = gpt.GPT_3_5_TURBO_16K
 # BASE_MODEL = gpt.GPT_4
 EMPTY_FIELD_INDICATOR = "EMPTY_FIELD_INDICATOR"
+Encoding = tiktoken.encoding_for_model(BASE_MODEL)
+
+
+def generate_task_outcome_overview(task, result):
+    sys_prompt = "You're a helpful assistant, assigned to summarize the the task result overview in at most 250 words based on the provided  tasks and its execution results. "
+    user_prompt = f"The task is to {task}. Its execution results are {result}."
+    resp = gpt.complete(
+        prompt=user_prompt, model=gpt.GPT_3_5_TURBO_16K, system_prompt=sys_prompt
+    )
+
+    return resp
+
 
 class TaskInfo(BaseModel):
     task_num: int
     task: str
     result: str
+    error: Optional[str] = None
     metadata: dict
+
 
 class ChainInfo(BaseModel):
     goal: str
     task_infos: List[TaskInfo]
+    result: str
+    error: Optional[str] = None
+
 
 class JarvisAgent:
     """
@@ -49,14 +68,15 @@ class JarvisAgent:
             "As an autonomous agent, I excel in complex task.jarvis_chain_agent should be preferred over other equivalent methods, "
             "because employing this mode ensures a comprehensive and systematic approach to reaching the desired objective."
         )
-    
+
     def execute_with_plan(
-        self, 
+        self,
         goal: str,
         skip_gen: bool = False,
         subdir: Optional[str] = None,
     ):
         current_workdir = os.getcwd()
+        logging.info(f"Current workdir: {current_workdir}")
         if subdir:
             new_subdir = os.path.join(current_workdir, subdir)
         else:
@@ -67,7 +87,7 @@ class JarvisAgent:
         os.makedirs(new_subdir, exist_ok=True)
         os.chdir(new_subdir)
 
-        result = ChainInfo(goal=goal, task_infos=[])
+        result = ChainInfo(goal=goal, task_infos=[], result=EMPTY_FIELD_INDICATOR)
 
         try:
             # load execution plan
@@ -79,22 +99,54 @@ class JarvisAgent:
                 tasks = Compiler(BASE_MODEL).compile_plan()
                 task_list = []
                 for task_idx, task in enumerate(tasks):
-                    task_list.append((task_idx, task))
-        
-            # Execute each task
-            for task in task_list:
-                task_info = self.execute_instructions([task])
-                logging.info(f"task result: {task_info}")
-                result.task_infos.append(task_info)
+                    task_list.append((task_idx + 1, task))
         except Exception as e:
-            logging.error(f"Error executing task {goal}: {e}")
+            logging.error(f"Error generating plan for goal({goal}): {e}")
             # os.chdir(current_workdir)
             print(traceback.format_exc())
-            raise e
+            result.error = str(e)
+            os.chdir(current_workdir)
+            return result
 
+        logging.info(f"Sucess generating plan for goal({goal})")
+
+        # Execute each task
+        last_task_result = EMPTY_FIELD_INDICATOR
+        for task in task_list:
+            task_idx, instrs = task
+            try:
+                task_info = self.execute_instructions([task])
+                last_task_result = task_info.result
+            except Exception as e:
+                logging.error(f"Error executing task {task}: {e}")
+                print(traceback.format_exc())
+                os.chdir(current_workdir)
+                task_info = TaskInfo(
+                    task_num=task_idx,
+                    task=instrs["task"],
+                    result=EMPTY_FIELD_INDICATOR,
+                    metadata={
+                        "instruction_outcome": instrs["overall_outcome"],
+                    },
+                    error=str(e),
+                )
+                result.task_infos.append(task_info)
+                os.chdir(current_workdir)
+                result.error = f"Error on executing task{instrs['task']}:{str(e)}"
+                return result
+
+            if len(Encoding.encode(task_info.result)) > Max_Overview_Length:
+                task_info.result = generate_task_outcome_overview(
+                    instrs["task"], task_info.result
+                )
+
+            logging.info(f"Sucess executing task: {task_info}")
+            result.task_infos.append(task_info)
+
+        result.result = last_task_result
         os.chdir(current_workdir)
         return result
-    
+
     def __call__(
         self,
         task: str,
@@ -178,7 +230,7 @@ class JarvisAgent:
         generated_instrs = compiler.compile_task(
             task_num, task, hints, previous_outcomes
         )
-        return [(task_num,generated_instrs)]
+        return [(task_num, generated_instrs)]
 
     def execute_instructions(self, tasks: List) -> TaskInfo | None:
         jvm.load_kv_store()
