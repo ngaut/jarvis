@@ -11,7 +11,7 @@ import concurrent.futures
 import time
 from datetime import datetime
 
-from jarvis.extensions.smartgpt_agent import JarvisAgent, EMPTY_FIELD_INDICATOR
+from jarvis.extensions.jarvis_agent import JarvisAgent, EMPTY_FIELD_INDICATOR
 
 # Logging file name and line number
 logging.basicConfig(
