@@ -4,6 +4,7 @@ import os
 import uuid
 import logging
 import tiktoken
+import re
 from datetime import datetime
 from typing import List, Dict, Optional
 import traceback
@@ -279,8 +280,9 @@ class JarvisAgent:
         keys = ast.literal_eval(resp)
         result = None
         for key in keys:
-            if "<idx>" in resp:
-                key_prefix = key.split("<idx>")[0]
+            matches = re.findall('(<.*?>)', key)
+            if matches:
+                key_prefix = key.split(matches[0])[0]
                 res = jvm.eval(
                     f'jvm.eval(jvm.list_values_with_key_prefix("{key_prefix}"))'
                 )
