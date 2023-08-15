@@ -264,6 +264,8 @@ class JarvisAgent:
             "Assistant: ['selected_projects.seq2.list']\n"
             "User: The trending AI projects information from the last 28 days has been extracted. The descriptions of the selected projects for the tweet can be retrieved with keys like 'project_description_<idx>.seq4.str'.\n"
             "Assistant: ['project_description_<idx>.seq4.str']\n"
+            "User: The obtained URLs are now stored under the key 'TiDB_Serverless_URLs'. They can be accessed for subsequent tasks by calling 'jvm.get('TiDB_Serverless_URLs.seq17.list')'.\n"
+            "Assistant: ['TiDB_Serverless_URLs.seq17.list']\n"
             "User: The top 3 projects based on their advancements and growth rate have been selected. The projects can be retrieved with keys 'top_project_0.seq19.str', 'top_project_1.seq19.str', and 'top_project_2.seq19.str'. These projects will be featured in the tweet for their recent advancements and high growth rate.\n"
             "Assistant: ['top_project_0.seq19.str', 'top_project_1.seq19.str', 'top_project_2.seq19.str']\n"
         )
