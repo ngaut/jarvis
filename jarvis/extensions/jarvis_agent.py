@@ -22,8 +22,8 @@ from jarvis.smartgpt import initializer
 initializer.setup()
 
 Max_Overview_Length = 500
-BASE_MODEL = gpt.GPT_3_5_TURBO_16K
-# BASE_MODEL = gpt.GPT_4
+# BASE_MODEL = gpt.GPT_3_5_TURBO_16K
+BASE_MODEL = gpt.GPT_4
 EMPTY_FIELD_INDICATOR = "EMPTY_FIELD_INDICATOR"
 Encoding = tiktoken.encoding_for_model(BASE_MODEL)
 
@@ -223,12 +223,8 @@ class JarvisAgent:
         if task_num is None:
             task_num = computed_task_num
 
-        hints = [
-            f"The current task is a part of the gloal goal: {goal}",
-        ]
-
         generated_instrs = compiler.compile_task(
-            task_num, task, hints, previous_outcomes
+            task_num, task, goal, previous_outcomes
         )
         return [(task_num, generated_instrs)]
 
