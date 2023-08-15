@@ -26,8 +26,7 @@ class Translator:
 
     def build_system_prompt(self) -> List[Dict]:
         messages = []
-        messages.append({"role": "system", "content": preprompts.get("translator_sys")})
-        messages.append({"role": "user", "content": fewshot.get(FEW_SHOT_EXAMPLE)})
+        messages.append({"role": "system", "content": preprompts.get("translator_sys") + "\n" + fewshot.get(FEW_SHOT_EXAMPLE)})
         return messages
 
     def translate_to_instructions(self, task_info: Dict[str, Any]):
