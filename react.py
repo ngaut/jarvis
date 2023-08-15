@@ -27,7 +27,7 @@ from langchain.tools.base import BaseTool
 from langchain.agents.tools import InvalidTool
 
 from jarvis.smartgpt import gpt
-from jarvis.extensions.smartgpt_agent import JarvisAgent, EMPTY_FIELD_INDICATOR
+from jarvis.extensions.jarvis_agent import JarvisAgent, EMPTY_FIELD_INDICATOR
 
 # Logging file name and line number
 logging.basicConfig(

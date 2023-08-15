@@ -7,7 +7,7 @@ import grpc
 
 import jarvis.server.jarvis_pb2 as jarvis_pb2
 import jarvis.server.jarvis_pb2_grpc as jarvis_pb2_grpc
-from jarvis.extensions.smartgpt_agent import JarvisAgent, EMPTY_FIELD_INDICATOR
+from jarvis.extensions.jarvis_agent import JarvisAgent, EMPTY_FIELD_INDICATOR
 
 
 class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
@@ -104,6 +104,49 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
             task=task_info.task,
             result=task_info.result,
         )
+
+    def ChainExecute(self, request, context):
+        if len(request.goal.strip()) <= 0:
+            return jarvis_pb2.GoalExecuteResponse(
+                error="goal is not provided",
+            )
+        goal = request.goal.strip()
+
+        agent_id = None
+        agent = None
+        if len(request.agent_id.strip()) > 0:
+            agent_id = request.agent_id.strip()
+            agent = self.agents.get(agent_id, None)
+
+        if agent_id is None:
+            agent_id = hashlib.md5(f"{goal}-{datetime.now()}".encode()).hexdigest()
+
+        if agent is None:
+            agent = {"executor": JarvisAgent(), "goal": goal, "previous_tasks": []}
+            self.agents[agent_id] = agent
+
+        exec_result = agent["executor"].execute_with_plan(
+            goal, subdir=agent_id, skip_gen=request.skip_gen
+        )
+
+        response = jarvis_pb2.GoalExecuteResponse(
+            agent_id=agent_id,
+            goal=goal,
+            result=exec_result.result,
+        )
+        if exec_result.error is not None:
+            response.error = exec_result.error
+
+        for task_info in exec_result.task_infos:
+            task_response = jarvis_pb2.ExecuteResponse(
+                task=task_info.task,
+                result=task_info.result,
+            )
+            if task_info.error is not None:
+                task_response.error = task_info.error
+
+            response.subtasks.append(task_response)
+        return response
 
 
 def serve():

@@ -6,31 +6,35 @@ from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import symbol_database as _symbol_database
 from google.protobuf.internal import builder as _builder
+
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
 
 
-
-
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0cjarvis.proto\x12\x06server\"\x9c\x01\n\x08TaskInfo\x12\x0f\n\x07task_id\x18\x01 \x01(\x05\x12\x0c\n\x04task\x18\x02 \x01(\t\x12\x0e\n\x06result\x18\x03 \x01(\t\x12\x30\n\x08metadata\x18\x04 \x03(\x0b\x32\x1e.server.TaskInfo.MetadataEntry\x1a/\n\rMetadataEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"h\n\x0e\x45xecuteRequest\x12\x10\n\x08\x61gent_id\x18\x01 \x01(\t\x12\x0c\n\x04goal\x18\x02 \x01(\t\x12\x0f\n\x07task_id\x18\x03 \x01(\x05\x12\x0c\n\x04task\x18\x04 \x01(\t\x12\x17\n\x0f\x64\x65pendent_tasks\x18\x05 \x03(\x05\"a\n\x0f\x45xecuteResponse\x12\x10\n\x08\x61gent_id\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\x05\x12\x0c\n\x04task\x18\x03 \x01(\t\x12\x0e\n\x06result\x18\x04 \x01(\t\x12\r\n\x05\x65rror\x18\x05 \x01(\t2D\n\x06Jarvis\x12:\n\x07\x45xecute\x12\x16.server.ExecuteRequest\x1a\x17.server.ExecuteResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
+    b'\n\x0cjarvis.proto\x12\x06server"\x9c\x01\n\x08TaskInfo\x12\x0f\n\x07task_id\x18\x01 \x01(\x05\x12\x0c\n\x04task\x18\x02 \x01(\t\x12\x0e\n\x06result\x18\x03 \x01(\t\x12\x30\n\x08metadata\x18\x04 \x03(\x0b\x32\x1e.server.TaskInfo.MetadataEntry\x1a/\n\rMetadataEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01"h\n\x0e\x45xecuteRequest\x12\x10\n\x08\x61gent_id\x18\x01 \x01(\t\x12\x0c\n\x04goal\x18\x02 \x01(\t\x12\x0f\n\x07task_id\x18\x03 \x01(\x05\x12\x0c\n\x04task\x18\x04 \x01(\t\x12\x17\n\x0f\x64\x65pendent_tasks\x18\x05 \x03(\x05"a\n\x0f\x45xecuteResponse\x12\x10\n\x08\x61gent_id\x18\x01 \x01(\t\x12\x0f\n\x07task_id\x18\x02 \x01(\x05\x12\x0c\n\x04task\x18\x03 \x01(\t\x12\x0e\n\x06result\x18\x04 \x01(\t\x12\r\n\x05\x65rror\x18\x05 \x01(\t"F\n\x12GoalExecuteRequest\x12\x10\n\x08\x61gent_id\x18\x01 \x01(\t\x12\x0c\n\x04goal\x18\x02 \x01(\t\x12\x10\n\x08skip_gen\x18\x03 \x01(\x08"\x7f\n\x13GoalExecuteResponse\x12\x10\n\x08\x61gent_id\x18\x01 \x01(\t\x12\x0c\n\x04goal\x18\x02 \x01(\t\x12\x0e\n\x06result\x18\x03 \x01(\t\x12\r\n\x05\x65rror\x18\x04 \x01(\t\x12)\n\x08subtasks\x18\x05 \x03(\x0b\x32\x17.server.ExecuteResponse2\x8d\x01\n\x06Jarvis\x12:\n\x07\x45xecute\x12\x16.server.ExecuteRequest\x1a\x17.server.ExecuteResponse\x12G\n\x0c\x43hainExecute\x12\x1a.server.GoalExecuteRequest\x1a\x1b.server.GoalExecuteResponseb\x06proto3'
+)
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'jarvis_pb2', _globals)
+_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "jarvis_pb2", _globals)
 if _descriptor._USE_C_DESCRIPTORS == False:
-
-  DESCRIPTOR._options = None
-  _TASKINFO_METADATAENTRY._options = None
-  _TASKINFO_METADATAENTRY._serialized_options = b'8\001'
-  _globals['_TASKINFO']._serialized_start=25
-  _globals['_TASKINFO']._serialized_end=181
-  _globals['_TASKINFO_METADATAENTRY']._serialized_start=134
-  _globals['_TASKINFO_METADATAENTRY']._serialized_end=181
-  _globals['_EXECUTEREQUEST']._serialized_start=183
-  _globals['_EXECUTEREQUEST']._serialized_end=287
-  _globals['_EXECUTERESPONSE']._serialized_start=289
-  _globals['_EXECUTERESPONSE']._serialized_end=386
-  _globals['_JARVIS']._serialized_start=388
-  _globals['_JARVIS']._serialized_end=456
+    DESCRIPTOR._options = None
+    _TASKINFO_METADATAENTRY._options = None
+    _TASKINFO_METADATAENTRY._serialized_options = b"8\001"
+    _globals["_TASKINFO"]._serialized_start = 25
+    _globals["_TASKINFO"]._serialized_end = 181
+    _globals["_TASKINFO_METADATAENTRY"]._serialized_start = 134
+    _globals["_TASKINFO_METADATAENTRY"]._serialized_end = 181
+    _globals["_EXECUTEREQUEST"]._serialized_start = 183
+    _globals["_EXECUTEREQUEST"]._serialized_end = 287
+    _globals["_EXECUTERESPONSE"]._serialized_start = 289
+    _globals["_EXECUTERESPONSE"]._serialized_end = 386
+    _globals["_GOALEXECUTEREQUEST"]._serialized_start = 388
+    _globals["_GOALEXECUTEREQUEST"]._serialized_end = 458
+    _globals["_GOALEXECUTERESPONSE"]._serialized_start = 460
+    _globals["_GOALEXECUTERESPONSE"]._serialized_end = 587
+    _globals["_JARVIS"]._serialized_start = 590
+    _globals["_JARVIS"]._serialized_end = 731
 # @@protoc_insertion_point(module_scope)
