@@ -3,9 +3,9 @@
 ```yaml
 task: "Retrieve the titles of the top 5 articles on Hacker News and based on their relevance to AI, decide whether to post them to a Slack channel"
 
-thoughts: "This task requires fetching the article titles from Hacker News and then making a decision for each title. Therefore, the instructions `WebSearch`, `FetchWebContent`, `TextCompletion`, `If`, and `Loop` will be utilized."
+objective: ...
 
-previous_task_outcomes: []
+thoughts: "This task requires fetching the article titles from Hacker News and then making a decision for each title. Therefore, the instructions `WebSearch`, `FetchWebContent`, `TextCompletion`, `If`, and `Loop` will be utilized."
 
 hints_from_user: []
 

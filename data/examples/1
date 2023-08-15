@@ -3,9 +3,9 @@
 ```yaml
 task: "Get current weather data for San Francisco and provide suggestions based on temperature, save the results to file"
 
-thoughts:  # AI-generated thoughts content, should be plain text without newlines, wrapped in quotes
+objective: ...
 
-previous_task_outcomes:  # A list of previous task outcomes, each item must be plain text and wrapped in quotes
+thoughts:  # AI-generated thoughts content, should be plain text without newlines, wrapped in quotes
 
 hints_from_user:  # A list of hints from the user, each item must be plain text and wrapped in quotes
 

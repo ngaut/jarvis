@@ -1,5 +1,5 @@
-# Jarvis Virtual Machine (JVM) Specification
-Jarvis Virtual Machine (JVM) is a unique execution environment designed to interpret a set of YAML-based instructions called "Jarvis Instructions". These instructions are designed to enable the execution of complex tasks involving data processing, AI model interaction, and information search.
+# Jarvis Virtual Machine (JVM) Instructions Specification
+The Jarvis Virtual Machine (JVM) is an environment designed to interpret and execute a set of YAML-based instructions called "JVM Instructions". The JVM Instructions are intended to enable the execution of complex tasks involving data processing, AI model interaction, and information search.
 
 ## JVM Instruction Synopsis
 JVM classifies instructions into:
@@ -113,12 +113,12 @@ args:
 ```
 
 
-## Output Example
+## An Output Example
 A complete JVM Instructions description should contain these fields:
 ```yaml
 task:
+objective:
 thoughts:
-previous_task_outcomes:
 hints_from_user:
 start_seq:
 instructions:
