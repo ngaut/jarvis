@@ -1,4 +1,10 @@
-Please fill in the following YAML template within your response, making sure to leverage the outcomes of the previous tasks in user's hints, and fulfill the stated objective. And remember to generate an instruction to produce the final user-facing result for this task, you should save this final result into the key `task_{task_num}.output.str`, also note that this final result is user-facing, please include detailed results for this task and do not include any jvm key in it, users cannot see the data in the jvm.
+Please use the provided YAML template in your response. Follow these requirements:
+1. Leverage the outcomes from the user's hints to meet the objective.
+2. Create an instruction to produce the final result that the user will see.
+  * This result should contain all the information needed to answer the task.
+  * Do not use any jvm keys, users can't see jvm data.
+  * Save this result to key `task_{task_num}.output.str`.
+3. When crafting the overall outcome which is mainly for transferring data between tasks, exclude the instruction for the user-facing result and do not reference the key `task_<number>.output.str`.
 
 ```yaml
 task: {task}

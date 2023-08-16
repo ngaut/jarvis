@@ -253,13 +253,18 @@ class JarvisAgent:
             )
 
         if last_result is not None:
-            result = self.get_task_result(last_result.metadata["instruction_outcome"])
+            result = self.get_task_result(last_result.task_num, last_result.metadata["instruction_outcome"])
             if result is not None and result != "None":
                 last_result.result = result
 
         return last_result
 
-    def get_task_result(self, overall_outcome: str, return_key: bool = False):
+    def get_task_result(self, task_num: int, overall_outcome: str, return_key: bool = False):
+        task_res = jvm.get(f"task_{task_num}.output.str")
+        if task_res is not None and task_res != "None":
+            logging.info(f"Fetch Task {task_num} result: {task_res}")
+            return task_res
+
         sys_prompt = (
             "You're a helpful assistant, please output the keys (in python list type) where the overall task output result is stored according to the task output description.\n"
             "Examples:\n"
@@ -298,7 +303,12 @@ class JarvisAgent:
                 res = jvm.eval(f'jvm.eval(jvm.get("{key}"))')
             task_outcome[key] = res
 
-        if len(keys) == 1:
+        if len(task_outcome) == 0:
+            return None
+        elif len(task_outcome) == 1:
+            outcome = task_outcome[keys[0]]
+            if outcome is None or outcome in ("None", "", "[]"):
+                return None
             return task_outcome[keys[0]]
 
         return f"Task Outcome: {overall_outcome}\n" + json.dumps(task_outcome, indent=2)
