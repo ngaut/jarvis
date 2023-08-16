@@ -2,7 +2,9 @@ import os
 import sys
 import time
 import logging
+import random
 from typing import Optional, List, Dict
+from tenacity import retry, wait_random_exponential, stop_after_attempt
 
 import openai
 import tiktoken
@@ -83,7 +85,6 @@ def truncate_to_tokens(content: str, max_token_count: int) -> str:
 
     return truncated_str
 
-
 def send_messages(messages: List[Dict[str, str]], model: str) -> str:
     max_response_tokens = get_max_tokens(model) - count_tokens(messages)
 
@@ -92,7 +93,7 @@ def send_messages(messages: List[Dict[str, str]], model: str) -> str:
             f"Max response tokens must be greater than 0. Got {max_response_tokens}"
         )
 
-    while True:
+    for _ in range(5):
         try:
             if API_TYPE == "azure":
                 response = openai.ChatCompletion.create(
@@ -111,42 +112,39 @@ def send_messages(messages: List[Dict[str, str]], model: str) -> str:
 
             logging.info(f"Call OpenAI: Model={model}, Total tokens={response.usage['total_tokens']}")  # type: ignore
 
-            if model == GPT_4:
-                logging.info("Sleeping for 60 seconds in GPT-4 model")
-                time.sleep(60)
-
             return response.choices[0].message["content"]  # type: ignore
 
         except openai.error.RateLimitError as rate_limit_err:  # type: ignore
             # Handling Rate Limit Error
+            backoff_time = random.randint(30, 60)
             logging.info(
-                "Rate Limit Exceeded for model %s. Error: %s. Waiting 30 seconds...",
+                f"Rate Limit Exceeded for model %s. Error: %s. Waiting {backoff_time} seconds...",
                 model,
                 rate_limit_err,
             )
-            time.sleep(30)
+            time.sleep(backoff_time)
 
         except openai.error.APIError as api_error:  # type: ignore
             # Handling API Errors
             logging.error("API Error for model %s. Error: %s", model, api_error)
-            sys.exit(1)
+            raise ValueError(f"API Error for model {model}. Error:{api_error}")
 
         except openai.error.APIConnectionError as conn_err:  # type: ignore
             # Handling Connection Errors
             logging.error("Connection Error for model %s. Error: %s", model, conn_err)
-            sys.exit(1)
+            raise ValueError(f"Connection Error for model {model}. Error:{conn_err}")
 
         except openai.error.InvalidRequestError as invalid_request_err:  # type: ignore
             # Handling Invalid Request Errors
             logging.error(
                 "Invalid Request for model %s. Error: %s", model, invalid_request_err
             )
-            sys.exit(1)
+            raise ValueError(f"Invalid Request for model {model}. Error:{invalid_request_err}")
 
         except Exception as err:
             # Handling General Exceptions
             logging.error("Unexpected Error for model %s. Error: %s", model, err)
-            raise ValueError(f"OpenAI Error: {err}") from err
+            raise ValueError(f"Unexpected Error for model {model}. Error:{err}")
 
 
 def send_messages_stream(messages: List[Dict[str, str]], model: str) -> str:

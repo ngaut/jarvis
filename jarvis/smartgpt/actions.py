@@ -12,13 +12,16 @@ import uuid
 from urllib.parse import urlparse, urlunparse
 import hashlib
 import requests
+from sys import platform
 
 from bs4 import BeautifulSoup
 import yaml
 
 from selenium import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options as ChromeOptions
+from selenium.webdriver.chrome.webdriver import WebDriver as ChromeWebDriver
 
 from jarvis.smartgpt import gpt
 from jarvis.smartgpt import jvm
@@ -126,16 +129,18 @@ class FetchWebContentAction:
         # Setting up Chrome Options
         chrome_options = ChromeOptions()
         chrome_options.headless = True
-        chrome_options.add_argument('--headless')
+
         chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--disable-dev-shm-usage')
+        if platform == "linux" or platform == "linux2":
+            chrome_options.add_argument("--disable-dev-shm-usage")
+            chrome_options.add_argument("--remote-debugging-port=9222")
 
         # Installing and setting up Chrome WebDriver with the defined options
-        #driver_path = ChromeDriverManager().install()
+        driver_path = ChromeDriverManager().install()
 
         # Use context management to ensure the browser is quit
-        # with ChromeWebDriver(executable_path=driver_path, options=chrome_options) as browser:
-        with webdriver.Chrome(options=chrome_options) as browser:
+        with ChromeWebDriver(executable_path=driver_path, options=chrome_options) as browser:
+        #with webdriver.Chrome(options=chrome_options) as browser:
             # Access the provided URL
             browser.get(url)
 
