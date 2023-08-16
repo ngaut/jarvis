@@ -253,13 +253,17 @@ class JarvisAgent:
             )
 
         if last_result is not None:
-            result = self.get_task_result(last_result.task_num, last_result.metadata["instruction_outcome"])
+            result = self.get_task_result(
+                last_result.task_num, last_result.metadata["instruction_outcome"]
+            )
             if result is not None and result != "None":
                 last_result.result = result
 
         return last_result
 
-    def get_task_result(self, task_num: int, overall_outcome: str, return_key: bool = False):
+    def get_task_result(
+        self, task_num: int, overall_outcome: str, return_key: bool = False
+    ):
         task_res = jvm.get(f"task_{task_num}.output.str")
         if task_res is not None and task_res != "None":
             logging.info(f"Fetch Task {task_num} result: {task_res}")
