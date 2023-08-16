@@ -1,3 +1,4 @@
+import re
 from typing import List, Dict, Tuple
 from abc import ABC, abstractmethod
 
@@ -57,6 +58,7 @@ class SimulationReviewer(Reviewer):
     def review(self, resp_instructions: str) -> Tuple[str, List[Dict]]:
         messages = []
         messages.append({"role": "system", "content": preprompts.get("reviewer_simulation_sys")})
+
         review_content = preprompts.get("reviewer_simulation_user").format(
             instructions = resp_instructions
         )
@@ -69,11 +71,14 @@ class SimulationReviewer(Reviewer):
         response = gpt.send_messages(messages, self.model)
         messages.append({"role": "assistant", "content": response})
 
-        review_response = yaml.safe_load(utils.strip_yaml(response))
-        if review_response.get("is_correct", True):
+        if 'yes' in response.lower():
             return resp_instructions, messages
+
+        pattern = r'```\s*(?:[a-zA-Z]+\s*)?\n(.*?)\s*```'
+        match = re.search(pattern, response, re.DOTALL)  # re.DOTALL makes . (dot) match newlines as well
+
+        revised_instructions = match.group(1) if match else None
+        if revised_instructions:
+            return revised_instructions, messages
         else:
-            if "revised_version" in review_response:
-                return review_response.get("revised_version"), messages
-            else:
-                return resp_instructions, messages
+            return resp_instructions, messages
