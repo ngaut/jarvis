@@ -12,12 +12,13 @@ import traceback
 from pydantic import BaseModel
 import yaml
 
+from jarvis.smartgpt import initializer
 from jarvis.smartgpt import planner
 from jarvis.smartgpt import instruction
 from jarvis.smartgpt import jvm
 from jarvis.smartgpt import gpt
 from jarvis.smartgpt.compiler import Compiler
-from jarvis.smartgpt import initializer
+
 
 # Initialize the Jarvis environment
 initializer.setup()

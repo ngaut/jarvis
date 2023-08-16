@@ -19,15 +19,11 @@ FEW_SHOT_EXAMPLE = "3"
 class Translator:
     def __init__(self, model):
         self.model = model
-        if model == gpt.GPT_4:
-            self.reviewers = [cls(*params) for cls, params in REVIEWER_GPT4_CLASSES]
-        else:
-            self.reviewers = [cls(*params) for cls, params in REVIEWER_CLASSES]
+        self.reviewers = [cls(*params) for cls, params in REVIEWER_GPT4_CLASSES]
 
     def build_system_prompt(self) -> List[Dict]:
         messages = []
-        messages.append({"role": "system", "content": preprompts.get("translator_sys")})
-        messages.append({"role": "user", "content": fewshot.get(FEW_SHOT_EXAMPLE)})
+        messages.append({"role": "system", "content": preprompts.get("translator_sys") + "\n" + fewshot.get(FEW_SHOT_EXAMPLE)})
         return messages
 
     def translate_to_instructions(self, task_info: Dict[str, Any]):

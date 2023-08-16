@@ -7,6 +7,8 @@ from typing import Optional, List, Dict
 import openai
 import tiktoken
 
+import jarvis.smartgpt.initializer
+
 
 API_TYPE = os.getenv("OPENAI_API_TYPE")
 
