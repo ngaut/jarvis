@@ -1,4 +1,5 @@
-Please fill in the following YAML template within your response, making sure to leverage the outcomes of the previous tasks in user's hints, and fulfill the stated objective.
+Please fill in the following YAML template within your response, making sure to leverage the outcomes of the previous tasks in user's hints, and fulfill the stated objective. And remember to generate an instruction to produce the final user-facing result for this task, you should save this final result into the key `task_{task_num}.output.str`, also note that this final result is user-facing, please include detailed results for this task and do not include any jvm key in it, users cannot see the data in the jvm.
+
 ```yaml
 task: {task}
 objective: {objective}
