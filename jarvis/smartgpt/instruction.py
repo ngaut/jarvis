@@ -62,6 +62,8 @@ class JVMInstruction:
         if action_type != "RunPython":
             # todo: handle error if the result is not a yaml
             self.post_exec(result)
+        else:
+            jvm.load_kv_store()
 
     def eval_and_patch(self, text) -> str:
         if text is None:
