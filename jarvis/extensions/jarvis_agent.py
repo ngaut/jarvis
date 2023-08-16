@@ -5,6 +5,8 @@ import uuid
 import logging
 import tiktoken
 import re
+import json
+
 from datetime import datetime
 from typing import List, Dict, Optional
 import traceback
@@ -281,9 +283,12 @@ class JarvisAgent:
             return resp
 
         keys = ast.literal_eval(resp)
-        result = None
+        if len(keys) == 0:
+            return None
+
+        task_outcome = {}
         for key in keys:
-            matches = re.findall('(<.*?>)', key)
+            matches = re.findall("(<.*?>)", key)
             if matches:
                 key_prefix = key.split(matches[0])[0]
                 res = jvm.eval(
@@ -291,10 +296,9 @@ class JarvisAgent:
                 )
             else:
                 res = jvm.eval(f'jvm.eval(jvm.get("{key}"))')
-            if res is not None and res != "None":
-                if result is None:
-                    result = str(res)
-                else:
-                    result += f"\n{key}:{res}"
+            task_outcome[key] = res
 
-        return result
+        if len(keys) == 1:
+            return task_outcome[keys[0]]
+
+        return f"Task Outcome: {overall_outcome}\n" + json.dumps(task_outcome, indent=2)
