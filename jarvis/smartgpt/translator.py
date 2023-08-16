@@ -19,10 +19,7 @@ FEW_SHOT_EXAMPLE = "3"
 class Translator:
     def __init__(self, model):
         self.model = model
-        if model == gpt.GPT_4:
-            self.reviewers = [cls(*params) for cls, params in REVIEWER_GPT4_CLASSES]
-        else:
-            self.reviewers = [cls(*params) for cls, params in REVIEWER_CLASSES]
+        self.reviewers = [cls(*params) for cls, params in REVIEWER_GPT4_CLASSES]
 
     def build_system_prompt(self) -> List[Dict]:
         messages = []
