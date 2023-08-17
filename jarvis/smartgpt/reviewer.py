@@ -71,14 +71,18 @@ class SimulationReviewer(Reviewer):
         response = gpt.send_messages(messages, self.model)
         messages.append({"role": "assistant", "content": response})
 
-        if 'yes' in response.lower():
+        match_answer = re.match(r'^(yes|no)', response.lower())
+        is_correct = match_answer.group(1) if match_answer else None
+
+        if is_correct is None or is_correct == 'yes':
             return resp_instructions, messages
 
         pattern = r'```\s*(?:[a-zA-Z]+\s*)?\n(.*?)\s*```'
-        match = re.search(pattern, response, re.DOTALL)  # re.DOTALL makes . (dot) match newlines as well
+        match_code = re.search(pattern, response, re.DOTALL)
 
-        revised_instructions = match.group(1) if match else None
-        if revised_instructions:
-            return revised_instructions, messages
-        else:
+        revised_instructions = match_code.group(1) if match_code else None
+
+        if not revised_instructions:
             return resp_instructions, messages
+
+        return revised_instructions, messages
