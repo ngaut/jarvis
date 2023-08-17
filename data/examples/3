@@ -1,13 +1,14 @@
-### Example: An output template with Loop and If structure
-
+### An Example of JVM Instructions
 ```yaml
-task: "Retrieve the titles of the top 5 articles on Hacker News and based on their relevance to AI, decide whether to post them to a Slack channel"
+task: "Retrieve the content of top stories on Hacker News. Assess their relevance to AI and determine if they should be posted to the Slack."
 
 objective: ...
 
-thoughts: "This task requires fetching the article titles from Hacker News and then making a decision for each title. Therefore, the instructions `WebSearch`, `FetchWebContent`, `TextCompletion`, `If`, and `Loop` will be utilized."
+thoughts: ...
 
-hints_from_user: []
+hints_from_user:
+  - "This is the first task, so there are no previous tasks or outcomes."
+  - "The user's original request: Get the latest AI-related happenings on Hacker News and sent to the public Slack channel."
 
 start_seq: 1
 
@@ -15,47 +16,47 @@ instructions:
   - seq: 1
     type: WebSearch
     inside_loop: false
-    objective: "Find URLs of the top 5 articles on Hacker News"
+    objective: "Find URLs of the top stories on Hacker News"
     rule_num: 2
     args:
-      query: "Hacker News top 5 articles"
-      save_to: "article_urls.seq1.list"
+      query: "Hacker News top stories"
+      save_to: "story_urls.seq1.list"
 
   - seq: 2
     type: Loop
     inside_loop: false
-    objective: "Loop through the URLs to fetch the titles and decide whether to post to Slack"
+    objective: "Loop through the URLs to fetch the content and decide whether to post to Slack"
     rule_num: 1
     args:
-      count: "5"
+      count: "jvm.eval(len(jvm.get('story_urls.seq1.list')))"
       idx: "jvm.eval(jvm.get('idx'))"
       instructions:
         - seq: 3
           type: FetchWebContent
           inside_loop: true
-          objective: "Fetch the title from the current URL"
+          objective: "Fetch the content from the current URL"
           rule_num: 2
           args:
-            url: "jvm.eval(jvm.get('article_urls.seq1.list')[jvm.get('idx')])"
-            save_to: "jvm.eval('article_title_' + str(jvm.get('idx')) + '.seq3.str')"
+            url: "jvm.eval(jvm.get('story_urls.seq1.list')[jvm.get('idx')])"
+            save_to: "jvm.eval('story_content_' + str(jvm.get('idx')) + '.seq3.str')"
 
         - seq: 4
           type: TextCompletion
           inside_loop: true
-          objective: "Decide if the article is relevant to AI"
+          objective: "Decide if the story is relevant to AI"
           rule_num: 3
           args:
-            operation: "Determine if the article is about AI"
+            operation: "Determine if this story is about AI"
             output_format:
               kvs:
                 - key: "jvm.eval('is_relevant_' + str(jvm.get('idx')) + '.seq4.bool')"
                   value: "<to_fill>"
-            content: "jvm.eval(jvm.get('article_title_' + str(jvm.get('idx')) + '.seq3.str'))"
+            content: "jvm.eval(jvm.get('story_content_' + str(jvm.get('idx')) + '.seq3.str'))"
 
         - seq: 5
           type: If
           inside_loop: true
-          objective: "If the article is relevant to AI, prepare to post it to Slack"
+          objective: "If the story is relevant to AI, prepare to post it to Slack"
           rule_num: 5
           args:
             condition: "jvm.eval(jvm.get('is_relevant_' + str(jvm.get('idx')) + '.seq4.bool'))"
@@ -71,10 +72,10 @@ instructions:
                     kvs:
                       - key: "jvm.eval('slack_message_' + str(jvm.get('idx')) + '.seq6.str')"
                         value: "<to_fill>"
-                  content: "jvm.eval('Here is an interesting AI-related article: ' + jvm.get('article_title_' + str(jvm.get('idx')) + '.seq3.str'))"
+                  content: "jvm.eval('AI-related story: ' + jvm.get('article_content_' + str(jvm.get('idx')) + '.seq3.str'))"
             else: []
 
 end_seq: 6
 
-overall_outcome: "The titles of the top 5 articles on Hacker News have been fetched and decisions have been made on whether to post them to a Slack channel. The messages prepared to be posted to Slack can be retrieved with keys like 'slack_message_<idx>.seq6.str'"
+overall_outcome: "The content of the top stories on Hacker News have been fetched and decisions have been made on whether to post them to Slack. The messages prepared to be posted to Slack can be retrieved with keys like 'slack_message_<idx>.seq6.str'"
 ```

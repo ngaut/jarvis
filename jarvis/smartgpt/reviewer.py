@@ -7,6 +7,7 @@ import yaml
 from jarvis.smartgpt import gpt
 from jarvis.smartgpt import utils
 from jarvis.smartgpt import preprompts
+from jarvis.smartgpt import fewshot
 
 
 class Reviewer(ABC):
@@ -57,7 +58,8 @@ class LoopIndexKeyReviewer(Reviewer):
 class SimulationReviewer(Reviewer):
     def review(self, resp_instructions: str) -> Tuple[str, List[Dict]]:
         messages = []
-        messages.append({"role": "system", "content": preprompts.get("reviewer_simulation_sys")})
+        system_prompt = preprompts.get("reviewer_simulation_sys")  + "\n" + fewshot.get("3")
+        messages.append({"role": "system", "content": system_prompt})
 
         review_content = preprompts.get("reviewer_simulation_user").format(
             instructions = resp_instructions

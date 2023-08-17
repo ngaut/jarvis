@@ -32,7 +32,7 @@ class Translator:
             hints = "\n  - \"This is the first task, so there are no previous tasks or outcomes.\""
         else:
             for item in task_info.get("previous_outcomes", []):
-                hints += f"\n  - \"This is the #{task_info.get('task_num')} task, the previous task #{item.get('task_num')} has outcome: \'{item.get('outcome')}\'\""
+                hints += f"\n  - \"This is the #{task_info.get('task_num')} task, the previous task #{item.get('task_num')} has outcome: {item.get('outcome')}\""
 
         if task_info.get("goal", ""):
             hints += f"\n  - \"The user's original request: {task_info.get('goal')}\""
