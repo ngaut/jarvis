@@ -44,6 +44,7 @@ class Translator:
             hints = "[]"
 
         user_prompt = preprompts.get("translator_user").format(
+            task_num=task_info.get("task_num", 0),
             task = f"\"{task_info.get('task', '')}\"",
             objective = f"\"{task_info.get('objective', '')}\"",
             start_seq = task_info.get("start_seq", ""),

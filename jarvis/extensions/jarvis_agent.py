@@ -5,6 +5,8 @@ import uuid
 import logging
 import tiktoken
 import re
+import json
+
 from datetime import datetime
 from typing import List, Dict, Optional
 import traceback
@@ -251,13 +253,22 @@ class JarvisAgent:
             )
 
         if last_result is not None:
-            result = self.get_task_result(last_result.metadata["instruction_outcome"])
+            result = self.get_task_result(
+                last_result.task_num, last_result.metadata["instruction_outcome"]
+            )
             if result is not None and result != "None":
                 last_result.result = result
 
         return last_result
 
-    def get_task_result(self, overall_outcome: str, return_key: bool = False):
+    def get_task_result(
+        self, task_num: int, overall_outcome: str, return_key: bool = False
+    ):
+        task_res = jvm.get(f"task_{task_num}.output.str")
+        if task_res is not None and task_res != "None":
+            logging.info(f"Fetch Task {task_num} result: {task_res}")
+            return task_res
+
         sys_prompt = (
             "You're a helpful assistant, please output the keys (in python list type) where the overall task output result is stored according to the task output description.\n"
             "Examples:\n"
@@ -265,6 +276,8 @@ class JarvisAgent:
             "Assistant: ['selected_projects.seq2.list']\n"
             "User: The trending AI projects information from the last 28 days has been extracted. The descriptions of the selected projects for the tweet can be retrieved with keys like 'project_description_<idx>.seq4.str'.\n"
             "Assistant: ['project_description_<idx>.seq4.str']\n"
+            "User: The obtained URLs are now stored under the key 'TiDB_Serverless_URLs'. They can be accessed for subsequent tasks by calling 'jvm.get('TiDB_Serverless_URLs.seq17.list')'.\n"
+            "Assistant: ['TiDB_Serverless_URLs.seq17.list']\n"
             "User: The top 3 projects based on their advancements and growth rate have been selected. The projects can be retrieved with keys 'top_project_0.seq19.str', 'top_project_1.seq19.str', and 'top_project_2.seq19.str'. These projects will be featured in the tweet for their recent advancements and high growth rate.\n"
             "Assistant: ['top_project_0.seq19.str', 'top_project_1.seq19.str', 'top_project_2.seq19.str']\n"
         )
@@ -279,9 +292,12 @@ class JarvisAgent:
             return resp
 
         keys = ast.literal_eval(resp)
-        result = None
+        if len(keys) == 0:
+            return None
+
+        task_outcome = {}
         for key in keys:
-            matches = re.findall('(<.*?>)', key)
+            matches = re.findall("(<.*?>)", key)
             if matches:
                 key_prefix = key.split(matches[0])[0]
                 res = jvm.eval(
@@ -289,10 +305,14 @@ class JarvisAgent:
                 )
             else:
                 res = jvm.eval(f'jvm.eval(jvm.get("{key}"))')
-            if res is not None and res != "None":
-                if result is None:
-                    result = str(res)
-                else:
-                    result += f"\n{key}:{res}"
+            task_outcome[key] = res
 
-        return result
+        if len(task_outcome) == 0:
+            return None
+        elif len(task_outcome) == 1:
+            outcome = task_outcome[keys[0]]
+            if outcome is None or outcome in ("None", "", "[]"):
+                return None
+            return task_outcome[keys[0]]
+
+        return f"Task Outcome: {overall_outcome}\n" + json.dumps(task_outcome, indent=2)
