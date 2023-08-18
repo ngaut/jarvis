@@ -1,6 +1,13 @@
 # Description: Utility functions
+import re
 from pathlib import Path
+
 from jarvis.smartgpt import jvm
+
+
+def remove_quoted_token(text, token):
+    pattern = r'([\"\'])' + re.escape(token) + r'\1'
+    return re.sub(pattern, token, text)
 
 
 def strip_yaml(text):
@@ -14,6 +21,22 @@ def strip_yaml(text):
 
     # if text starts with "```yaml\n", remove it
     if text.startswith("```yaml\n"):
+        text = text[8:]
+
+    return text
+
+
+def strip_json(text):
+    # Strip whitespace (including newline) from end
+    text = text.rstrip()
+
+    # keep removing the last "```" if it exists
+    while text.endswith("```"):
+        text = text[:-3]
+        text = text.rstrip()
+
+    # if text starts with "```yaml\n", remove it
+    if text.startswith("```json\n"):
         text = text[8:]
 
     return text

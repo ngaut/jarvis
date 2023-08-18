@@ -40,9 +40,9 @@ instructions:
       output_format:
         kvs:
           - key: "temperature.seq3.int"  # without <idx> as not inside a loop
-            value: <to_fill>
+            value: "<to_fill>"
           - key: "source_url.seq3.str"
-            value: <to_fill>
+            value: "<to_fill>"
       content: "jvm.eval(jvm.get('fetched_content.seq2.str'))"
 
   - seq: 4
@@ -63,7 +63,7 @@ instructions:
           output_format:
             kvs:
               - key: "weather_notes.seq5.str"
-                value: <to_fill>
+                value: "<to_fill>"
           content: "Today's temperature in San Francisco is jvm.eval(jvm.get('temperature.seq3.int'))"
     else:
       - seq: 6
@@ -76,7 +76,7 @@ instructions:
           output_format:
             kvs:
               - key: "weather_notes.seq6.str"
-                value: <to_fill>
+                value: "<to_fill>"
           content: "Today's temperature in San Francisco is jvm.eval(jvm.get('temperature.seq3.int'))"
 
   - seq: 7
@@ -89,7 +89,7 @@ instructions:
       output_format:
         kvs:
           - key: "weather_report.seq7.str"
-            value: <to_fill>
+            value: "<to_fill>"
       content: "temperature: jvm.eval(jvm.get('temperature.seq3.int')), source_url: jvm.eval(jvm.get('source_url.seq3.str')), weather_notes: jvm.eval(jvm.get('weather_notes.seq5.str') or jvm.get('weather_notes.seq6.str'))"
 
   - seq: 8

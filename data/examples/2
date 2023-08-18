@@ -49,7 +49,7 @@ instructions:
             output_format:
               kvs:
                 - key: "jvm.eval('news_summary_' + str(jvm.get('idx')) + '.seq4.str')"  # with <idx> as inside a loop
-                  value: <to_fill>
+                  value: "<to_fill>"
             content: "jvm.eval(jvm.get('news_content_' + str(jvm.get('idx')) + '.seq3.str'))"
 
   - seq: 5
@@ -62,7 +62,7 @@ instructions:
       output_format:
         kvs:
           - key: "blog_content.seq5.str"
-            value: <to_fill>
+            value: "<to_fill>"
       content: "jvm.eval('\\n'.join(jvm.list_values_with_key_prefix('news_summary_')))"
 
 end_seq: 5

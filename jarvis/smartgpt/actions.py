@@ -11,13 +11,13 @@ from abc import ABC
 import uuid
 from urllib.parse import urlparse, urlunparse
 import hashlib
-import requests
 from sys import platform
+import requests
 
 from bs4 import BeautifulSoup
 import yaml
 
-from selenium import webdriver
+
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options as ChromeOptions
@@ -186,7 +186,7 @@ class FetchWebContentAction:
             return f"FetchWebContentAction RESULT: An error occurred: {str(err)}"
         else:
             logging.debug(f"\nFetchWebContentAction RESULT:\n{text}")
-            result_str = yaml.safe_dump({"kvs": [{"key": self.save_to, "value": text}]})
+            result_str = json.dumps({"kvs": [{"key": self.save_to, "value": text}]})
 
             save_to_cache(cached_key, result_str)
             return result_str
@@ -236,7 +236,7 @@ class WebSearchAction:
                 result = [item['link'] for item in search_results['items']]
                 logging.debug(f"WebSearchAction RESULT: {result}")
 
-                result_str = yaml.safe_dump({"kvs": [{"key": self.save_to, "value": result}]})
+                result_str = json.dumps({"kvs": [{"key": self.save_to, "value": result}]})
 
                 save_to_cache(cached_key, result_str)
                 return result_str
@@ -370,9 +370,9 @@ class TextCompletionAction(Action):
             content = gpt.truncate_to_tokens(content, max_token_count)
 
         user_prompt = preprompts.get("text_completion_user").format(
-            operation=self.operation,
-            output_format=self.output_format,
-            content=content,
+            operation = self.operation,
+            output_format = utils.remove_quoted_token(self.output_format, "<to_fill>"),
+            content = content,
         )
 
         messages = [
@@ -415,7 +415,7 @@ class TextCompletionAction(Action):
             result = gpt.send_messages(messages, model_name)
             if result is None:
                 raise ValueError("Generating text completion appears to have failed.")
-            result = utils.strip_yaml(result)
+            result = utils.strip_json(result)
 
             save_to_cache(cached_key, result)
             return result

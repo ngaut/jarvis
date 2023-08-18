@@ -1,5 +1,5 @@
+import json
 import logging
-import yaml
 
 from jarvis.smartgpt import actions
 from jarvis.smartgpt import jvm
@@ -45,7 +45,7 @@ class JVMInstruction:
         if action_type == "TextCompletion":
             args["operation"] = self.eval_and_patch(args.get("operation"))
             args["content"] = self.eval_and_patch(args.get("content"))
-            args["output_format"] = self.eval_and_patch(yaml.safe_dump(args.get("output_format")))
+            args["output_format"] = self.eval_and_patch(json.dumps(args.get("output_format"), indent=2))
 
         action_data = { "type": action_type, "action_id": action_id }
         action_data.update(args)
@@ -60,7 +60,6 @@ class JVMInstruction:
         logging.info(f"\nresult of {action_type}: {result}\n")
 
         if action_type != "RunPython":
-            # todo: handle error if the result is not a yaml
             self.post_exec(result)
         else:
             jvm.load_kv_store()
@@ -75,23 +74,18 @@ class JVMInstruction:
                 break
             text = tmp_text
 
-        """
-        if "jvm." in text:
-            raise ValueError(f"Error: text still contains 'jvm.' after evaluation. text: {text}")
-        """
-
         return text
 
     def post_exec(self, result: str):
         try:
-            data = yaml.safe_load(result)
-        except yaml.YAMLError as err:
-            logging.error(f"Failed to parse YAML: {result}, error: {str(err)}")
-            return
+            data = json.loads(result)
+        except json.JSONDecodeError as e:
+            logging.error(f"Failed to parse: {result}, error: {e}")
+            raise
 
-        # Check if "kvs" key exists in the YAML
+        # Check if "kvs" key exists in the result
         if "kvs" not in data:
-            logging.error(f"No 'kvs' key in the YAML: {result}")
+            logging.error(f"No 'kvs' in the result: {result}")
             return
 
         # Iterate over key-value pairs and set them in the jvm
@@ -100,10 +94,10 @@ class JVMInstruction:
                 key = kv["key"]
                 value = kv["value"]
             except KeyError:
-                logging.error(f"Invalid kv item in the YAML: {kv}")
-                continue
+                logging.error(f"Invalid KV item in the result: {kv}")
+                return
 
-            logging.info(f"Setting key-value: {kv} in the JVM")
+            logging.info(f"Setting KV in the JVM database: '{key}'={value}")
             jvm.set(key, value)
 
 class JVMInterpreter:
@@ -172,31 +166,23 @@ class JVMInterpreter:
     def conditional(self, jvm_instruction: JVMInstruction):
         condition = jvm_instruction.instruction.get("args", {}).get("condition", None)
         condition = jvm_instruction.eval_and_patch(condition)
-        output_fmt = {
-            "kvs": [
-                {"key": "result", "value": "<to_fill>"},
-                {"key": "reasoning", "value": "<to_fill>"},
-            ]
-        }
 
         evaluation_action = actions.TextCompletionAction(
             action_id = -1,
-            operation="Evaluate true or false based on input content",
+            operation="Judging true or false based on input content",
             content = condition,
-            output_format = yaml.safe_dump(output_fmt))
+            output_format = json.dumps({"kvs": [{"key": "result.seq0.bool", "value": "<to_fill>"}]}, indent=2))
 
         try:
             evaluation_result = evaluation_action.run()
-            output_res = yaml.safe_load(evaluation_result)
+            output_res = json.loads(evaluation_result)
             condition_eval_result = utils.str_to_bool(output_res["kvs"][0]["value"])
-            condition_eval_reasoning = output_res["kvs"][1]["value"]
 
         except Exception as err:
-            condition_eval_result = False
-            condition_eval_reasoning = ''
-            logging.critical(f"Failed to decode AI model response: {condition} with error: {err}")
+            logging.error(f"Failed to decode AI model response: {condition} with error: {err}")
+            raise
 
-        logging.info(f"Condition evaluated to {condition_eval_result}. Reasoning: {condition_eval_reasoning}")
+        logging.info(f"The condition is evaluated to {condition_eval_result}.")
 
         old_pc = self.pc
         if condition_eval_result:

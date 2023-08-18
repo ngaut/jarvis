@@ -49,7 +49,7 @@ instructions:
             output_format:
               kvs:
                 - key: "jvm.eval('is_relevant_' + str(jvm.get('idx')) + '.seq4.bool')"
-                  value: <to_fill>
+                  value: "<to_fill>"
             content: "jvm.eval(jvm.get('article_title_' + str(jvm.get('idx')) + '.seq3.str'))"
 
         - seq: 5
@@ -70,7 +70,7 @@ instructions:
                   output_format:
                     kvs:
                       - key: "jvm.eval('slack_message_' + str(jvm.get('idx')) + '.seq6.str')"
-                        value: <to_fill>
+                        value: "<to_fill>"
                   content: "jvm.eval('Here is an interesting AI-related article: ' + jvm.get('article_title_' + str(jvm.get('idx')) + '.seq3.str'))"
             else: []
 

@@ -1,16 +1,14 @@
-User's Request:
-{operation}
+User's Request: {operation}
 
-User's Input Content:
+The Input Content:
 """
 {content}
 """
 
-Please fill in the following output template in your response
-```yaml
+The Output Template:
+```json
 {output_format}
 ```
 
-
 Your response:
-```yaml
+```json
