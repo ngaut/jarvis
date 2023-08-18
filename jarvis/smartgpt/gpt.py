@@ -83,7 +83,7 @@ def truncate_to_tokens(content: str, max_token_count: int) -> str:
 
     return truncated_str
 
-def send_messages(messages: List[Dict[str, str]], model: str) -> str:
+def send_messages(messages: List[Dict[str, str]], model: str):
     max_response_tokens = get_max_tokens(model) - count_tokens(messages)
 
     if max_response_tokens < 0:
@@ -114,7 +114,7 @@ def send_messages(messages: List[Dict[str, str]], model: str) -> str:
 
         except openai.error.RateLimitError as rate_limit_err:  # type: ignore
             # Handling Rate Limit Error
-            backoff_time = random.randint(30, 60)
+            backoff_time = random.randint(40, 60)
             logging.info(
                 f"Rate Limit Exceeded for model %s. Error: %s. Waiting {backoff_time} seconds...",
                 model,
