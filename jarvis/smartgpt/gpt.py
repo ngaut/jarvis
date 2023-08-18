@@ -1,10 +1,8 @@
 import os
-import sys
 import time
 import logging
 import random
 from typing import Optional, List, Dict
-from tenacity import retry, wait_random_exponential, stop_after_attempt
 
 import openai
 import tiktoken
@@ -110,7 +108,7 @@ def send_messages(messages: List[Dict[str, str]], model: str) -> str:
                     temperature=TEMPERATURE,
                 )
 
-            logging.info(f"Call OpenAI: Model={model}, Total tokens={response.usage['total_tokens']}")  # type: ignore
+            logging.info(f"Called OpenAI: Model={model}, Total Tokens={response.usage['total_tokens']}")  # type: ignore
 
             return response.choices[0].message["content"]  # type: ignore
 

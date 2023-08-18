@@ -1,15 +1,14 @@
-Task:
-{operation}
+User's Request: {operation}
 
-Output Format:
-```yaml
-{output_format}
-```
-
-Content:
+The Input Content:
 """
 {content}
 """
 
-Please formulate your response in the provided output format:
-```yaml
+The Output Template:
+```json
+{output_format}
+```
+
+Your response:
+```json
