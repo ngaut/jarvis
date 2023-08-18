@@ -95,7 +95,7 @@ args:
   output_format: # The output_format must be specified by using a YAML template that defines what data to save and the associated key to use.
     kvs:
       - key: # Specifies a context key
-        value: '<to_fill>'  # A placeholder for the value to be filled by the TextCompletion operation
+        value: <to_fill>  # A placeholder for the value to be filled by the TextCompletion operation
       - ...
   content: # The raw content to be processed. This is the direct input for the TextCompletion to work on.
 ```
