@@ -1,0 +1,21 @@
+Please use the provided YAML template in your response. Follow these requirements:
+1. Leverage the outcomes from the user's hints to meet the objective.
+2. Create an instruction to produce the final result that the user will see.
+  * The result should include specific details and data essential for directly addressing the task. For instance, instead of just saying 'The search has been completed. The results will be processed in the next tasks.', provide metrics or evidence, such as 'Here are some resources on TiDB Serverless: https://www.pingcap.com/tidb-serverless/, ...'.
+  * Do not use any jvm keys, users can't see jvm data.
+  * Save this final result to key `task_{task_num}.output.str`.
+3. When crafting the overall outcome which is mainly for transferring data between tasks, please exclude the instruction for the user-facing result and do not reference its key `task_<number>.output.str`.
+
+```yaml
+task: {task}
+objective: {objective}
+thoughts: <to_fill>
+hints_from_user: {hints}
+start_seq: {start_seq}
+instructions: <to_fill>
+end_seq: <to_fill>
+overall_outcome: <to_fill>
+```
+
+Your Response:
+```yaml

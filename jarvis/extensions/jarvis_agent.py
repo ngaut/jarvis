@@ -287,6 +287,8 @@ class JarvisAgent:
             prompt=user_prompt, model=gpt.GPT_3_5_TURBO_16K, system_prompt=sys_prompt
         )
 
+        logging.info(f"Get task task_{task_num} result from keys: {resp}")
+
         # for testing purpose
         if return_key:
             return resp
