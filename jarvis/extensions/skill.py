@@ -22,6 +22,19 @@ You should only respond in JSON format as described below
 
 Ensure the response can be parsed by Python json.loads"""
 
+def custom_copytree_for_jarvis(src_dir, dst_dir):
+    U.f_mkdir(dst_dir)
+
+    for file_name in os.listdir(src_dir):
+        s = os.path.join(src_dir, file_name)
+        d = os.path.join(dst_dir, file_name)
+
+        if os.path.isdir(s):
+            continue  # Skip directories
+
+        if file_name.endswith('.yaml') or file_name.endswith('.txt'):
+            shutil.copy2(s, d)
+
 class SkillManager:
     name = 'skill_saver'
     description = "A skill that saves jarvis skill in a previous step within the skills folder. Not for writing code."
@@ -30,11 +43,13 @@ class SkillManager:
         self,
         model_name=gpt.GPT_3_5_TURBO_16K,
         retrieval_top_k=3,
+        retrieval_threshold=0.8,
         skill_libary_dir="skill_library",
     ):
         self.skill_libary_dir = skill_libary_dir
         self.retrieval_top_k = retrieval_top_k
         self.model_name = model_name
+        self.retrieval_threshold = retrieval_threshold
 
         U.f_mkdir(f"{skill_libary_dir}/code")
         U.f_mkdir(f"{skill_libary_dir}/description")
@@ -48,7 +63,7 @@ class SkillManager:
 
         self.vectordb = Chroma(
             collection_name="skill_vectordb",
-            embedding_function=OpenAIEmbeddings(),
+            embedding_function=OpenAIEmbeddings(model="text-embedding-ada-002"),
             persist_directory=f"{skill_libary_dir}/vectordb",
         )
 
@@ -65,7 +80,7 @@ class SkillManager:
             raise ValueError(f"Skill '{skill_name}' not found.")
         
         try:
-            shutil.copytree(self._skill_dir(skill["skill_name_w_ver"]), dest_dir)
+            custom_copytree_for_jarvis(self._skill_dir(skill["skill_name_w_ver"]), dest_dir)
         except Exception as e:
             logging.error("Error saving skill {resp}: {e}")
             raise e
@@ -90,8 +105,14 @@ class SkillManager:
         skill_dir = self._skill_dir(dumped_skill_name)
         logging.info(f"generate skill.... skill_dir: {skill_dir}, skill_name: {skill_name}, skill_description: {skill_description}")
 
+        try:
+            custom_copytree_for_jarvis(task_dir, skill_dir)
+        except Exception as e:
+            logging.error("Error saving skill {resp}: {e}")
+            raise e
+
         self.vectordb.add_texts(
-            texts=[task],
+            texts=[skill_description],
             ids=[skill_name],
             metadatas=[{"skill_name": skill_name}],
         )
@@ -103,12 +124,6 @@ class SkillManager:
         assert self.vectordb._collection.count() == len(
             self.skills
         ), "vectordb is not synced with skills.json"
-
-        try:
-            shutil.copytree(task_dir, skill_dir)
-        except Exception as e:
-            logging.error("Error saving skill {resp}: {e}")
-            raise e
         
         U.dump_text(
             skill_description,
@@ -123,7 +138,7 @@ class SkillManager:
         sys_prompt = (
             "Please review the task and its execution plan, and give the task a suitable name\n"
         )
-        user_prompt = f"Come up with a skill name (use function name style, eg. 'get_weather') for the task({task}) execution plan:{excution_plan}\n###\nSKILL_NAME:"
+        user_prompt = f"Come up with a skill name (skill name should be function-name style, eg. 'get_weather') for the task({task}) execution plan:{excution_plan}\n###\nSKILL_NAME:"
         skill_name = gpt.complete(
             prompt=user_prompt, model=self.model_name, system_prompt=sys_prompt
         )
@@ -164,7 +179,9 @@ class SkillManager:
             f"{', '.join([doc.metadata['skill_name'] for doc, _ in docs_and_scores])}\033[0m"
         )
         skills = {}
-        for doc, _ in docs_and_scores:
+        for doc, score in docs_and_scores:
+            if score > 1-self.retrieval_threshold:
+                continue
             skills[doc.metadata["skill_name"]] = {
                 "skill_description": self.skills[doc.metadata["skill_name"]]["skill_description"],
                 "skill_code": self.skills[doc.metadata["skill_name"]]["skill_code"],
