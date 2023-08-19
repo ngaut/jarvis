@@ -4,6 +4,8 @@ import glob
 import os
 import yaml
 from typing import Dict
+import traceback
+
 
 from langchain.vectorstores import Chroma
 from langchain.embeddings.openai import OpenAIEmbeddings
@@ -22,6 +24,7 @@ You should only respond in JSON format as described below
 
 Ensure the response can be parsed by Python json.loads"""
 
+
 def custom_copytree_for_jarvis(src_dir, dst_dir):
     U.f_mkdir(dst_dir)
 
@@ -32,11 +35,12 @@ def custom_copytree_for_jarvis(src_dir, dst_dir):
         if os.path.isdir(s):
             continue  # Skip directories
 
-        if file_name.endswith('.yaml') or file_name.endswith('.txt'):
+        if file_name.endswith(".yaml") or file_name.endswith(".txt"):
             shutil.copy2(s, d)
 
+
 class SkillManager:
-    name = 'skill_saver'
+    name = "skill_saver"
     description = "A skill that saves jarvis skill in a previous step within the skills folder. Not for writing code."
 
     def __init__(
@@ -56,7 +60,9 @@ class SkillManager:
         U.f_mkdir(f"{skill_libary_dir}/vectordb")
         skill_file = f"{skill_libary_dir}/skills.json"
         if U.f_exists(skill_file):
-            logging.info(f"\033[33mLoading Skill Manager from {skill_libary_dir}/skill\033[0m")
+            logging.info(
+                f"\033[33mLoading Skill Manager from {skill_libary_dir}/skill\033[0m"
+            )
             self.skills = U.load_json(f"{skill_libary_dir}/skills.json")
         else:
             self.skills = {}
@@ -78,11 +84,14 @@ class SkillManager:
         skill = self.skills.get(skill_name)
         if skill is None:
             raise ValueError(f"Skill '{skill_name}' not found.")
-        
+
         try:
-            custom_copytree_for_jarvis(self._skill_dir(skill["skill_name_w_ver"]), dest_dir)
+            custom_copytree_for_jarvis(
+                self._skill_dir(skill["skill_name_w_ver"]), dest_dir
+            )
         except Exception as e:
             logging.error("Error saving skill {resp}: {e}")
+            logging.info(traceback.format_exc())
             raise e
 
         return None
@@ -103,12 +112,15 @@ class SkillManager:
             dumped_skill_name = skill_name
 
         skill_dir = self._skill_dir(dumped_skill_name)
-        logging.info(f"generate skill.... skill_dir: {skill_dir}, skill_name: {skill_name}, skill_description: {skill_description}")
+        logging.info(
+            f"generate skill.... skill_dir: {skill_dir}, skill_name: {skill_name}, skill_description: {skill_description}"
+        )
 
         try:
             custom_copytree_for_jarvis(task_dir, skill_dir)
         except Exception as e:
             logging.error("Error saving skill {resp}: {e}")
+            logging.info(traceback.format_exc())
             raise e
 
         self.vectordb.add_texts(
@@ -124,7 +136,7 @@ class SkillManager:
         assert self.vectordb._collection.count() == len(
             self.skills
         ), "vectordb is not synced with skills.json"
-        
+
         U.dump_text(
             skill_description,
             f"{self.skill_libary_dir}/description/{dumped_skill_name}.txt",
@@ -133,17 +145,15 @@ class SkillManager:
 
         self.vectordb.persist()
         logging.info(f"Saving skill {skill_name} for {task} to {skill_dir}")
-    
+
     def generate_skill_description(self, task, excution_plan):
-        sys_prompt = (
-            "Please review the task and its execution plan, and give the task a suitable name\n"
-        )
+        sys_prompt = "Please review the task and its execution plan, and give the task a suitable name\n"
         user_prompt = f"Come up with a skill name (skill name should be function-name style, eg. 'get_weather') for the task({task}) execution plan:{excution_plan}\n###\nSKILL_NAME:"
         skill_name = gpt.complete(
             prompt=user_prompt, model=self.model_name, system_prompt=sys_prompt
         )
         return (skill_name, None)
-   
+
         """
         sys_prompt = skill_gen_prompt
         user_prompt = (
@@ -167,11 +177,11 @@ class SkillManager:
 
         return (skill_name, skill_description)
         """
-    
+
     def retrieve_skills(self, query):
         k = min(self.vectordb._collection.count(), self.retrieval_top_k)
         if k == 0:
-            return []
+            return {}
         print(f"\033[33mSkill Manager retrieving for {k} skills\033[0m")
         docs_and_scores = self.vectordb.similarity_search_with_score(query, k=k)
         print(
@@ -180,14 +190,16 @@ class SkillManager:
         )
         skills = {}
         for doc, score in docs_and_scores:
-            if score > 1-self.retrieval_threshold:
+            if score > 1 - self.retrieval_threshold:
                 continue
             skills[doc.metadata["skill_name"]] = {
-                "skill_description": self.skills[doc.metadata["skill_name"]]["skill_description"],
+                "skill_description": self.skills[doc.metadata["skill_name"]][
+                    "skill_description"
+                ],
                 "skill_code": self.skills[doc.metadata["skill_name"]]["skill_code"],
             }
         return skills
-    
+
     def load_skill_from_dir(self, task_dir):
         plan_file = os.path.join(task_dir, "plan.yaml")
         if os.path.exists(plan_file) and os.path.isfile(plan_file):
@@ -196,24 +208,25 @@ class SkillManager:
             if not plan:
                 raise ValueError(f"plan not defined in {plan_file}")
             return (plan, execution_plan)
-        
+
         task_files = glob.glob("[0-9]*.yaml", root_dir=task_dir)
         if len(task_files) != 1:
             raise ValueError(f"There should be exactly one task file under {task_dir}")
-        
+
         task_file = task_files[0]
         execution_plan = self.load_yaml(os.path.join(task_dir, task_file))
         task = execution_plan.get("task")
         if not task:
             raise ValueError(f"task is not defined in {task_dir}/{task_file}")
         return (task, execution_plan)
-    
+
     def load_yaml(self, file_name: str) -> Dict:
         try:
-            with open(file_name, 'r') as stream:
+            with open(file_name, "r") as stream:
                 return yaml.safe_load(stream)
         except Exception as e:
             logging.error(f"Error loading file {file_name}: {e}")
+            logging.info(traceback.format_exc())
             raise
 
     def _skill_dir(self, skill_name):
