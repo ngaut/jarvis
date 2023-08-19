@@ -203,6 +203,8 @@ class SkillManager:
 
     def load_skill_from_dir(self, task_dir):
         plan_file = os.path.join(task_dir, "plan.yaml")
+        pwd = os.getcwd()
+        logging.info(f"Loading skill from {pwd}/{task_dir}")
         if os.path.exists(plan_file) and os.path.isfile(plan_file):
             execution_plan = self.load_yaml(plan_file)
             plan = execution_plan.get("goal")
@@ -212,7 +214,7 @@ class SkillManager:
 
         task_files = glob.glob("[0-9]*.yaml", root_dir=task_dir)
         if len(task_files) != 1:
-            raise ValueError(f"There should be exactly one task file under {task_dir}")
+            raise ValueError(f"There should be exactly one task file under {task_dir}, but {task_files}")
 
         task_file = task_files[0]
         execution_plan = self.load_yaml(os.path.join(task_dir, task_file))

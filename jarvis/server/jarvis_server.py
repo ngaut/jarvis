@@ -194,7 +194,7 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
 
 def serve():
     workspace_dir = "workspace"
-    skill_lib_dir = "skill_library"
+    skill_lib_dir = None
     os.makedirs(workspace_dir, exist_ok=True)
     os.chdir(workspace_dir)
     # Logging file name and line number
