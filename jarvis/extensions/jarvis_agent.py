@@ -107,7 +107,7 @@ class JarvisAgent:
         except Exception as e:
             logging.error(f"Error generating plan for goal({goal}): {e}")
             # os.chdir(current_workdir)
-            print(traceback.format_exc())
+            logging.info(traceback.format_exc())
             result.error = str(e)
             os.chdir(current_workdir)
             return result
@@ -123,7 +123,7 @@ class JarvisAgent:
                 last_task_result = task_info.result
             except Exception as e:
                 logging.error(f"Error executing task {task}: {e}")
-                print(traceback.format_exc())
+                logging.info(traceback.format_exc())
                 os.chdir(current_workdir)
                 task_info = TaskInfo(
                     task_num=task_idx,
@@ -182,8 +182,8 @@ class JarvisAgent:
             result = self.execute_instructions(instrs)
         except Exception as e:
             logging.error(f"Error executing task {task}: {e}")
-            # os.chdir(current_workdir)
-            print(traceback.format_exc())
+            os.chdir(current_workdir)
+            logging.info(traceback.format_exc())
             raise e
 
         os.chdir(current_workdir)
