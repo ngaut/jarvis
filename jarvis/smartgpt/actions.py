@@ -160,7 +160,9 @@ class FetchWebContentAction:
         # modify a tags to include href in markdown format
         for a in soup.find_all('a'):
             url = a.get('href', '')
-            if url:
+
+            # Only modify the link if it's an external link (i.e., starts with 'http' or 'https')
+            if url and (url.startswith('http://') or url.startswith('https://')):
                 a.string = f"[{a.get_text()}]({url})"
 
         text = soup.get_text()
@@ -217,7 +219,7 @@ class WebSearchAction:
         url = "https://www.googleapis.com/customsearch/v1"
         params = {
             'q': self.query,
-            'num': 5,
+            'num': 3,
             'key': os.getenv("GOOGLE_API_KEY"),
             'cx': os.getenv("GOOGLE_SEARCH_ENGINE_ID"),
         }
@@ -345,7 +347,7 @@ class RunPythonAction(Action):
 @dataclass(frozen=True)
 class TextCompletionAction(Action):
     action_id: int
-    operation: str
+    request: str
     content: str
     output_format: str
     model_name: str = TEXT_COMPLETION_MODEL
@@ -357,7 +359,7 @@ class TextCompletionAction(Action):
         return self.action_id
 
     def short_string(self) -> str:
-        return f"action_id: {self.id()}, text completion for \"{self.operation}\"."
+        return f"action_id: {self.id()}, text completion for Request: \"{self.request}\"."
 
     def generate_messages(self) -> List[Dict[str, str]]:
         # Adjust content to fit within model's max tokens
@@ -370,7 +372,7 @@ class TextCompletionAction(Action):
             content = gpt.truncate_to_tokens(content, max_token_count)
 
         user_prompt = preprompts.get("text_completion_user").format(
-            operation = self.operation,
+            request = self.request,
             output_format = utils.remove_quoted_token(self.output_format, "<to_fill>"),
             content = content,
         )
@@ -399,13 +401,13 @@ class TextCompletionAction(Action):
         return model_name
 
     def run(self) -> str:
-        hash_key = self.operation + str(jvm.get('idx'))
+        hash_key = self.request + str(jvm.get('idx'))
         hash_str = hashlib.md5(hash_key.encode()).hexdigest()
         cached_key = f"{hash_str}"
         cached_result = get_from_cache(cached_key)
 
         if cached_result is not None:
-            logging.debug(f"TextCompletionAction RESULT(cached) for operation: {self.operation}")
+            logging.debug(f"TextCompletionAction RESULT(cached) for Request: {self.request}")
             return cached_result
 
         messages = self.generate_messages()

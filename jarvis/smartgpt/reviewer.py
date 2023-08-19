@@ -1,3 +1,4 @@
+import logging
 import re
 from typing import List, Dict, Tuple
 from abc import ABC, abstractmethod
@@ -9,6 +10,8 @@ from jarvis.smartgpt import utils
 from jarvis.smartgpt import preprompts
 from jarvis.smartgpt import fewshot
 
+
+REVIEW_REPEATED_COUNT = 2
 
 class Reviewer(ABC):
     def __init__(self, model):
@@ -57,9 +60,11 @@ class LoopIndexKeyReviewer(Reviewer):
 
 class SimulationReviewer(Reviewer):
     def review(self, resp_instructions: str) -> Tuple[str, List[Dict]]:
+        return self._review(resp_instructions, REVIEW_REPEATED_COUNT)
+
+    def _review(self, resp_instructions: str, count: int) -> Tuple[str, List[Dict]]:
         messages = []
-        system_prompt = preprompts.get("reviewer_simulation_sys")  + "\n" + fewshot.get("3")
-        messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "system", "content": preprompts.get("reviewer_simulation_sys")})
 
         review_content = preprompts.get("reviewer_simulation_user").format(
             instructions = resp_instructions
@@ -73,18 +78,25 @@ class SimulationReviewer(Reviewer):
         response = gpt.send_messages(messages, self.model)
         messages.append({"role": "assistant", "content": response})
 
-        match_answer = re.match(r'^(yes|no)', response.lower())
-        is_correct = match_answer.group(1) if match_answer else None
+        match_answer = re.match(r'(yes|no)', response.lower())
+        is_need_regenerate = match_answer.group(1) if match_answer else 'no'
 
-        if is_correct is None or is_correct == 'yes':
-            return resp_instructions, messages
+        if is_need_regenerate == 'no':
+            logging.info(f"The #{REVIEW_REPEATED_COUNT - count + 1}/{REVIEW_REPEATED_COUNT} round simulation review has passed.")
+            if count - 1 == 0:
+                return resp_instructions, messages
+            return self._review(resp_instructions, count - 1)
+
+        logging.info(f"The #{REVIEW_REPEATED_COUNT - count + 1}/{REVIEW_REPEATED_COUNT} round simulation review failed, start regenerating ...")
+
+        messages.append({"role": "user", "content": preprompts.get("reviewer_simulation_regenerate") + "\n" + fewshot.get("3")})
+        response = gpt.send_messages(messages, self.model)
+        messages.append({"role": "assistant", "content": response})
 
         pattern = r'```\s*(?:[a-zA-Z]+\s*)?\n(.*?)\s*```'
         match_code = re.search(pattern, response, re.DOTALL)
-
         revised_instructions = match_code.group(1) if match_code else None
 
-        if not revised_instructions:
-            return resp_instructions, messages
-
-        return revised_instructions, messages
+        if revised_instructions:
+            return revised_instructions, messages
+        return resp_instructions, messages

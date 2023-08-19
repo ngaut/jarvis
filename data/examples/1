@@ -1,4 +1,4 @@
-### Example: An output template with If-condition instruction structure
+### An Example Output
 
 ```yaml
 task: "Get current weather data for San Francisco and provide suggestions based on temperature, save the results to file"
@@ -36,7 +36,7 @@ instructions:
     objective: "Get the current temperature in San Francisco from the fetched content"
     rule_num: 3
     args:
-      operation: "Get the current temperature and url in San Francisco"
+      request: "Get the current temperature and url in San Francisco"
       output_format:
         kvs:
           - key: "temperature.seq3.int"  # without <idx> as not inside a loop
@@ -59,7 +59,7 @@ instructions:
         objective: "Generate outdoor activities suggestions"
         rule_num: 3
         args:
-          operation: "What outdoor activities should we recommend to the users? Please generate a weather notes"
+          request: "What outdoor activities should we recommend to the users? Please generate a weather notes"
           output_format:
             kvs:
               - key: "weather_notes.seq5.str"
@@ -72,7 +72,7 @@ instructions:
         objective: "Generate indoor activities suggestions"
         rule_num: 3
         args:
-          operation: "What indoor activities should we recommend to the users? Please generate a weather notes"
+          request: "What indoor activities should we recommend to the users? Please generate a weather notes"
           output_format:
             kvs:
               - key: "weather_notes.seq6.str"
@@ -85,7 +85,7 @@ instructions:
     objective: "Generate a complete weather report for San Francisco using the gathered information"
     rule_num: 3
     args:
-      operation: "Please generate current weather report for San Francisco"
+      request: "Please generate current weather report for San Francisco"
       output_format:
         kvs:
           - key: "weather_report.seq7.str"

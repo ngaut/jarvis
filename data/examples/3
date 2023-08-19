@@ -1,4 +1,5 @@
-### An Example of JVM Instructions
+### An Example Output
+
 ```yaml
 task: "Retrieve the content of top stories on Hacker News. Assess their relevance to AI and determine if they should be posted to the Slack."
 
@@ -46,7 +47,7 @@ instructions:
           objective: "Decide if the story is relevant to AI"
           rule_num: 3
           args:
-            operation: "Determine if this story is about AI"
+            request: "Determine if this story is about AI"
             output_format:
               kvs:
                 - key: "jvm.eval('is_relevant_' + str(jvm.get('idx')) + '.seq4.bool')"
@@ -67,7 +68,7 @@ instructions:
                 objective: "Prepare the message to be posted to Slack"
                 rule_num: 3
                 args:
-                  operation: "Generate the message to be posted to Slack"
+                  request: "Generate the message to be posted to Slack"
                   output_format:
                     kvs:
                       - key: "jvm.eval('slack_message_' + str(jvm.get('idx')) + '.seq6.str')"
