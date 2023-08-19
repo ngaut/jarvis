@@ -148,7 +148,7 @@ class SkillManager:
 
     def generate_skill_description(self, task, excution_plan):
         sys_prompt = "Please review the task and its execution plan, and give the task a suitable name\n"
-        user_prompt = f"Come up with a skill name (skill name should be function-name style, eg. 'get_weather') for the task({task}) execution plan:{excution_plan}\n###\nSKILL_NAME:"
+        user_prompt = f"Come up with a detail skill name (skill name should be function-name style, eg. 'get_weather'; skill name should detailed to be unqieu) for the task({task}) execution plan:{excution_plan}\n###\nSKILL_NAME:"
         skill_name = gpt.complete(
             prompt=user_prompt, model=self.model_name, system_prompt=sys_prompt
         )
