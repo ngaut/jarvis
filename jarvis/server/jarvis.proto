@@ -38,6 +38,7 @@ message GoalExecuteRequest {
   string agent_id = 1;
   string goal = 2;
   bool skip_gen = 3;
+  bool enable_skill_library = 4;
 }
 
 // The GoalExecuteResponse message represents the result of the chain execute function.
@@ -64,7 +65,6 @@ message SaveSkillResponse {
 // The Jarvis service provides an execute RPC method.
 service Jarvis {
   rpc Execute(ExecuteRequest) returns (ExecuteResponse);
-  rpc ExecuteWithSkill(GoalExecuteRequest) returns (GoalExecuteResponse);
   rpc ChainExecute(GoalExecuteRequest) returns (GoalExecuteResponse);
   rpc SaveSkill(SaveSkillRequest) returns (SaveSkillResponse);
 }

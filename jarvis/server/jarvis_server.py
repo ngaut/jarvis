@@ -18,7 +18,7 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
         self.skill_library_dir = skill_library_dir
         self.skill_manager = None
         if skill_library_dir is not None:
-            self.skill_manager = SkillManager(skill_libary_dir=skill_library_dir)
+            self.skill_manager = SkillManager(skill_library_dir=skill_library_dir)
 
     def Execute(self, request, context):
         # You can access the request parameters using request.task_id, request.task, etc.
@@ -131,8 +131,25 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
             agent = {"executor": JarvisAgent(), "goal": goal, "previous_tasks": []}
             self.agents[agent_id] = agent
 
+        skip_gen = request.skip_gen
+        enable_skill_library = request.enable_skill_library
+
+        if enable_skill_library and self.skill_manager is not None:
+            skills = self.skill_manager.retrieve_skills(goal)
+            # todo: improve skill selection logic, add jarvis review
+            skip_gen = request.skip_gen
+            for skill_name in skills.keys():
+                selected_skill_name = skill_name
+                selected_skill = skills[skill_name]
+                logging.info(
+                    f"use selected skill: {selected_skill_name}, skill descrption: {selected_skill['skill_description']}"
+                )
+                self.skill_manager.clone_skill(selected_skill_name, agent_id)
+                skip_gen = True
+                break
+
         exec_result = agent["executor"].execute_with_plan(
-            goal, subdir=agent_id, skip_gen=request.skip_gen
+            goal, subdir=agent_id, skip_gen=skip_gen
         )
 
         response = jarvis_pb2.GoalExecuteResponse(
@@ -162,7 +179,7 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
         agent_id = request.agent_id.strip()
 
         try:
-            self.skill_manager.add_new_skill(agent_id)
+            skill_name = self.skill_manager.add_new_skill(agent_id)
         except Exception as e:
             return jarvis_pb2.SaveSkillResponse(
                 agent_id=agent_id,
@@ -171,66 +188,8 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
 
         return jarvis_pb2.SaveSkillResponse(
             agent_id=agent_id,
-            result=f"skill from {agent_id} is saved",
+            result=f"skill is saved as {skill_name}",
         )
-
-    def ExecuteWithSkill(self, request, context):
-        if len(request.goal.strip()) <= 0:
-            return jarvis_pb2.GoalExecuteResponse(
-                error="goal is not provided",
-            )
-        goal = request.goal.strip()
-
-        agent_id = None
-        agent = None
-        if len(request.agent_id.strip()) > 0:
-            agent_id = request.agent_id.strip()
-            agent = self.agents.get(agent_id, None)
-
-        if agent_id is None:
-            agent_id = hashlib.md5(f"{goal}-{datetime.now()}".encode()).hexdigest()
-
-        if agent is None:
-            agent = {"executor": JarvisAgent(), "goal": goal, "previous_tasks": []}
-            self.agents[agent_id] = agent
-
-        skip_gen = request.skip_gen
-
-        if self.skill_manager is not None:
-            skills = self.skill_manager.retrieve_skills(goal)
-            # todo: improve skill selection logic, add jarvis review
-            skip_gen = request.skip_gen
-            for skill_name in skills.keys():
-                selected_skill_name = skill_name
-                selected_skill = skills[skill_name]
-                logging.info(
-                    f"use selected skill: {selected_skill_name}, skill descrption: {selected_skill['skill_description']}"
-                )
-                self.skill_manager.clone_skill(selected_skill_name, agent_id)
-                skip_gen = True
-                break
-
-        exec_result = agent["executor"].execute_with_plan(
-            goal, subdir=agent_id, skip_gen=skip_gen
-        )
-        response = jarvis_pb2.GoalExecuteResponse(
-            agent_id=agent_id,
-            goal=goal,
-            result=exec_result.result,
-        )
-        if exec_result.error is not None:
-            response.error = exec_result.error
-
-        for task_info in exec_result.task_infos:
-            task_response = jarvis_pb2.ExecuteResponse(
-                task=task_info.task,
-                result=task_info.result,
-            )
-            if task_info.error is not None:
-                task_response.error = task_info.error
-
-            response.subtasks.append(task_response)
-        return response
 
 
 def serve():
@@ -242,7 +201,7 @@ def serve():
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s",
-        filename=f"{workspace_dir}/grpc_jarvis.log",
+        filename=f"grpc_jarvis.log",
     )
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))

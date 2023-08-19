@@ -48,29 +48,29 @@ class SkillManager:
         model_name=gpt.GPT_3_5_TURBO_16K,
         retrieval_top_k=3,
         retrieval_threshold=0.8,
-        skill_libary_dir="skill_library",
+        skill_library_dir="skill_library",
     ):
-        self.skill_libary_dir = skill_libary_dir
+        self.skill_library_dir = skill_library_dir
         self.retrieval_top_k = retrieval_top_k
         self.model_name = model_name
         self.retrieval_threshold = retrieval_threshold
 
-        U.f_mkdir(f"{skill_libary_dir}/code")
-        U.f_mkdir(f"{skill_libary_dir}/description")
-        U.f_mkdir(f"{skill_libary_dir}/vectordb")
-        skill_file = f"{skill_libary_dir}/skills.json"
+        U.f_mkdir(f"{skill_library_dir}/code")
+        U.f_mkdir(f"{skill_library_dir}/description")
+        U.f_mkdir(f"{skill_library_dir}/vectordb")
+        skill_file = f"{skill_library_dir}/skills.json"
         if U.f_exists(skill_file):
             logging.info(
-                f"\033[33mLoading Skill Manager from {skill_libary_dir}/skill\033[0m"
+                f"\033[33mLoading Skill Manager from {skill_library_dir}/skill\033[0m"
             )
-            self.skills = U.load_json(f"{skill_libary_dir}/skills.json")
+            self.skills = U.load_json(f"{skill_library_dir}/skills.json")
         else:
             self.skills = {}
 
         self.vectordb = Chroma(
             collection_name="skill_vectordb",
             embedding_function=OpenAIEmbeddings(model="text-embedding-ada-002"),
-            persist_directory=f"{skill_libary_dir}/vectordb",
+            persist_directory=f"{skill_library_dir}/vectordb",
         )
 
         assert self.vectordb._collection.count() == len(self.skills), (
@@ -105,7 +105,7 @@ class SkillManager:
             print(f"\033[33mSkill {skill_name} already exists. Rewriting!\033[0m")
             self.vectordb._collection.delete(ids=[skill_name])
             i = 2
-            while f"{skill_name}V{i}" in os.listdir(f"{self.skill_libary_dir}/code"):
+            while f"{skill_name}V{i}" in os.listdir(f"{self.skill_library_dir}/code"):
                 i += 1
             dumped_skill_name = f"{skill_name}V{i}"
         else:
@@ -139,12 +139,13 @@ class SkillManager:
 
         U.dump_text(
             skill_description,
-            f"{self.skill_libary_dir}/description/{dumped_skill_name}.txt",
+            f"{self.skill_library_dir}/description/{dumped_skill_name}.txt",
         )
-        U.dump_json(self.skills, f"{self.skill_libary_dir}/skills.json")
+        U.dump_json(self.skills, f"{self.skill_library_dir}/skills.json")
 
         self.vectordb.persist()
         logging.info(f"Saving skill {skill_name} for {task} to {skill_dir}")
+        return skill_name
 
     def generate_skill_description(self, task, excution_plan):
         sys_prompt = "Please review the task and its execution plan, and give the task a suitable name\n"
@@ -230,4 +231,4 @@ class SkillManager:
             raise
 
     def _skill_dir(self, skill_name):
-        return os.path.join(self.skill_libary_dir, "code", skill_name)
+        return os.path.join(self.skill_library_dir, "code", skill_name)
