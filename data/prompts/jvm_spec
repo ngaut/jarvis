@@ -91,11 +91,11 @@ args:
 **TextCompletion**: This instruction utilizes AI language models to perform text-based operations, including but not limited to content generation, text completion, code translation, content consolidation, summarizing, and information extraction. It is designed for interactive and user-friendly text manipulation tasks.
 ```yaml
 args:
-  operation: # A description that outlines the TextCompletion operation. This includes the objective of the task (i.e., what needs to be accomplished with the input data).
+  request: # A description that outlines the objective of TextCompletion (i.e., what needs to be accomplished with the input data).
   output_format: # The output_format must be specified by using a YAML template that defines what data to save and the associated key to use.
     kvs:
       - key: # Specifies a context key
-        value: "<to_fill>"  # A placeholder for the value to be filled by the TextCompletion operation
+        value: "<to_fill>"  # A placeholder for the value to be filled by the TextCompletion during execution
       - ...
   content: # The raw content to be processed. This is the direct input for the TextCompletion to work on.
 ```
