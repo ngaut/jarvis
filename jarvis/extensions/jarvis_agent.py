@@ -189,6 +189,18 @@ class JarvisAgent:
         os.chdir(current_workdir)
         return result
 
+    def eval_plan(self, goal: str, subdir: str):
+        current_workdir = os.getcwd()
+        new_subdir = os.path.join(current_workdir, subdir)
+        os.chdir(new_subdir)
+
+        res = planner.eval_plan(goal)
+        if res is not None and res.lower() == "yes":
+            return True
+        else:
+            shutil.rmtree(new_subdir)
+            return False
+
     def load_instructions(self) -> List:
         instructions = []
         for file_name in glob.glob("[0-9]*.yaml"):

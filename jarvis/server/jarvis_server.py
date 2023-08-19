@@ -6,6 +6,7 @@ from concurrent import futures
 import grpc
 from typing import Optional
 
+
 import jarvis.server.jarvis_pb2 as jarvis_pb2
 import jarvis.server.jarvis_pb2_grpc as jarvis_pb2_grpc
 from jarvis.extensions.jarvis_agent import JarvisAgent, EMPTY_FIELD_INDICATOR
@@ -138,13 +139,16 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
             skills = self.skill_manager.retrieve_skills(goal)
             # todo: improve skill selection logic, add jarvis review
             skip_gen = request.skip_gen
-            for skill_name in skills.keys():
-                selected_skill_name = skill_name
-                selected_skill = skills[skill_name]
+            for selected_skill_name, selected_skill in skills.items():
                 logging.info(
                     f"use selected skill: {selected_skill_name}, skill descrption: {selected_skill['skill_description']}"
                 )
                 self.skill_manager.clone_skill(selected_skill_name, agent_id)
+                if agent["executor"].eval_plan(goal, subdir=agent_id) is False:
+                    logging.info(
+                        f"failed to evaluate plan for {goal} with skill: {selected_skill_name}"
+                    )
+                    continue
                 skip_gen = True
                 break
 
@@ -194,7 +198,7 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
 
 def serve():
     workspace_dir = "workspace"
-    skill_lib_dir = None
+    skill_lib_dir = "skill_library"
     os.makedirs(workspace_dir, exist_ok=True)
     os.chdir(workspace_dir)
     # Logging file name and line number
