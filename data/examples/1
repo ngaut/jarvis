@@ -1,5 +1,4 @@
-### An Example Output
-
+### An Example of JVM Instructions
 ```yaml
 task: "Get current weather data for San Francisco and provide suggestions based on temperature, save the results to file"
 
