@@ -1,4 +1,4 @@
-### Example: An output template with Loop instruction structure
+### An Example Output
 
 ```yaml
 task: "Conduct research on the internet for AI-related news and write a blog"
@@ -45,7 +45,7 @@ instructions:
           objective: "Extract and summarize the key information from the fetched news content"
           rule_num: 3
           args:
-            operation: "Extract and summarize the key points from the AI news"
+            request: "Extract and summarize the key points from the AI news"
             output_format:
               kvs:
                 - key: "jvm.eval('news_summary_' + str(jvm.get('idx')) + '.seq4.str')"  # with <idx> as inside a loop
@@ -58,7 +58,7 @@ instructions:
     objective: "Generate the blog content using the summarized news"
     rule_num: 4  # Use TextCompletion instead of Loop when combining a list of multiple news summaries into a single blog post.
     args:
-      operation: "Structure the blog post using the summaries of the news"
+      request: "Structure the blog post using the summaries of the news"
       output_format:
         kvs:
           - key: "blog_content.seq5.str"

@@ -15,7 +15,7 @@
             "type": "python",
             "request": "launch",
             "module": "jarvis",
-            "args": ["--continuous", "--verbose", "--timeout", "3", "--config", "./config.yaml", "--startseq", "0", "--yaml", "4.yaml"],
+            "args": ["--continuous", "--verbose", "--timeout", "3", "--config", "./config.yaml", "--startseq", "0", "--yaml", "1.yaml"],
             "console": "integratedTerminal",
             "justMyCode": true
         },

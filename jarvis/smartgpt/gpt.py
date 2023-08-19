@@ -39,7 +39,7 @@ MODELS = {
     "gpt-3.5-turbo-16k": 16384,
     "mpt-7b-chat": 4096,
     "gpt-35-turbo-0613-azure": 4096,
-    "gpt-35-turbo-16k-azure": 8192,
+    "gpt-35-turbo-16k-azure": 16384,
     "gpt-4-0613-azure": 8192,
     "gpt-4-32k-0613-azure": 32768,
 }
@@ -112,37 +112,35 @@ def send_messages(messages: List[Dict[str, str]], model: str) -> str:
 
             return response.choices[0].message["content"]  # type: ignore
 
-        except openai.error.RateLimitError as rate_limit_err:  # type: ignore
+        except openai.error.RateLimitError:  # type: ignore
             # Handling Rate Limit Error
-            backoff_time = random.randint(30, 60)
-            logging.info(
-                f"Rate Limit Exceeded for model %s. Error: %s. Waiting {backoff_time} seconds...",
-                model,
-                rate_limit_err,
-            )
+            backoff_time = random.randint(30, 50)
+            logging.info(f"Rate Limit Exceeded for Model {model}. Waiting {backoff_time} seconds ...")
             time.sleep(backoff_time)
 
         except openai.error.APIError as api_error:  # type: ignore
             # Handling API Errors
-            logging.error("API Error for model %s. Error: %s", model, api_error)
-            raise ValueError(f"API Error for model {model}. Error:{api_error}")
+            logging.error("API Error for Model %s. Error: %s", model, api_error)
+            raise ValueError(f"API Error for Model {model}. Error:{api_error}")
 
         except openai.error.APIConnectionError as conn_err:  # type: ignore
             # Handling Connection Errors
-            logging.error("Connection Error for model %s. Error: %s", model, conn_err)
-            raise ValueError(f"Connection Error for model {model}. Error:{conn_err}")
+            logging.error("Connection Error for Model %s. Error: %s", model, conn_err)
+            raise ValueError(f"Connection Error for Model {model}. Error:{conn_err}")
 
         except openai.error.InvalidRequestError as invalid_request_err:  # type: ignore
             # Handling Invalid Request Errors
             logging.error(
-                "Invalid Request for model %s. Error: %s", model, invalid_request_err
+                "Invalid Request for Model %s. Error: %s", model, invalid_request_err
             )
-            raise ValueError(f"Invalid Request for model {model}. Error:{invalid_request_err}")
+            raise ValueError(f"Invalid Request for Model {model}. Error:{invalid_request_err}")
 
         except Exception as err:
             # Handling General Exceptions
-            logging.error("Unexpected Error for model %s. Error: %s", model, err)
-            raise ValueError(f"Unexpected Error for model {model}. Error:{err}")
+            logging.error("Unexpected Error for Model %s. Error: %s", model, err)
+            raise ValueError(f"Unexpected Error for Model {model}. Error:{err}")
+
+    raise ValueError(f"Failed after retry 5 times for Model {model}")
 
 
 def send_messages_stream(messages: List[Dict[str, str]], model: str) -> str:

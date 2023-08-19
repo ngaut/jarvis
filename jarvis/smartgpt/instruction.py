@@ -43,7 +43,7 @@ class JVMInstruction:
                 args["timeout"] = 30
 
         if action_type == "TextCompletion":
-            args["operation"] = self.eval_and_patch(args.get("operation"))
+            args["request"] = self.eval_and_patch(args.get("request"))
             args["content"] = self.eval_and_patch(args.get("content"))
             args["output_format"] = self.eval_and_patch(json.dumps(args.get("output_format"), indent=2))
 
@@ -169,7 +169,7 @@ class JVMInterpreter:
 
         evaluation_action = actions.TextCompletionAction(
             action_id = -1,
-            operation="Judging true or false based on input content",
+            request="Judging true or false based on input content",
             content = condition,
             output_format = json.dumps({"kvs": [{"key": "result.seq0.bool", "value": "<to_fill>"}]}, indent=2))
 
