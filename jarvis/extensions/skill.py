@@ -47,7 +47,7 @@ class SkillManager:
         self,
         model_name=gpt.GPT_3_5_TURBO_16K,
         retrieval_top_k=3,
-        retrieval_threshold=0.8,
+        retrieval_threshold=0.75,
         skill_library_dir="skill_library",
     ):
         self.skill_library_dir = skill_library_dir
@@ -191,6 +191,7 @@ class SkillManager:
         )
         skills = {}
         for doc, score in docs_and_scores:
+            logging.info(f"skill: {doc.metadata['skill_name']}, score: {score} for query: {query}")
             if score > 1 - self.retrieval_threshold:
                 continue
             skills[doc.metadata["skill_name"]] = {
