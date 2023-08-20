@@ -114,7 +114,7 @@ def send_messages(messages: List[Dict[str, str]], model: str) -> str:
 
         except openai.error.RateLimitError:  # type: ignore
             # Handling Rate Limit Error
-            backoff_time = random.randint(20, 30)
+            backoff_time = random.randint(40, 60)
             logging.info(f"Rate Limit Exceeded for Model {model}. Waiting {backoff_time} seconds ...")
             time.sleep(backoff_time)
 
