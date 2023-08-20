@@ -1,4 +1,4 @@
-### An Example of JVM Instructions
+### An Example Output
 ```yaml
 task: "Retrieve the content of top stories on Hacker News. Assess their relevance to AI and determine if they should be posted to the Slack."
 

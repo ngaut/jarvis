@@ -89,7 +89,7 @@ class SimulationReviewer(Reviewer):
 
         logging.info(f"The #{REVIEW_REPEATED_COUNT - count + 1}/{REVIEW_REPEATED_COUNT} round simulation review failed, start regenerating ...")
 
-        messages.append({"role": "user", "content": preprompts.get("reviewer_simulation_regenerate") + "\n" + fewshot.get("3")})
+        messages.append({"role": "user", "content": preprompts.get("reviewer_simulation_regenerate")})
         response = gpt.send_messages(messages, self.model)
         messages.append({"role": "assistant", "content": response})
 

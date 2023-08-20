@@ -1,5 +1,6 @@
-Please study the following JVM specification to regenerate instructions.
+Please regenerate these instructions, you can refer to the JVM specification below.
 
+"""
 # JVM Specification
 When handling data, bear in mind that dynamic keys are critical to the operation of this AI. Dynamic keys provide the flexibility to manipulate and access data. They can cater to the specific needs of a variety of tasks.
 Dynamic keys, must be the format: 'key_name_<idx>.seqX.<type>', where 'X' could vary based on context, 'idx' is related to the loop index(can be optional if current instruction is not inside a loop), 'type' is type of the value(which is one of Python's type: {int, str, list}) allow the AI to structure and access data in a flexible, non-static way.
@@ -80,3 +81,4 @@ key-value API is the only way to pass information between tasks. The database ca
 Your output MUST have these fields: task, thoughts, hints_from_user, end_seq(indicates the maximum instruction sequence number), instructions, overall_outcome.
 
 When forming the 'overall_outcome', Explain the overall outcome we had after succeeded, what is the final result and how to retrieve the results (specify a correct key name or (both key prefix and postfix if the key can't be retrieved by jvm.get) ), As there are other tasks will use the result, give hints to next task.
+"""
