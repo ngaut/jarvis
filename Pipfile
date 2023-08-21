@@ -14,12 +14,12 @@ webdriver-manager = "*"
 peewee = "*"
 pyyaml = "*"
 argparse = "==1.4.0"
-chromadb = "==0.3.21"
 pre-commit = ">=3.2.0"
 llama-cpp-python = ">=0.1.42"
 pydantic = "*"
 grpcio = "*"
 grpcio-tools = "*"
+langchain = "*"
 
 [dev-packages]
 pylint = "*"
