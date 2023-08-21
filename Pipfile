@@ -20,6 +20,8 @@ pydantic = "*"
 grpcio = "*"
 grpcio-tools = "*"
 langchain = "*"
+chroma-hnswlib = "==0.7.2"
+chromadb = "==0.4.5"
 
 [dev-packages]
 pylint = "*"
