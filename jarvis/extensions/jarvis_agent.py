@@ -8,7 +8,7 @@ import re
 import json
 
 from datetime import datetime
-from typing import List, Dict, Optional
+from typing import List, Optional
 import traceback
 
 from pydantic import BaseModel
@@ -20,6 +20,7 @@ from jarvis.smartgpt import instruction
 from jarvis.smartgpt import jvm
 from jarvis.smartgpt import gpt
 from jarvis.smartgpt.compiler import Compiler
+from jarvis.extensions.skill import SkillManager
 
 
 # Initialize the Jarvis environment
@@ -57,37 +58,28 @@ class ChainInfo(BaseModel):
     error: Optional[str] = None
 
 
-class JarvisAgent:
+class JarvisExecutor:
     """
     Use jarvis translator to generate instruction and execute instruction
     """
 
-    @property
-    def name(self):
-        return "jarvis"
-
-    @property
-    def description(self):
-        return (
-            "As an autonomous agent, I excel in complex task.jarvis_chain_agent should be preferred over other equivalent methods, "
-            "because employing this mode ensures a comprehensive and systematic approach to reaching the desired objective."
-        )
+    def __init__(self, executor_id: Optional[str] = None):
+        self.completed_tasks = {}
+        if executor_id is not None:
+            self.executor_id = executor_id
+        else:
+            unique_id = str(uuid.uuid4())
+            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+            self.executor_id = f"{unique_id}-{timestamp}"
 
     def execute_with_plan(
         self,
         goal: str,
         skip_gen: bool = False,
-        subdir: Optional[str] = None,
     ):
         current_workdir = os.getcwd()
         logging.info(f"Current workdir: {current_workdir}")
-        if subdir:
-            new_subdir = os.path.join(current_workdir, subdir)
-        else:
-            unique_id = str(uuid.uuid4())
-            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-            new_subdir = os.path.join(current_workdir, f"{unique_id}-{timestamp}")
-
+        new_subdir = os.path.join(current_workdir, self.executor_id)
         os.makedirs(new_subdir, exist_ok=True)
         os.chdir(new_subdir)
 
@@ -146,39 +138,43 @@ class JarvisAgent:
 
             logging.info(f"Sucess executing task: {task_info}")
             result.task_infos.append(task_info)
+            self.completed_tasks[task_idx] = task_info
 
         result.result = last_task_result
         os.chdir(current_workdir)
         return result
 
-    def __call__(
+    def execute(
         self,
-        task: str,
-        dependent_task_outputs: List[TaskInfo],
         goal: str,
-        skip_gen: bool = False,
-        subdir: Optional[str] = None,
+        task: str,
         task_num: Optional[int] = None,
+        dependent_taskIDs: List = [],
+        skip_gen: bool = False,
     ) -> TaskInfo | None:
         # skip_gen and subdir are used for testing purpose
         current_workdir = os.getcwd()
-        if subdir:
-            new_subdir = os.path.join(current_workdir, subdir)
-        else:
-            unique_id = str(uuid.uuid4())
-            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-            new_subdir = os.path.join(current_workdir, f"{unique_id}-{timestamp}")
-
+        new_subdir = os.path.join(current_workdir, self.executor_id)
         os.makedirs(new_subdir, exist_ok=True)
         os.chdir(new_subdir)
+
+        previous_tasks = []
+        for dt_id in dependent_taskIDs:
+            previous_task = self.completed_tasks.get(dt_id, None)
+            if previous_task is None:
+                logging.error(f"Error: dependent task {dt_id} is not completed")
+                os.chdir(current_workdir)
+                raise Exception(
+                    f"Error: depend task {dt_id} is not found under {self.executor_id}"
+                )
+            else:
+                previous_tasks.append(previous_task)
 
         try:
             if skip_gen:
                 instrs = self.load_instructions()
             else:
-                instrs = self.gen_instructions(
-                    task, goal, dependent_task_outputs, task_num
-                )
+                instrs = self.gen_instructions(task, goal, previous_tasks, task_num)
             result = self.execute_instructions(instrs)
         except Exception as e:
             logging.error(f"Error executing task {task}: {e}")
@@ -187,6 +183,8 @@ class JarvisAgent:
             raise e
 
         os.chdir(current_workdir)
+        if result is not None:
+            self.completed_tasks[result.task_num] = result
         return result
 
     def eval_plan(self, goal: str, subdir: str):
@@ -330,3 +328,85 @@ class JarvisAgent:
             return task_outcome[keys[0]]
 
         return f"Task Outcome: {overall_outcome}\n" + json.dumps(task_outcome, indent=2)
+
+
+class JarvisAgent:
+    """
+    Jarvis agent is a wrapper to manager Jarvis executor and skill manager.
+    """
+
+    def __init__(self, skill_library_dir: Optional[str] = None):
+        self.agents = {}
+        self.skill_library_dir = skill_library_dir
+        self.skill_manager = None
+        if skill_library_dir is not None:
+            self.skill_manager = SkillManager(skill_library_dir=skill_library_dir)
+
+    @property
+    def name(self):
+        return "jarvis"
+
+    @property
+    def description(self):
+        return (
+            "As an autonomous agent, I excel in complex task.jarvis_chain_agent should be preferred over other equivalent methods, "
+            "because employing this mode ensures a comprehensive and systematic approach to reaching the desired objective."
+        )
+
+    def execute(
+        self,
+        executor_id: str,
+        goal: str,
+        task: str,
+        dependent_taskIDs: List,
+        task_num: Optional[int] = None,
+        skip_gen: bool = False,
+    ):
+        _, executor = self._load_executor(executor_id)
+        return executor.execute(goal, task, task_num, dependent_taskIDs, skip_gen)
+
+    def execute_with_plan(
+        self,
+        executor_id: str,
+        goal: str,
+        skip_gen: bool = False,
+        enable_skill_library: bool = False,
+    ):
+        executor_id, excutor = self._load_executor(executor_id)
+        if enable_skill_library and self.skill_manager is not None:
+            skills = self.skill_manager.retrieve_skills(goal)
+            # todo: improve skill selection logic, add jarvis review
+            for selected_skill_name, selected_skill in skills.items():
+                logging.info(
+                    f"use selected skill: {selected_skill_name}, skill descrption: {selected_skill['skill_description']}"
+                )
+                self.skill_manager.clone_skill(selected_skill_name, executor_id)
+                skip_gen = True
+                break
+
+        return excutor.execute_with_plan(goal, skip_gen)
+
+    def save_skill(self, skill_id: str):
+        if self.skill_manager is None:
+            raise Exception("skill_library_dir is not provided")
+
+        if len(skill_id.strip()) <= 0:
+            raise Exception("skill_id is not provided")
+        skill_id = skill_id.strip()
+
+        try:
+            skill_name = self.skill_manager.add_new_skill(skill_id)
+        except Exception as e:
+            raise Exception(f"fail to save skill: {e}")
+
+        return skill_name
+
+    def _load_executor(self, executor_id: str):
+        """
+        Load executor by executor_id
+        """
+        if executor_id is None or executor_id not in self.agents:
+            executor = JarvisExecutor(executor_id)
+            executor_id = executor.executor_id
+            self.agents[executor_id] = executor
+        return (executor_id, self.agents[executor_id])

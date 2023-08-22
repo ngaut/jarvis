@@ -191,7 +191,9 @@ class SkillManager:
         )
         skills = {}
         for doc, score in docs_and_scores:
-            logging.info(f"skill: {doc.metadata['skill_name']}, score: {score} for query: {query}")
+            logging.info(
+                f"skill: {doc.metadata['skill_name']}, score: {score} for query: {query}"
+            )
             if score > 1 - self.retrieval_threshold:
                 continue
             skills[doc.metadata["skill_name"]] = {
@@ -215,7 +217,9 @@ class SkillManager:
 
         task_files = glob.glob("[0-9]*.yaml", root_dir=task_dir)
         if len(task_files) != 1:
-            raise ValueError(f"There should be exactly one task file under {task_dir}, but {task_files}")
+            raise ValueError(
+                f"There should be exactly one task file under {task_dir}, but {task_files}"
+            )
 
         task_file = task_files[0]
         execution_plan = self.load_yaml(os.path.join(task_dir, task_file))

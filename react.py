@@ -306,15 +306,15 @@ class JarvisAgentTools:
 
     def exec(self, tool_input: str) -> str:
         while True:
-            task_info = self.agent(
-                tool_input, self.previous_tasks, self.objective, subdir=self.subdir
+            task_info = self.agent.execute(
+                self.subdir, self.objective, tool_input, self.previous_tasks
             )
             assert task_info is not None, "last_task_info is None"
             if task_info.result != EMPTY_FIELD_INDICATOR:
                 break
             print(f"Retring.... cause of empty result of task: {task_info}")
 
-        self.previous_tasks.append(task_info)
+        self.previous_tasks.append(task_info.task_num)
         return task_info.result
 
 

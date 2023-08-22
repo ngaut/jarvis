@@ -23,11 +23,19 @@ def run():
     """
     response = stub.SaveSkill(
         jarvis_pb2.SaveSkillRequest(
-            agent_id="sj-hn-2-4",
+            agent_id="344b712e193cc0986e4045abd60f37c6",
         )
     )
     print(f"Jarvis client received: {MessageToJson(response)}")
     """
+
+    response = stub.ChainExecute(
+        jarvis_pb2.GoalExecuteRequest(
+            goal="collect top 3 stories bullet points from hacker news front page",
+            enable_skill_library=True,
+        )
+    )
+    print(f"Jarvis client received: {MessageToJson(response)}")
 
 
 if __name__ == "__main__":

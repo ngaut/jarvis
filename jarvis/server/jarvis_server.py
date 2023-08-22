@@ -1,5 +1,6 @@
 import os
 import logging
+
 from datetime import datetime
 import hashlib
 from concurrent import futures
@@ -15,11 +16,7 @@ from jarvis.extensions.skill import SkillManager
 
 class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
     def __init__(self, skill_library_dir: Optional[str] = None):
-        self.agents = {}
-        self.skill_library_dir = skill_library_dir
-        self.skill_manager = None
-        if skill_library_dir is not None:
-            self.skill_manager = SkillManager(skill_library_dir=skill_library_dir)
+        self.agent = JarvisAgent()
 
     def Execute(self, request, context):
         # You can access the request parameters using request.task_id, request.task, etc.
@@ -32,57 +29,37 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
                 error="task is not provided",
             )
         task = request.task.strip()
-
-        agent_id = None
-        agent = None
-        if len(request.agent_id.strip()) > 0:
-            agent_id = request.agent_id.strip()
-            agent = self.agents.get(agent_id, None)
-
         goal = task
-        if agent is not None:
-            goal = agent["goal"]
-
         if len(request.goal.strip()) > 0:
-            if agent is not None and request.goal.strip() != goal:
-                return jarvis_pb2.ExecuteResponse(
-                    agent_id=request.agent_id,
-                    task_id=request.task_id,
-                    error=f"found agent, but goal is not matched:{request.goal.strip()} and {goal}. Please check your request",
-                )
             goal = request.goal.strip()
 
-        dependent_tasks = request.dependent_tasks
-        if agent is None and len(dependent_tasks) > 0:
-            return jarvis_pb2.ExecuteResponse(
-                agent_id=request.agent_id,
-                task_id=request.task_id,
-                error="not found agent, but dependent tasks provied. Please check your request",
-            )
-
-        if agent_id is None:
+        if len(request.agent_id.strip()) > 0:
+            agent_id = request.agent_id.strip()
+        else:
             agent_id = hashlib.md5(f"{goal}-{datetime.now()}".encode()).hexdigest()
-
-        if agent is None:
-            agent = {"executor": JarvisAgent(), "goal": goal, "previous_tasks": []}
-            self.agents[agent_id] = agent
 
         task_id = None
         if request.task_id > 0:
             task_id = request.task_id
 
-        previous_tasks = []
-        for dt_id in dependent_tasks:
-            for pt in agent["previous_tasks"]:
-                if dt_id == pt.task_id:
-                    previous_tasks.append(pt)
+        dependent_tasks = request.dependent_tasks
 
         retry_num = 0
         task_info = None
         while retry_num < 3:
-            task_info = agent["executor"](
-                task, previous_tasks, goal, subdir=agent_id, task_num=task_id
-            )
+            try:
+                task_info = self.agent.execute(
+                    agent_id, goal, task, dependent_tasks, task_id
+                )
+            except Exception as e:
+                return jarvis_pb2.ExecuteResponse(
+                    agent_id=agent_id,
+                    task_id=task_id,
+                    task=task,
+                    result="",
+                    error=str(e),
+                )
+
             if task_info is not None and task_info.result != EMPTY_FIELD_INDICATOR:
                 break
             print(f"Retring.... cause of empty result of task: {task_info}")
@@ -97,17 +74,9 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
                 error="failed to get execution result",
             )
 
-        task_info = jarvis_pb2.TaskInfo(
-            task_id=task_id,
-            task=task,
-            result=task_info.result,
-            metadata=task_info.metadata,
-        )
-        agent["previous_tasks"].append(task_info)
-
         return jarvis_pb2.ExecuteResponse(
             agent_id=agent_id,
-            task_id=task_info.task_id,
+            task_id=task_info.task_num,
             task=task_info.task,
             result=task_info.result,
         )
@@ -119,42 +88,23 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
             )
         goal = request.goal.strip()
 
-        agent_id = None
-        agent = None
         if len(request.agent_id.strip()) > 0:
             agent_id = request.agent_id.strip()
-            agent = self.agents.get(agent_id, None)
-
-        if agent_id is None:
+        else:
             agent_id = hashlib.md5(f"{goal}-{datetime.now()}".encode()).hexdigest()
+            # agent_id = "10a39b96ec2181acd9c5b3782a0ffa8f"
 
-        if agent is None:
-            agent = {"executor": JarvisAgent(), "goal": goal, "previous_tasks": []}
-            self.agents[agent_id] = agent
-
-        skip_gen = request.skip_gen
         enable_skill_library = request.enable_skill_library
-
-        if enable_skill_library and self.skill_manager is not None:
-            skills = self.skill_manager.retrieve_skills(goal)
-            # todo: improve skill selection logic, add jarvis review
-            skip_gen = request.skip_gen
-            for selected_skill_name, selected_skill in skills.items():
-                logging.info(
-                    f"use selected skill: {selected_skill_name}, skill descrption: {selected_skill['skill_description']}"
-                )
-                self.skill_manager.clone_skill(selected_skill_name, agent_id)
-                if agent["executor"].eval_plan(goal, subdir=agent_id) is False:
-                    logging.info(
-                        f"failed to evaluate plan for {goal} with skill: {selected_skill_name}"
-                    )
-                    continue
-                skip_gen = True
-                break
-
-        exec_result = agent["executor"].execute_with_plan(
-            goal, subdir=agent_id, skip_gen=skip_gen
-        )
+        try:
+            exec_result = self.agent.execute_with_plan(
+                goal, skip_gen=skip_gen, enable_skill_library=enable_skill_library
+            )
+        except Exception as e:
+            return jarvis_pb2.GoalExecuteResponse(
+                agent_id=agent_id,
+                goal=goal,
+                error=str(e),
+            )
 
         response = jarvis_pb2.GoalExecuteResponse(
             agent_id=agent_id,
@@ -178,12 +128,12 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
     def SaveSkill(self, request, context):
         if len(request.agent_id.strip()) <= 0:
             return jarvis_pb2.SaveSkillResponse(
-                error="agent_id is not provided",
+                error="skill_id is not provided",
             )
         agent_id = request.agent_id.strip()
 
         try:
-            skill_name = self.skill_manager.add_new_skill(agent_id)
+            skill_name = self.agent.save_skill(agent_id)
         except Exception as e:
             return jarvis_pb2.SaveSkillResponse(
                 agent_id=agent_id,
