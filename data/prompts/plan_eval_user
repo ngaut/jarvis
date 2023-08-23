@@ -1,0 +1,9 @@
+User's Goal:
+{goal}
+
+AI Generated Plan:
+```yaml
+{plan}
+```
+
+Please evaluate whether the plan can match the user's goal? give me a 'yes' or 'no' answer.

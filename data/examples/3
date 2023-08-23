@@ -1,18 +1,12 @@
-### An Example Output
-
+### An Output Example
 ```yaml
 task: "Retrieve the content of top stories on Hacker News. Assess their relevance to AI and determine if they should be posted to the Slack."
-
 objective: ...
-
 thoughts: ...
-
 hints_from_user:
   - "This is the first task, so there are no previous tasks or outcomes."
   - "The user's original request: Get the latest AI-related happenings on Hacker News and sent to the public Slack channel."
-
 start_seq: 1
-
 instructions:
   - seq: 1
     type: WebSearch
@@ -22,7 +16,6 @@ instructions:
     args:
       query: "Hacker News top stories"
       save_to: "story_urls.seq1.list"
-
   - seq: 2
     type: Loop
     inside_loop: false
@@ -40,7 +33,6 @@ instructions:
           args:
             url: "jvm.eval(jvm.get('story_urls.seq1.list')[jvm.get('idx')])"
             save_to: "jvm.eval('story_content_' + str(jvm.get('idx')) + '.seq3.str')"
-
         - seq: 4
           type: TextCompletion
           inside_loop: true
@@ -53,7 +45,6 @@ instructions:
                 - key: "jvm.eval('is_relevant_' + str(jvm.get('idx')) + '.seq4.bool')"
                   value: "<to_fill>"
             content: "jvm.eval(jvm.get('story_content_' + str(jvm.get('idx')) + '.seq3.str'))"
-
         - seq: 5
           type: If
           inside_loop: true
@@ -75,8 +66,6 @@ instructions:
                         value: "<to_fill>"
                   content: "jvm.eval('AI-related story: ' + jvm.get('article_content_' + str(jvm.get('idx')) + '.seq3.str'))"
             else: []
-
 end_seq: 6
-
 overall_outcome: "The content of the top stories on Hacker News have been fetched and decisions have been made on whether to post them to Slack. The messages prepared to be posted to Slack can be retrieved with keys like 'slack_message_<idx>.seq6.str'"
 ```

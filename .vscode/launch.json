@@ -11,7 +11,7 @@
             "justMyCode": true
         },
         {
-            "name": "Python: Run JVM Instructions",
+            "name": "Python: Run #Task instructions",
             "type": "python",
             "request": "launch",
             "module": "jarvis",
@@ -20,7 +20,7 @@
             "justMyCode": true
         },
         {
-            "name": "Python: Generate Tasks Execution Plan",
+            "name": "Python: Generate plan interactively",
             "type": "python",
             "request": "launch",
             "module": "jarvis",
@@ -29,7 +29,7 @@
             "justMyCode": true
         },
         {
-            "name": "Python: Generate Tasks Execution Plan with Goalfile",
+            "name": "Python: Generate plan with Goalfile",
             "type": "python",
             "request": "launch",
             "module": "jarvis",
@@ -38,7 +38,7 @@
             "justMyCode": true
         },
         {
-            "name": "Python: Translate all tasks in plan into JVM Instructions",
+            "name": "Python: Compile plan into instructions",
             "type": "python",
             "request": "launch",
             "module": "jarvis",
@@ -47,11 +47,11 @@
             "justMyCode": true
         },
         {
-            "name": "Python: Translate the specified task into JVM Instructions",
+            "name": "Python: Compile a given task into instructions",
             "type": "python",
             "request": "launch",
             "module": "jarvis",
-            "args": ["--continuous", "--verbose", "--timeout", "3", "--config", "./config.yaml", "--startseq", "0", "--compile", "1"],
+            "args": ["--continuous", "--verbose", "--timeout", "3", "--config", "./config.yaml", "--startseq", "0", "--compile", "2"],
             "console": "integratedTerminal",
             "justMyCode": true
         }

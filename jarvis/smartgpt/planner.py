@@ -1,3 +1,4 @@
+import re
 import time
 import logging
 from collections import defaultdict, deque
@@ -30,7 +31,7 @@ def gen_plan(model: str, goal: str) -> Dict:
 
         resp = gpt.complete(user_prompt, model, system_prompt)
 
-        resp = reorder_task(utils.strip_yaml(resp))
+        resp = reorder_tasks(utils.strip_yaml(resp))
         with open("plan.yaml", "w") as stream:
             stream.write(resp)
 
@@ -41,7 +42,7 @@ def gen_plan(model: str, goal: str) -> Dict:
         time.sleep(1)
         raise err
 
-def reorder_task(plan_yaml_str: str) -> str:
+def reorder_tasks(plan_yaml_str: str) -> str:
     try:
         plan = yaml.safe_load(plan_yaml_str)
     except yaml.YAMLError as err:
@@ -80,7 +81,7 @@ def reorder_task(plan_yaml_str: str) -> str:
     # Check if graph contains a cycle
     if len(sorted_task_list) != len(in_degree):
         logging.error("The plan cannot be sorted due to cyclic dependencies.")
-        exit(-1)
+        return plan_yaml_str
 
     # Generate a map from old task IDs to new task IDs
     id_map = {old_id: new_id for new_id, old_id in enumerate(sorted_task_list, start=1)}
@@ -97,5 +98,26 @@ def reorder_task(plan_yaml_str: str) -> str:
     plan['task_dependency'] = new_task_dependency
 
     # Dump the updated plan back to YAML
-    sorted_plan_yaml_str = yaml.dump(plan)
+    sorted_plan_yaml_str = yaml.dump(plan, sort_keys=False)
     return sorted_plan_yaml_str
+
+def evaluate_plan(model: str, goal: str):
+    try:
+        with open("plan.yaml", 'r') as file:
+            plan = file.read()
+    except Exception as e:
+        logging.error(f"Error loading 'plan.yaml' in current workdir, Error: {e}")
+        return None
+
+    messages = []
+    messages.append({"role": "system", "content": preprompts.get("plan_eval_sys")})
+    user_prompt = preprompts.get("plan_eval_user").format(
+        goal=goal,
+        plan=plan
+    )
+    messages.append({"role": "user", "content": user_prompt})
+    resp = gpt.send_messages(messages, model)
+    messages.append({"role": "assistant", "content": resp})
+
+    match_answer = re.match(r'(yes|no)', resp.lower())
+    return match_answer.group(1) if match_answer else 'no'

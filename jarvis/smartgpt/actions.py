@@ -17,7 +17,6 @@ import requests
 from bs4 import BeautifulSoup
 import yaml
 
-
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options as ChromeOptions
@@ -136,11 +135,11 @@ class FetchWebContentAction:
             chrome_options.add_argument("--remote-debugging-port=9222")
 
         # Installing and setting up Chrome WebDriver with the defined options
-        driver_path = ChromeDriverManager().install()
+        driver_path = ChromeDriverManager("116.0.5845.96").install()
 
         # Use context management to ensure the browser is quit
         with ChromeWebDriver(executable_path=driver_path, options=chrome_options) as browser:
-        #with webdriver.Chrome(options=chrome_options) as browser:
+        # with webdriver.Chrome(options=chrome_options) as browser:
             # Access the provided URL
             browser.get(url)
 
@@ -185,6 +184,7 @@ class FetchWebContentAction:
             text = self.extract_text(html)
         except Exception as err:
             logging.error(f"FetchWebContentAction RESULT: An error occurred: {str(err)}")
+            raise ValueError(f"FetchWebContentAction RESULT: An error occurred: {str(err)}")
             return f"FetchWebContentAction RESULT: An error occurred: {str(err)}"
         else:
             logging.debug(f"\nFetchWebContentAction RESULT:\n{text}")

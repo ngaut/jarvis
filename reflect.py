@@ -331,18 +331,18 @@ class JarvisAgentTools:
         for previous_task_id in dependent_tasks.keys():
             for previous_task in self.previous_tasks:
                 if previous_task.task_num == previous_task_id:
-                    previous_tasks.append(previous_task)
+                    previous_tasks.append(previous_task_id)
 
         while True:
-            task_info = self.agent(
-                task, previous_tasks, objective, subdir=self.subdir, task_num=task_id
+            task_info = self.agent.execute(
+                self.subdir, objective, task, previous_tasks, task_num=task_id
             )
             assert task_info is not None, "last_task_info is None"
             if task_info.result != EMPTY_FIELD_INDICATOR:
                 break
             print(f"Retring.... cause of empty result of task: {task_info}")
 
-        self.previous_tasks.append(task_info)
+        self.previous_tasks.append(task_info.task_num)
         return task_info.result
 
 
