@@ -65,35 +65,37 @@ class TranslatorMockChain(Chain):
         return "my_custom_chain"
 
 
-template = """You are a teacher grading a quiz.
-You are given a question, the student's answer, and the true answer, and are asked to score the student answer as either CORRECT or INCORRECT.
+cot_template = """You are a Computer Science instructor specializing in the Java Virtual Machine (JVM) curriculum. With a deep understanding of JVM syntax and operational mechanics, you are now grading a quiz focusing on custom JVM syntax.
+You will be provided with a question, the student's response, and the correct answer. Your task is to evaluate the student's answer based on the true JVM syntax and determine if it is CORRECT or INCORRECT, based on the context.
+Write out in a step by step manner your reasoning to be sure that your conclusion is correct. Avoid simply stating the correct answer at the outset.
+
+Some JVM syntax you need to remember:
+1. The '<to_fill>' in instructions is a placeholder that will be replaced during execution.
+2. The types of instructions are in the range: 'WebSearch', 'FetchWebContent', 'TextCompletion', 'If', 'Loop', and 'RunPython'. And the arguments for each instruction are pre-defined.
+3. If "jvm.get('<key>')" is used without being wrapped by "jvm.eval()", flag it as a potential error since it might return the string literal rather than the actual value stored against the key.
+4. 'TextCompletion' has an LLM backend which is good at extracting information from web page content.
+
 
 Example Format:
 QUESTION: question here
+CONTEXT: context the question is about here
 STUDENT ANSWER: student's answer here
-TRUE ANSWER: true answer here
+EXPLANATION: step by step reasoning here
 GRADE: CORRECT or INCORRECT here
 
-You need to know:
-1. The '<to_fill>' in instructions is a placeholder that will be replaced during execution.
-2. The types of instructions are in the range: 'WebSearch', 'FetchWebContent', 'TextCompletion', 'If', 'Loop', 'RunPython'. And the arguments of each instruction are predefined.
-3. 'jvm.get()' MUST be wrapped in 'jvm.eval()', good examples like: "jvm.eval(jvm.get('story_urls.seq1.list')[jvm.get('idx')])", "jvm.eval(len(jvm.list_keys_with_prefix('MetaGPT_content_')))".
-4. 'TextCompletion' has a powerful LLM backend which is also good at extracting information from web pages.
-
-Grade the student answers based ONLY on their factual accuracy. Ignore differences in punctuation and phrasing between the student answer and true answer. It is OK if the student answer contains more information than the true answer, as long as it does not contain any conflicting statements. Begin! 
+Evaluate the student answers based PRIMARILY on their syntactical accuracy.  It is acceptable if the student's answer conveys the same functionality or result, even if the syntax differs. However, prioritize correctness in syntax. Begin!
 
 QUESTION: {query}
+CONTEXT: {context}
 STUDENT ANSWER: {result}
-TRUE ANSWER: {answer}
-GRADE:"""
-PROMPT = PromptTemplate(
-    input_variables=["query", "result", "answer"], template=template
+EXPLANATION:"""
+COT_PROMPT = PromptTemplate(
+    input_variables=["query", "context", "result"], template=cot_template
 )
 
 eval_config = RunEvalConfig(
     evaluators=[
-        RunEvalConfig.QA(prompt=PROMPT),
-        "cot_qa",
+        RunEvalConfig.CoTQA(prompt=COT_PROMPT),
     ]
 )
 client = Client()
