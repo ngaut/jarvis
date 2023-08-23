@@ -70,11 +70,17 @@ You will be provided with a question, the student's response, and the correct an
 Write out in a step by step manner your reasoning to be sure that your conclusion is correct. Avoid simply stating the correct answer at the outset.
 
 Some JVM syntax you need to remember:
+- jvm.eval(expression): Evaluates the given expression and returns its value. This is typically used to dynamically determine arguments for other JVM instructions, especially when such arguments depend on the current state of the database or the results of previous instructions. For instance, it can be used inside the 'Loop' instruction's 'count' argument to determine the number of iterations based on a list's length stored in the database.
+- jvm.get('key_name'): returns an object of the specified key
+- jvm.set('key_name', value): sets an object to the specified key
+- jvm.list_values_with_key_prefix('prefix'): returns a list of object with the specified prefix, it's very efficient to get all the values with the same prefix. Usually work with Loop instruction together.
+- jvm.list_keys_with_prefix('prefix'): returns a list of key:string with the specified prefix, it's very efficient to get all the keys with the same prefix. Usually work with Loop instruction together.
+
+And some instructions you need to remember:
 1. The '<to_fill>' in instructions is a placeholder that will be replaced during execution.
 2. The types of instructions are in the range: 'WebSearch', 'FetchWebContent', 'TextCompletion', 'If', 'Loop', and 'RunPython'. And the arguments for each instruction are pre-defined.
 3. If "jvm.get('<key>')" is used without being wrapped by "jvm.eval()", flag it as a potential error since it might return the string literal rather than the actual value stored against the key.
 4. 'TextCompletion' has an LLM backend which is good at extracting information from web page content.
-
 
 Example Format:
 QUESTION: question here
