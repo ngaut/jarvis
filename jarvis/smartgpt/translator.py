@@ -6,6 +6,7 @@ from jarvis.smartgpt import utils
 from jarvis.smartgpt import fewshot
 from jarvis.smartgpt import preprompts
 from jarvis.smartgpt import reviewer
+from langsmith.run_helpers import traceable
 
 
 REVIEWER_CLASSES = [
@@ -27,6 +28,7 @@ class Translator:
         messages.append({"role": "system", "content": preprompts.get("translator_sys") + "\n" + fewshot.get(FEW_SHOT_EXAMPLE)})
         return messages
 
+    @traceable(run_type="chain")
     def translate_to_instructions(self, task_info: Dict[str, Any]):
         hints = ""
         if task_info.get("first_task", False):

@@ -22,6 +22,8 @@ from jarvis.smartgpt import gpt
 from jarvis.smartgpt.compiler import Compiler
 from jarvis.extensions.skill import SkillManager
 
+from langsmith.run_helpers import traceable
+
 
 # Initialize the Jarvis environment
 initializer.setup()
@@ -72,6 +74,7 @@ class JarvisExecutor:
             timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
             self.executor_id = f"{unique_id}-{timestamp}"
 
+    @traceable(run_type="chain")
     def execute_with_plan(
         self,
         goal: str,
