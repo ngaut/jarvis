@@ -8,6 +8,7 @@ from langchain.smith import RunEvalConfig, run_on_dataset
 from jarvis.smartgpt.translator import Translator
 from jarvis.smartgpt import gpt
 from jarvis.smartgpt import initializer
+from langchain.prompts.prompt import PromptTemplate
 
 
 from langchain.callbacks.manager import (
@@ -23,7 +24,7 @@ os.makedirs(workspace_dir, exist_ok=True)
 os.chdir(workspace_dir)
 
 
-class TranslatorChain(Chain):
+class TranslatorMockChain(Chain):
     """
     An example of a custom chain.
     """
@@ -48,7 +49,7 @@ class TranslatorChain(Chain):
         inputs: Dict[str, Any],
         run_manager: Optional[CallbackManagerForChainRun] = None,
     ) -> Dict[str, str]:
-        result = tx.translate_to_instructions(**inputs)
+        result = self.jarvis_translator.translate_to_instructions(**inputs)
         return {self.output_key: result}
 
     async def _acall(
@@ -56,7 +57,7 @@ class TranslatorChain(Chain):
         inputs: Dict[str, Any],
         run_manager: Optional[AsyncCallbackManagerForChainRun] = None,
     ) -> Dict[str, str]:
-        result = tx.translate_to_instructions(**inputs)
+        result = self.jarvis_translator.translate_to_instructions(**inputs)
         return {self.output_key: result}
 
     @property
@@ -64,18 +65,42 @@ class TranslatorChain(Chain):
         return "my_custom_chain"
 
 
-def chain_constructor():
-    return TranslatorChain()
+template = """You are a teacher grading a quiz.
+You are given a question, the student's answer, and the true answer, and are asked to score the student answer as either CORRECT or INCORRECT.
 
+Example Format:
+QUESTION: question here
+STUDENT ANSWER: student's answer here
+TRUE ANSWER: true answer here
+GRADE: CORRECT or INCORRECT here
 
-client = Client()
-eval_config = RunEvalConfig(
-    evaluators=["qa"],
+You need to know:
+1. The '<to_fill>' in instructions is a placeholder that will be replaced during execution.
+2. The types of instructions are in the range: 'WebSearch', 'FetchWebContent', 'TextCompletion', 'If', 'Loop', 'RunPython'. And the arguments of each instruction are predefined.
+3. 'jvm.get()' MUST be wrapped in 'jvm.eval()', good examples like: "jvm.eval(jvm.get('story_urls.seq1.list')[jvm.get('idx')])", "jvm.eval(len(jvm.list_keys_with_prefix('MetaGPT_content_')))".
+4. 'TextCompletion' has a powerful LLM backend which is also good at extracting information from web pages.
+
+Grade the student answers based ONLY on their factual accuracy. Ignore differences in punctuation and phrasing between the student answer and true answer. It is OK if the student answer contains more information than the true answer, as long as it does not contain any conflicting statements. Begin! 
+
+QUESTION: {query}
+STUDENT ANSWER: {result}
+TRUE ANSWER: {answer}
+GRADE:"""
+PROMPT = PromptTemplate(
+    input_variables=["query", "result", "answer"], template=template
 )
+
+eval_config = RunEvalConfig(
+    evaluators=[
+        RunEvalConfig.QA(prompt=PROMPT),
+        "cot_qa",
+    ]
+)
+client = Client()
 chain_results = run_on_dataset(
     client,
     dataset_name="jarvis-translator",
-    llm_or_chain_factory=chain_constructor,
+    llm_or_chain_factory=lambda: TranslatorMockChain(),
     concurrency_level=1,
     evaluation=eval_config,
 )
