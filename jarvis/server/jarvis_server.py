@@ -6,17 +6,17 @@ import hashlib
 from concurrent import futures
 import grpc
 from typing import Optional
+import traceback
 
 
 import jarvis.server.jarvis_pb2 as jarvis_pb2
 import jarvis.server.jarvis_pb2_grpc as jarvis_pb2_grpc
 from jarvis.extensions.jarvis_agent import JarvisAgent, EMPTY_FIELD_INDICATOR
-from jarvis.extensions.skill import SkillManager
 
 
 class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
     def __init__(self, skill_library_dir: Optional[str] = None):
-        self.agent = JarvisAgent()
+        self.agent = JarvisAgent(skill_library_dir)
 
     def Execute(self, request, context):
         # You can access the request parameters using request.task_id, request.task, etc.
@@ -95,11 +95,17 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
             # agent_id = "10a39b96ec2181acd9c5b3782a0ffa8f"
 
         enable_skill_library = request.enable_skill_library
+        skip_gen = request.skip_gen
         try:
             exec_result = self.agent.execute_with_plan(
-                goal, skip_gen=skip_gen, enable_skill_library=enable_skill_library
+                agent_id,
+                goal,
+                skip_gen=skip_gen,
+                enable_skill_library=enable_skill_library,
             )
         except Exception as e:
+            logging.error(f"Failed to execute goal: {goal}, error: {e}")
+            logging.error(traceback.format_exc())
             return jarvis_pb2.GoalExecuteResponse(
                 agent_id=agent_id,
                 goal=goal,
