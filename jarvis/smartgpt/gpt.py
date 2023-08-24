@@ -7,8 +7,6 @@ from typing import Optional, List, Dict
 import openai
 import tiktoken
 
-import jarvis.smartgpt.initializer
-
 
 API_TYPE = os.getenv("OPENAI_API_TYPE")
 
@@ -54,7 +52,6 @@ else:
     GPT_3_5_TURBO_16K = "gpt-3.5-turbo-16k"
 
 GPT_LOCAL = "mpt-7b-chat"
-
 
 def get_max_tokens(model: str) -> int:
     return MODELS[model] - TOKEN_BUFFER

@@ -1,6 +1,7 @@
 from __future__ import annotations
 from pydantic import Extra
 from typing import Any, Dict, List, Optional
+import openai
 import os
 
 from langsmith import Client
@@ -15,6 +16,7 @@ from langchain.callbacks.manager import (
     AsyncCallbackManagerForChainRun,
     CallbackManagerForChainRun,
 )
+from langchain.chat_models import ChatOpenAI
 from langchain.chains.base import Chain
 
 
@@ -91,12 +93,11 @@ STUDENT ANSWER: student's answer here
 EXPLANATION: step by step reasoning here
 GRADE: CORRECT or INCORRECT here
 
-Evaluate the student answers based PRIMARILY on their syntactical accuracy. Please ignore minor deviation if the student's answer achieve the same functionality or result, even if the syntax (or implementations) differs.
-
-Also note two other evaluation points 
-1. Assessing the correctness of the yaml used in the student's answer.
-2. Assessing if the given instructions effectively achieve the desired task in the student's answer.
-However, prioritize correctness in syntax.
+Evaluation Guide:
+1. Syntactical Accuracy: Primarily evaluate student answers based on their syntactical accuracy. Minor deviations can be overlooked if the student's answer achieves the same functionality or result, even if the syntax or implementation differs.
+2. Correctness of YAML: Assess the correctness of the YAML used in the student's answer. This is an important aspect to consider during the evaluation.
+3. Effectiveness of Instructions: Evaluate whether the instructions provided in the student's answer effectively achieve the desired task. The practical application and outcome are pivotal.
+While all points are important, always prioritize correctness in syntax above all.
 
 Begin!
 
@@ -108,10 +109,27 @@ COT_PROMPT = PromptTemplate(
     input_variables=["query", "context", "result"], template=cot_template
 )
 
+if gpt.API_TYPE == "azure":
+    llm = ChatOpenAI(
+        client=openai.ChatCompletion,
+        temperature=0.0,
+        model_kwargs={
+            "engine": gpt.GPT_4,
+        },
+    )
+
+else:
+    llm = ChatOpenAI(
+        temperature=0.0,
+        model=gpt.GPT_4,
+        client=openai.ChatCompletion,
+    )
+
 eval_config = RunEvalConfig(
     evaluators=[
-        RunEvalConfig.CoTQA(prompt=COT_PROMPT),
-    ]
+        RunEvalConfig.CoTQA(prompt=COT_PROMPT, llm=llm),
+    ],
+    eval_llm=llm,
 )
 client = Client()
 chain_results = run_on_dataset(
