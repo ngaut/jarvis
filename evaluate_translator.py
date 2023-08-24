@@ -91,10 +91,12 @@ STUDENT ANSWER: student's answer here
 EXPLANATION: step by step reasoning here
 GRADE: CORRECT or INCORRECT here
 
-Evaluate the student answers based PRIMARILY on their syntactical accuracy. It is acceptable if the student's answer achieve the same functionality or result, even if the syntax differs. However, prioritize correctness in syntax. 
+Evaluate the student answers based PRIMARILY on their syntactical accuracy. Please ignore minor deviation if the student's answer achieve the same functionality or result, even if the syntax (or implementations) differs.
+
 Also note two other evaluation points 
 1. Assessing the correctness of the yaml used in the student's answer.
 2. Assessing if the given instructions effectively achieve the desired task in the student's answer.
+However, prioritize correctness in syntax.
 
 Begin!
 
