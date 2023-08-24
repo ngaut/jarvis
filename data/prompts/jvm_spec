@@ -45,16 +45,16 @@ args:
 ```
 
 ## Manipulate Data in JVM Context
-The JVM interpreter implements a context mechanism built on an underlying database to facilitate data sharing and transfer between JVM instructions. During execution, JVM instructions can save to and access data from the context using a specific 'key'. This 'key' must be formatted as '(key_name).seq(X).(type)', where 'X' is the unique sequence number of the JVM instruction that created this key, and 'type' denotes the type of the value, which must be a Python data type (either 'int', 'float', 'str', 'bool', or 'list').
+The JVM interpreter implements a context mechanism built on an underlying database to facilitate data sharing and transfer between JVM instructions. During execution, JVM instructions can save to and access data from the context using a specific 'key'. This 'key' must be formatted as '(key).seq(X).(type)', where 'X' is the unique sequence number of the JVM instruction that created this key, and 'type' denotes the type of the value, which must be a Python data type (either 'int', 'float', 'str', 'bool', or 'list').
 
 For example:
 - 'searchResult.seq5.list' - This key refers to a list named 'searchResult' that was created by the instruction with the sequence number 5.
 - 'weatherData.seq4.float' - This key refers to a floating-point number named 'weatherData' that was created by the instruction with the sequence number 4.
 
 The JVM provides the following methods to interact with and manipulate data in the JVM context database. This key-value API forms the primary means of data transfer between JVM instructions:
-- **jvm.get('key_name')**: Retrieves and returns the value associated with the specified key.
-- **jvm.set('key_name', value)**: Sets the specified key with a given value. Only used in generated code from 'RunPython', e.g. `jvm.set('temperature.seq3.int', 67)`
-- **jvm.list_values_with_key_prefix('key_name_prefix')**: Efficiently fetches a list of values with keys that share the provided prefix. This method is often used in conjunction with the Loop instruction.
+- **jvm.get('<key>')**: Retrieves and returns the value associated with the specified key.
+- **jvm.set('<key>', <value>)**: Sets the specified key with a given value. Only used in generated code from 'RunPython', e.g. `jvm.set('temperature.seq3.int', 67)`
+- **jvm.list_values_with_key_prefix('<key_prefix>')**: Efficiently fetches a list of values with keys that share the provided prefix. This method is often used in conjunction with the Loop instruction.
 
 However, the `jvm.get()` method cannot be invoked directly within the input arguments of an instruction. Instead, values must be passed using the evaluation syntax via the `jvm.eval()` function.
 
@@ -133,4 +133,4 @@ end_seq:
 overall_outcome:
 ```
 
-When forming the 'overall_outcome', Explain the overall outcome we had after succeeded, what is the final result and how to retrieve the results (specify a correct key name or (both key prefix and postfix if the key can't be retrieved by `jvm.get`)), As there are other tasks will use the result, give hints to next task.
+When forming the 'overall_outcome', explain the overall outcome we had after succeeded, what is the final result and how to retrieve the results (specify a correct key name or (both key prefix and postfix if the key can't be retrieved by `jvm.get`)), As there are other tasks will use the result, give hints to next task.
