@@ -1,4 +1,10 @@
 Please review the following instructions line by line and check for potential errors:
+**You need to know**:
+- If an expression appears in the args of instruction, like: "jvm.get('<key>')", it should be evaluated using "jvm.eval()", for example: "jvm.eval(jvm.get('top_stories_urls.seq33.list')[jvm.get('idx')])". If you find that there is no "jvm.eval()" outside an expression then mark it as a potential error.
+  - "jvm.eval()" is **NOT** allowed in the "code" argument of "RunPython" instruction because its value contains native Python code, which no longer needs to use "jvm.eval()" for evaluation.
+- Please ignore the syntax: `idx: "jvm.eval(jvm.get('idx'))"` in the "Loop".
+- The '<to_fill>' in instructions is a placeholder that will be replaced during execution.
+
 ```yaml
 {instructions}
 ```
