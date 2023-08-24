@@ -31,7 +31,7 @@ def gen_plan(model: str, goal: str) -> Dict:
 
         resp = gpt.complete(user_prompt, model, system_prompt)
 
-        resp = reorder_tasks(utils.strip_yaml(resp))
+        # resp = reorder_tasks(utils.strip_yaml(resp))
         with open("plan.yaml", "w") as stream:
             stream.write(resp)
 
