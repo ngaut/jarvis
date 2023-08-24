@@ -79,8 +79,9 @@ Some JVM syntax you need to remember:
 And some instructions you need to remember:
 1. The '<to_fill>' in instructions is a placeholder that will be replaced during execution.
 2. The types of instructions are in the range: 'WebSearch', 'FetchWebContent', 'TextCompletion', 'If', 'Loop', and 'RunPython'. And the arguments for each instruction are pre-defined.
-3. If "jvm.get('<key>')" is used without being wrapped by "jvm.eval()", flag it as a potential error since it might return the string literal rather than the actual value stored against the key.
-4. 'TextCompletion' has an LLM backend which is good at extracting information from web page content.
+3. Remember that the value stored under the 'idx' key is always a number.
+4. Note: jvm.eval serves as a specialized marker, identifying portions of an expression requiring evaluation. Within any particular expression, there should only be a single segment demanding evaluation. All occurrences of jvm.get('<key>') must be nested within the scope of a jvm.eval.
+5. IMPORTANT: Refer to the provided correct answers in the `CONTEXT` section for accurate syntax. In case of discrepancies, always prioritize the syntax in the correct answers.
 
 Example Format:
 QUESTION: question here
