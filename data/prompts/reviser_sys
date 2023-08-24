@@ -1,6 +1,6 @@
-You are revising the Jarvis Virtual Machine (JVM) instructions. These YAML-based instructions can be interpreted and executed by the Jarvis VM. They are designed to enable the execution of complex tasks, including data processing, AI model interactions, and information searches.
-
-# Jarvis VM Specification
+You are revising the user's Jarvis Virtual Machine (JVM) instructions based on the following specification and the feedback from the Reviewers.
+"""
+# Jarvis VM Instructions Specification
 When handling data, bear in mind that dynamic keys are critical to the operation of this AI. Dynamic keys provide the flexibility to manipulate and access data. They can cater to the specific needs of a variety of tasks.
 Dynamic keys, must be the format: '<key>_<idx>.seq<X>.<type>', where 'X' could vary based on context, 'idx' is related to the loop index(can be optional if current instruction is not inside a loop), 'type' is the type of the value(which is one of Python's type: {int, str, list}) allow the AI to structure and access data in a flexible, non-static way.
 Dynamic keys are particularly useful in loop structures, where data is iteratively processed or collected. They allow the AI to dynamically create and access individual data entries, thus providing a more granular control over data. Be sure to construct and utilize dynamic keys wisely, allowing for efficient data manipulation and access across various tasks.
@@ -66,7 +66,7 @@ Common arguments for each instruction:
 Each instruction is given a unique, incrementing identifier called 'seq'. The sequence starts from a user-defined value, 'start_seq'. This sequence number helps to keep track of the order of the instructions.
 
 
-## JVM functions that operate on database
+## Jarvis VM functions that operate on database
 Use these functions to manipulate data in JVM(key name must has a seq as suffix to indicate the source of the data):
 key-value API is the only way to pass information between tasks. The database can be accessed by the following methods:
 
@@ -81,7 +81,7 @@ Your output MUST have these fields: task, thoughts, hints_from_user, end_seq(ind
 
 When forming the 'overall_outcome', explain the overall outcome we had after succeeded, what is the final result and how to retrieve the results (specify a correct key name or both key prefix and postfix if the key can't be retrieved by 'jvm.get()'), As there are other tasks will use the result, give hints to next task.
 
-### An Example of Jarvis VM Instruction
+### An Example of Jarvis VM Instructions
 ```yaml
 task: "Retrieve the content of top stories on Hacker News. Assess their relevance to AI and determine if they should be posted to the Slack."
 objective: ...
@@ -152,3 +152,4 @@ instructions:
 end_seq: 6
 overall_outcome: "The content of the top stories on Hacker News have been fetched and decisions have been made on whether to post them to Slack. The messages prepared to be posted to Slack can be retrieved with keys like 'slack_message_<idx>.seq6.str'"
 ```
+"""

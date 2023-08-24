@@ -48,12 +48,12 @@ class Translator:
         return hints
 
     def revise_instructions(self, task_info: Dict[str, Any], instrs, review_results, review_comments):
-        revise_requirements = []
+        review_feedbacks = []
         for i, (result, comment) in enumerate(zip(review_results, review_comments)):
             if result is False:
-                revise_requirements.append(comment)
+                review_feedbacks.append(comment)
 
-        if len(revise_requirements) == 0:
+        if len(review_feedbacks) == 0:
             logging.info("No revision required.")
             return instrs
 
@@ -61,7 +61,7 @@ class Translator:
         messages.append({"role": "system", "content": preprompts.get("reviser_sys")})
         messages.append({"role": "user", "content": preprompts.get("reviser_user").format(
             instructions = instrs,
-            requirements="\n\n".join(revise_requirements),
+            review_feedback="\n\n".join(review_feedbacks),
         )})
 
         resp = gpt.send_messages(messages, self.model)

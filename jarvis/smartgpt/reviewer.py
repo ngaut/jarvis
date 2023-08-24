@@ -112,9 +112,16 @@ class SyntaxReviewer(Reviewer):
         messages.append({"role": "assistant", "content": resp})
 
         if "CORRECT!" in resp:
-            logging.info("Syntax reviewer says LGTM.")
+            logging.info("Syntax Reviewer says LGTM.")
             return True, "", messages
 
-        review_result = f"The Syntax Reviewer finds the following issues: {resp}"
-        logging.info(review_result)
-        return False, review_result, messages
+        match = re.search(r'\"{3}(.*?)\"{3}', resp, re.DOTALL)
+        if match:
+            extracted_text = match.group(1).strip()
+        else:
+            logging.info("No feedback text found between triple quotes.")
+            return True, "", messages
+
+        review_feedback = f"The Syntax Reviewer's feedback:\n\"\"\"{extracted_text}\"\"\""
+        logging.info(review_feedback)
+        return False, review_feedback, messages
