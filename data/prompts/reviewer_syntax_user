@@ -4,4 +4,4 @@ Please review the following instructions line by line and check for potential er
 {instructions}
 ```
 
-If everything is good, reply "CORRECT!" at the end. Otherwise, please summarize all issues you find. Remember, point out the problem but don't try to give the corrected result because you haven't learned the full syntax of Jarvis VM instructions.
+If there is no potential issue, reply "CORRECT!" at the end. Otherwise, please summarize your finding. Remember, point out the problem, but don't try to give the corrected result because you haven't learned the full syntax of Jarvis VM instructions.

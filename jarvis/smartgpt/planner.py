@@ -8,7 +8,6 @@ import yaml
 
 from jarvis.smartgpt import gpt
 from jarvis.smartgpt import clarifier
-from jarvis.smartgpt import utils
 from jarvis.smartgpt import preprompts
 
 
