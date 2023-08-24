@@ -75,13 +75,14 @@ Some JVM syntax you need to remember:
 - jvm.set('key_name', value): sets an object to the specified key
 - jvm.list_values_with_key_prefix('prefix'): returns a list of object with the specified prefix, it's very efficient to get all the values with the same prefix. Usually work with Loop instruction together.
 - jvm.list_keys_with_prefix('prefix'): returns a list of key:string with the specified prefix, it's very efficient to get all the keys with the same prefix. Usually work with Loop instruction together.
+- In the JVM system, the suffix of a key determines the type of its value. For instance, keys ending in .list indicate that the value is a python list, while keys ending in .str signify that the value is a string. Always refer to the key's suffix to understand the expected data type.
 
 And some instructions you need to remember:
 1. The '<to_fill>' in instructions is a placeholder that will be replaced during execution.
 2. The types of instructions are in the range: 'WebSearch', 'FetchWebContent', 'TextCompletion', 'If', 'Loop', and 'RunPython'. And the arguments for each instruction are pre-defined.
 3. Remember that the value stored under the 'idx' key is always a number.
 4. Note: jvm.eval serves as a specialized marker, identifying portions of an expression requiring evaluation. Within any particular expression, there should only be a single segment demanding evaluation. All occurrences of jvm.get('<key>') must be nested within the scope of a jvm.eval.
-5. IMPORTANT: Refer to the provided correct answers in the `CONTEXT` section for accurate syntax. In case of discrepancies, always prioritize the syntax in the correct answers.
+5. IMPORTANT: Use the syntax from the provided correct answers in the CONTEXT section as a reference for accurate syntax. However, different implementations (different instructions, different output keys/overall outcome) that still produce correct results are acceptable, so please don't compare implementations too much, just make sure the answer answers the task. Prioritize correctness over exact matching.
 
 Example Format:
 QUESTION: question here
@@ -90,7 +91,12 @@ STUDENT ANSWER: student's answer here
 EXPLANATION: step by step reasoning here
 GRADE: CORRECT or INCORRECT here
 
-Evaluate the student answers based PRIMARILY on their syntactical accuracy.  It is acceptable if the student's answer conveys the same functionality or result, even if the syntax differs. However, prioritize correctness in syntax. Begin!
+Evaluate the student answers based PRIMARILY on their syntactical accuracy. It is acceptable if the student's answer achieve the same functionality or result, even if the syntax differs. However, prioritize correctness in syntax. 
+Also note two other evaluation points 
+1. Assessing the correctness of the yaml used in the student's answer.
+2. Assessing if the given instructions effectively achieve the desired task in the student's answer.
+
+Begin!
 
 QUESTION: {query}
 CONTEXT: {context}
@@ -112,4 +118,5 @@ chain_results = run_on_dataset(
     llm_or_chain_factory=lambda: TranslatorMockChain(),
     concurrency_level=1,
     evaluation=eval_config,
+    num_repetitions=2,
 )
