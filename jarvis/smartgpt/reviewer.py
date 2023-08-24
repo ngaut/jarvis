@@ -53,9 +53,11 @@ class EvalSyntaxReviewer(Reviewer):
     def review(self, instrs: str) -> Tuple[bool, str, List[Dict]]:
         return self.generalReview(instrs, "reviewer_eval_syntax")
 
+
 class LoopIndexKeyReviewer(Reviewer):
     def review(self, instrs: str) -> Tuple[bool, str, List[Dict]]:
         return self.generalReview(instrs, "reviewer_index_key")
+
 
 class SimulationReviewer(Reviewer):
     def review(self, instrs: str) -> Tuple[bool, str, List[Dict]]:
@@ -77,28 +79,23 @@ class SimulationReviewer(Reviewer):
         response = gpt.send_messages(messages, self.model)
         messages.append({"role": "assistant", "content": response})
 
-        match_answer = re.match(r'(yes|no)', response.lower())
-        is_need_regenerate = match_answer.group(1) if match_answer else 'no'
-
-        if is_need_regenerate == 'no':
-            logging.info(f"The #{REVIEW_REPEATED_COUNT - count + 1}/{REVIEW_REPEATED_COUNT} round simulation review says LGTM.")
+        if "CORRECT!" in response:
+            logging.info(f"The #{REVIEW_REPEATED_COUNT - count + 1}/{REVIEW_REPEATED_COUNT} round review of Simulation Reviewer says LGTM.")
             if count - 1 == 0:
                 return True, "", messages
             return self._review(instrs, count - 1)
 
-        logging.info(f"The #{REVIEW_REPEATED_COUNT - count + 1}/{REVIEW_REPEATED_COUNT} round simulation review failed, start regenerating ...")
+        match = re.search(r'\"{3}(.*?)\"{3}', response, re.DOTALL)
+        if match:
+            extracted_text = match.group(1).strip()
+        else:
+            logging.info("No feedback text found between triple quotes.")
+            return True, "", messages
 
-        messages.append({"role": "user", "content": preprompts.get("reviewer_simulation_regenerate")})
-        response = gpt.send_messages(messages, self.model)
-        messages.append({"role": "assistant", "content": response})
+        review_feedback = f"The Simulation Reviewer's feedback:\n\"\"\"{extracted_text}\"\"\""
+        logging.info(review_feedback)
+        return False, review_feedback, messages
 
-        pattern = r'```\s*(?:[a-zA-Z]+\s*)?\n(.*?)\s*```'
-        match_code = re.search(pattern, response, re.DOTALL)
-        revised_instructions = match_code.group(1) if match_code else None
-
-        if revised_instructions:
-            return False, revised_instructions, messages
-        return True, "", messages
 
 class SyntaxReviewer(Reviewer):
     def review(self, instrs: str) -> Tuple[bool, str, List[Dict]]:

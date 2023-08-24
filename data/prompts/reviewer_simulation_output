@@ -1,1 +1,6 @@
-Is it necessary to regenerate these instructions? give me a 'yes' or 'no' answer.
+Please summarize the review feedback in your reply. If there are no potential problems, please mark "CORRECT!". Otherwise, list the problems you found. Remember, please don't try to give correct examples because you haven't learned the syntax of the full Jarvis VM instructions.
+
+Wrap your feedback with three double quotes, for example:
+"""
+<your review feedback>
+"""

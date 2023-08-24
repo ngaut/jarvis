@@ -13,9 +13,9 @@ REVIEWER_CLASSES = [
     (reviewer.LoopIndexKeyReviewer, [gpt.GPT_3_5_TURBO_16K]),
 ]
 
-#REVIEWER_GPT4_CLASSES = [(reviewer.SimulationReviewer, [gpt.GPT_4])]
 REVIEWER_GPT4_CLASSES = [
     (reviewer.SyntaxReviewer, [gpt.GPT_4]),
+    (reviewer.SimulationReviewer, [gpt.GPT_4]),
 ]
 
 FEW_SHOT_EXAMPLE = "3"

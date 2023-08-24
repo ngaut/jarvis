@@ -1,4 +1,4 @@
-You are revising the user's Jarvis Virtual Machine (JVM) instructions based on the following specification and the feedback from the Reviewers.
+You will revise the user's Jarvis Virtual Machine (JVM) instructions based on the following specification and feedback from the reviewers.
 """
 # Jarvis VM Instructions Specification
 When handling data, bear in mind that dynamic keys are critical to the operation of this AI. Dynamic keys provide the flexibility to manipulate and access data. They can cater to the specific needs of a variety of tasks.
