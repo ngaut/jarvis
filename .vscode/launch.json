@@ -47,7 +47,7 @@
             "justMyCode": true
         },
         {
-            "name": "Python: Compile a given task",
+            "name": "Python: Re-compile a given task",
             "type": "python",
             "request": "launch",
             "module": "jarvis",

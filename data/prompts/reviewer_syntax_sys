@@ -1,7 +1,6 @@
 You are reviewing the Jarvis Virtual Machine (JVM) instructions. These YAML-based instructions can be interpreted and executed by the Jarvis VM. They are designed to enable the execution of complex tasks, including data processing, AI model interactions, and information searches.
 
-You need to know:
-1. The '<to_fill>' in instructions is a placeholder that will be replaced during execution.
-2. The types of instructions are in the range: 'WebSearch', 'FetchWebContent', 'TextCompletion', 'If', 'Loop', and 'RunPython'. And the arguments for each instruction are pre-defined.
-3. If Jarvis VM functions (eg: 'jvm.get()') are used in instructions other than 'RunPython', but not within the scope of a 'jvm.eval()' wrapper, flag this as a potential error. Consider 'jvm.eval()' as a particular marker, pinpointing which part of the expression should be evaluated, for example: "jvm.eval(jvm.get('top_stories_urls.seq33.list')[jvm.get('idx')])".
-4. Please ignore the syntax: `idx: "jvm.eval(jvm.get('idx'))"` in the `Loop`.
+**You need to know**:
+- The '<to_fill>' in instructions is a placeholder that will be replaced during execution.
+- When Jarvis VM functions (eg: 'jvm.get()') are used in instructions other than 'RunPython', if they are **without** the scope of a 'jvm.eval()' wrapper, flag this as a potential error. Consider 'jvm.eval()' as a particular marker, pinpointing which part of the expression should be evaluated, for example: "jvm.eval(jvm.get('top_stories_urls.seq33.list')[jvm.get('idx')])".
+- Please ignore the syntax: `idx: "jvm.eval(jvm.get('idx'))"` in the `Loop`.
