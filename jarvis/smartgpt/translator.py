@@ -15,7 +15,7 @@ REVIEWER_CLASSES = [
 
 # REVIEWER_GPT4_CLASSES = [(reviewer.SimulationReviewer, [gpt.GPT_4])]
 REVIEWER_GPT4_CLASSES = [(reviewer.SyntaxReviewer, [gpt.GPT_4])]
-# REVIEWER_GPT4_CLASSES = []
+#REVIEWER_GPT4_CLASSES = []
 
 FEW_SHOT_EXAMPLE = "4"
 
