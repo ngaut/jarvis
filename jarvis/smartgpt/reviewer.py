@@ -92,7 +92,7 @@ class SimulationReviewer(Reviewer):
             logging.info("No feedback text found between triple quotes.")
             return True, "", messages
 
-        review_feedback = f"The Simulation Reviewer's feedback:\n\"\"\"{extracted_text}\"\"\""
+        review_feedback = f"The Simulation Reviewer's feedback:\n\"\"\"\n{extracted_text}\n\"\"\""
         logging.info(review_feedback)
         return False, review_feedback, messages
 
@@ -119,6 +119,6 @@ class SyntaxReviewer(Reviewer):
             logging.info("No feedback text found between triple quotes.")
             return True, "", messages
 
-        review_feedback = f"The Syntax Reviewer's feedback:\n\"\"\"{extracted_text}\"\"\""
+        review_feedback = f"The Syntax Reviewer's feedback:\n\"\"\"\n{extracted_text}\n\"\"\""
         logging.info(review_feedback)
         return False, review_feedback, messages
