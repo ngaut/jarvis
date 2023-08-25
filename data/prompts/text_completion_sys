@@ -13,6 +13,6 @@ An example of output template:
 }
 ```
 
-The keys in the output template follow this pattern: 'key_name.seqX.<type>'. In this pattern, 'X' remains constant, and '<type>' represents Python's data types, including {int, bool, str, list}. 'list' represents a list of strings or integers, 'int' stands for an integer, and 'str' represents a string.
+The keys in the output template follow this pattern: '<key>.seq<X>.<type>'. In this pattern, 'X' remains constant, and '<type>' represents Python's data types, including {int, bool, str, list}. 'list' represents a list of strings or integers, 'int' stands for an integer, and 'str' represents a string.
 
 The term '<to_fill>' in the output template appears in place of the values that you need to provide.

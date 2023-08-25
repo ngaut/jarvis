@@ -38,7 +38,7 @@
             "justMyCode": true
         },
         {
-            "name": "Python: Compile plan into instructions",
+            "name": "Python: Compile all task in plan",
             "type": "python",
             "request": "launch",
             "module": "jarvis",
@@ -47,7 +47,7 @@
             "justMyCode": true
         },
         {
-            "name": "Python: Compile a given task into instructions",
+            "name": "Python: Re-compile a given task",
             "type": "python",
             "request": "launch",
             "module": "jarvis",
