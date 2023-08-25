@@ -1,11 +1,17 @@
-Please review the following instructions line by line and check for potential errors:
+You will review the following instructions line by line and check for potential errors:
 ```yaml
 {instructions}
 ```
 
-At last, please summarize the review feedback in the last section of your reply. If there are no potential problems, please mark "CORRECT!". Otherwise, list the problems you found. Remember, please don't try to give correct examples because you haven't learned the syntax of the full Jarvis VM instructions.
+**You need to know**:
+- If an expression appears in the args of an instruction, it **MUST** be evaluated using "jvm.eval()", for example: `url: "jvm.get('top_stories_urls.seq33.list')[jvm.get('idx')]"` is wrong, the correct one should be `url: "jvm.eval(jvm.get('top_stories_urls.seq33.list')[jvm.get('idx')])"`. If you find that there is no "jvm.eval()" outside an expression, then mark it as a potential error. This rule does not apply to the 'RunPython' instruction.
+- The '<to_fill>' in instructions is a placeholder that will be replaced during execution.
+
+First, write out your reasoning in a step-by-step manner to ensure your conclusion is correct.
+Second, summarize the review feedback in the last section of your reply. If there are no potential errors, please mark "CORRECT!". Otherwise, list the issues you found.
+Remember, please don't try to give correct examples because you have yet to learn the syntax of the full Jarvis VM instructions.
 
 Wrap the last section with three double quotes, for example:
 """
-<review feedback>
+<your review feedback>
 """

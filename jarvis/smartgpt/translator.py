@@ -13,9 +13,10 @@ REVIEWER_CLASSES = [
     (reviewer.LoopIndexKeyReviewer, [gpt.GPT_3_5_TURBO_16K]),
 ]
 
-# REVIEWER_GPT4_CLASSES = [(reviewer.SimulationReviewer, [gpt.GPT_4])]
-REVIEWER_GPT4_CLASSES = [(reviewer.SyntaxReviewer, [gpt.GPT_4])]
-#REVIEWER_GPT4_CLASSES = []
+REVIEWER_GPT4_CLASSES = [
+    (reviewer.SyntaxReviewer, [gpt.GPT_4]),
+    (reviewer.SimulationReviewer, [gpt.GPT_4]),
+]
 
 FEW_SHOT_EXAMPLE = "4"
 
@@ -113,6 +114,15 @@ class Translator:
         with open(f"review_{task_info.get('task_num', 0)}.txt", "a") as f:
             f.write("=============================================\n")
             f.write(f"Reviewer: {rv.__class__.__name__}\n")
+            f.write("=============================================\n")
+            for msg in messages:
+                f.write(f"{msg['role'].upper()}:\n")
+                f.write(f"{msg['content']}\n\n")
+
+    def _trace_reviser_gen(self, task_info, messages):
+        with open(f"review_{task_info.get('task_num', 0)}.txt", "a") as f:
+            f.write("=============================================\n")
+            f.write("Reviser\n")
             f.write("=============================================\n")
             for msg in messages:
                 f.write(f"{msg['role'].upper()}:\n")
