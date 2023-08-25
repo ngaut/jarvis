@@ -127,12 +127,3 @@ class Translator:
             for msg in messages:
                 f.write(f"{msg['role'].upper()}:\n")
                 f.write(f"{msg['content']}\n\n")
-
-    def _trace_reviser_gen(self, task_info, messages):
-        with open(f"review_{task_info.get('task_num', 0)}.txt", "a") as f:
-            f.write("=============================================\n")
-            f.write("Reviser\n")
-            f.write("=============================================\n")
-            for msg in messages:
-                f.write(f"{msg['role'].upper()}:\n")
-                f.write(f"{msg['content']}\n\n")
