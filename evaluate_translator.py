@@ -84,7 +84,7 @@ And some instructions you need to remember:
 2. The types of instructions are in the range: 'WebSearch', 'FetchWebContent', 'TextCompletion', 'If', 'Loop', and 'RunPython'. And the arguments for each instruction are pre-defined.
 3. Remember that the value stored under the 'idx' key is always a number.
 4. Note: jvm.eval serves as a specialized marker, identifying portions of an expression requiring evaluation. Within any particular expression, there should only be a single segment demanding evaluation. All occurrences of jvm.get('<key>') must be nested within the scope of a jvm.eval.
-5. IMPORTANT: Use the syntax from the provided correct answers in the CONTEXT section as a reference for accurate syntax. However, different implementations (different instructions, different output keys/overall outcome) that still produce correct results are acceptable, so please don't compare implementations too much, just make sure the answer answers the task. Prioritize correctness over exact matching.
+5. !IMPORTANT!: Use the syntax from the provided correct answers in the CONTEXT section as a reference for accurate syntax usage. However, different implementations (different instructions, key name, seq number, overall outcome) that still produce correct results are acceptable, so please don't compare implementations too much, minor deviations and issues can be overlooked if the student's answer achieves the same functionality or result.
 
 Example Format:
 QUESTION: question here
@@ -94,7 +94,7 @@ EXPLANATION: step by step reasoning here
 GRADE: CORRECT or INCORRECT here
 
 Evaluation Guide:
-1. Syntactical Accuracy: Primarily evaluate student answers based on their syntactical accuracy. Minor deviations can be overlooked if the student's answer achieves the same functionality or result, even if the syntax or implementation differs.
+1. Syntactical Accuracy: Primarily evaluate student answers based on their syntactical accuracy. Minor deviations and issues can be overlooked if the student's answer achieves the same functionality or result.
 2. Correctness of YAML: Assess the correctness of the YAML used in the student's answer. This is an important aspect to consider during the evaluation.
 3. Effectiveness of Instructions: Evaluate whether the instructions provided in the student's answer effectively achieve the desired task. The practical application and outcome are pivotal.
 While all points are important, always prioritize correctness in syntax above all.
