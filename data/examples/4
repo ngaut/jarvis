@@ -11,7 +11,7 @@ instructions:
   - seq: 1
     type: WebSearch
     inside_loop: false
-    objective: "Find the URL of the Hacker News"
+    objective: "Search the URLs of the Hacker News"
     rule_num: 2
     args:
       query: "Hacker News front page"
@@ -22,10 +22,10 @@ instructions:
       objective: "Identify the correct Hacker News front page URL"
       rule_num: 3
       args:
-        operation: "Identify the index of the Hacker News front page urls"
+        operation: "Identify the correct Hacker News front page URL"
         output_format:
           kvs:
-            - key: "hacker_news_front_page_url_index.seq2.int"
+            - key: "hacker_news_front_page_url.seq2.str"
               value: "<to_fill>"
         content: "jvm.eval(jvm.get('hacker_news_url.seq1.list'))"
   - seq: 3
@@ -34,7 +34,7 @@ instructions:
     objective: "Fetch the content from the Hacker News front page"
     rule_num: 2
     args:
-      url: "jvm.eval(jvm.get('hacker_news_url.seq1.list')[jvm.get('hacker_news_front_page_url_index.seq2.int')])"
+      url: "jvm.eval(jvm.get('hacker_news_front_page_url.seq2.str'))"
       save_to: "hacker_news_content.seq3.str"
 - seq: 4
     type: TextCompletion
