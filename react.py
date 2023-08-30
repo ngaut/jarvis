@@ -29,6 +29,7 @@ from langchain.agents.tools import InvalidTool
 from jarvis.smartgpt import gpt
 from jarvis.extensions.jarvis_agent import JarvisAgent, EMPTY_FIELD_INDICATOR
 
+
 # Logging file name and line number
 logging.basicConfig(
     level=logging.INFO,
@@ -123,7 +124,21 @@ class ReactOutputParser(AgentOutputParser):
 def setup_react_planner(
     tools: List[Tool], model: str = "gpt-4"
 ) -> BaseSingleActionAgent:
-    llm = ChatOpenAI(temperature=0.0, model=model, client=openai.ChatCompletion)
+    if gpt.API_TYPE == "azure":
+        llm = ChatOpenAI(
+            client=openai.ChatCompletion,
+            temperature=0.0,
+            model_kwargs={
+                "engine": model,
+            },
+        )
+
+    else:
+        llm = ChatOpenAI(
+            temperature=0.0,
+            model=model,
+            client=openai.ChatCompletion,
+        )
 
     # LLM chain consisting of the LLM and a prompt
     llm_chain = LLMChain(
@@ -333,6 +348,6 @@ Current Date: 2023-07-27
 
 jarvis = JarvisAgentTools(objective)
 jarvisTool = Tool(name=jarvis.name, description=jarvis.description, func=jarvis.exec)
-agent = AgentExecutor([jarvisTool], model="gpt-4")
+agent = AgentExecutor([jarvisTool], model=gpt.GPT_4)
 
 agent.run(objective)

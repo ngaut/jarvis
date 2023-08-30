@@ -48,13 +48,14 @@ if API_TYPE == "azure":
     GPT_4 = "gpt-4-0613-azure"
     GPT_3_5_TURBO = "gpt-35-turbo-0613-azure"
     GPT_3_5_TURBO_16K = "gpt-35-turbo-16k-azure"
+    GPT_EMBEDDING = "text-embedding-ada-002-azure"
 else:
     GPT_4 = "gpt-4-0613"
     GPT_3_5_TURBO = "gpt-3.5-turbo-0613"
     GPT_3_5_TURBO_16K = "gpt-3.5-turbo-16k"
+    GPT_EMBEDDING = "text-embedding-ada-002"
 
 GPT_LOCAL = "mpt-7b-chat"
-
 
 def get_max_tokens(model: str) -> int:
     return MODELS[model] - TOKEN_BUFFER

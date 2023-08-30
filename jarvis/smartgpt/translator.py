@@ -6,7 +6,7 @@ from jarvis.smartgpt import utils
 from jarvis.smartgpt import fewshot
 from jarvis.smartgpt import preprompts
 from jarvis.smartgpt import reviewer
-
+from jarvis.utils.tracer import conditional_chan_traceable
 
 REVIEWER_CLASSES = [
     (reviewer.EvalSyntaxReviewer, [gpt.GPT_3_5_TURBO_16K]),
@@ -15,10 +15,10 @@ REVIEWER_CLASSES = [
 
 REVIEWER_GPT4_CLASSES = [
     (reviewer.SyntaxReviewer, [gpt.GPT_4]),
-    (reviewer.SimulationReviewer, [gpt.GPT_4]),
+    # (reviewer.SimulationReviewer, [gpt.GPT_4]),
 ]
 
-FEW_SHOT_EXAMPLE = "3"
+FEW_SHOT_EXAMPLE = "4"
 
 class Translator:
     def __init__(self, model):
@@ -71,6 +71,7 @@ class Translator:
 
         return utils.strip_yaml(resp)
 
+    @conditional_chan_traceable(run_type="chain")
     def translate_to_instructions(self, task_info: Dict[str, Any]):
         hints = self.prepare_user_hints(task_info)
         user_prompt = preprompts.get("translator_user").format(
@@ -80,7 +81,6 @@ class Translator:
             start_seq = task_info.get("start_seq", ""),
             hints = hints,
         )
-
 
         logging.info(f"User Prompt: \n{user_prompt}")
 

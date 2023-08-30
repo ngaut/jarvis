@@ -6,7 +6,6 @@ import yaml
 from typing import Dict
 import traceback
 
-
 from langchain.vectorstores import Chroma
 from langchain.embeddings.openai import OpenAIEmbeddings
 
@@ -67,9 +66,13 @@ class SkillManager:
         else:
             self.skills = {}
 
+        if gpt.API_TYPE == "azure":
+            embedding_func = OpenAIEmbeddings(deployment=gpt.GPT_EMBEDDING)
+        else:
+            embedding_func = OpenAIEmbeddings(model=gpt.GPT_EMBEDDING)
         self.vectordb = Chroma(
             collection_name="skill_vectordb",
-            embedding_function=OpenAIEmbeddings(model="text-embedding-ada-002"),
+            embedding_function=embedding_func,
             persist_directory=f"{skill_library_dir}/vectordb",
         )
 
@@ -184,7 +187,11 @@ class SkillManager:
         if k == 0:
             return {}
         print(f"\033[33mSkill Manager retrieving for {k} skills\033[0m")
-        docs_and_scores = self.vectordb.similarity_search_with_score(query, k=k)
+        try:
+            docs_and_scores = self.vectordb.similarity_search_with_score(query, k=k)
+        except Exception as e:
+            logging.error(f"Error retrieving skills for {query}: {e}")
+            return {}
         print(
             f"\033[33mSkill Manager retrieved skills: "
             f"{', '.join([doc.metadata['skill_name'] for doc, _ in docs_and_scores])}\033[0m"

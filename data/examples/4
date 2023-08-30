@@ -1,0 +1,103 @@
+### An Output Example
+```yaml
+task: "Provide bullet points for the AI-related stories on the Hacker News front page"
+objective: ...
+thoughts: ...
+hints_from_user:
+  - "This is the first task, so there are no previous tasks or outcomes."
+  - "The user's original request: Provide bullet points for the top 3 AI-related stories on the Hacker News front page."
+start_seq: 1
+instructions:
+  - seq: 1
+    type: WebSearch
+    inside_loop: false
+    objective: "Search the URLs of the Hacker News"
+    rule_num: 2
+    args:
+      query: "Hacker News front page"
+      save_to: "hacker_news_url.seq1.list"
+  - seq: 2
+      type: TextCompletion
+      inside_loop: false
+      objective: "Identify the correct Hacker News front page URL"
+      rule_num: 3
+      args:
+        operation: "Identify the correct Hacker News front page URL"
+        output_format:
+          kvs:
+            - key: "hacker_news_front_page_url.seq2.str"
+              value: "<to_fill>"
+        content: "jvm.eval(jvm.get('hacker_news_url.seq1.list'))"
+  - seq: 3
+    type: FetchWebContent
+    inside_loop: false
+    objective: "Fetch the content from the Hacker News front page"
+    rule_num: 2
+    args:
+      url: "jvm.eval(jvm.get('hacker_news_front_page_url.seq2.str'))"
+      save_to: "hacker_news_content.seq3.str"
+- seq: 4
+    type: TextCompletion
+    inside_loop: false
+    objective: "Extract the stories' URLs from the Hacker News front page content"
+    rule_num: 3
+    args:
+    request: "Extract the stories' URLs from the Hacker News front page content"
+    output_format:
+        kvs:
+        - key: "hacker_news_stories_urls.seq4.list"
+            value: "<to_fill>"
+    content: "jvm.eval(jvm.get('hacker_news_content.seq3.str'))"
+  - seq: 5
+    type: Loop
+    inside_loop: false
+    objective: "Loop through the stories URLs to fetch the content and generate the bullet points for the AI-related stories"
+    rule_num: 1
+    args:
+      count: "jvm.eval(len(jvm.get('hacker_news_stories_urls.seq4.list')))"
+      idx: "jvm.eval(jvm.get('idx'))"
+      instructions:
+        - seq: 6
+          type: FetchWebContent
+          inside_loop: true
+          objective: "Fetch the content from the current URL"
+          rule_num: 2
+          args:
+            url: "jvm.eval(jvm.get('hacker_news_stories_urls.seq4.list')[jvm.get('idx')])"
+            save_to: "jvm.eval('story_content_' + str(jvm.get('idx')) + '.seq6.str')"
+        - seq: 7
+          type: TextCompletion
+          inside_loop: true
+          objective: "Decide if the story is relevant to AI"
+          rule_num: 3
+          args:
+            request: "Determine if this story is about AI"
+            output_format:
+              kvs:
+                - key: "jvm.eval('is_relevant_' + str(jvm.get('idx')) + '.seq7.bool')"
+                  value: "<to_fill>"
+            content: "jvm.eval(jvm.get('story_content_' + str(jvm.get('idx')) + '.seq6.str'))"
+        - seq: 8
+          type: If
+          inside_loop: true
+          objective: "If the story is relevant to AI, generate the bullet points"
+          rule_num: 5
+          args:
+            condition: "jvm.eval(jvm.get('is_relevant_' + str(jvm.get('idx')) + '.seq7.bool'))"
+            then:
+              - seq: 9
+                type: TextCompletion
+                inside_loop: true
+                objective: "Please generate a list of bullet points for this story for humans to read"
+                rule_num: 3
+                args:
+                  request: "Please generate a list of bullet points for this story for humans to read"
+                  output_format:
+                    kvs:
+                      - key: "jvm.eval('story_bullet_points_' + str(jvm.get('idx')) + '.seq9.list')"
+                        value: "<to_fill>"
+                  content: "jvm.eval('AI-related story: ' + jvm.get('story_content_' + str(jvm.get('idx')) + '.seq6.str'))"
+            else: []
+end_seq: 9
+overall_outcome: "The bullet points of the AI-related stories on Hacker News have been fetched and generated, it can be retrieved with keys like 'slack_story_bullet_points_message_<idx>.seq9.list'"
+```

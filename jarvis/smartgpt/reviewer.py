@@ -53,11 +53,9 @@ class EvalSyntaxReviewer(Reviewer):
     def review(self, instrs: str) -> Tuple[bool, str, List[Dict]]:
         return self.generalReview(instrs, "reviewer_eval_syntax")
 
-
 class LoopIndexKeyReviewer(Reviewer):
     def review(self, instrs: str) -> Tuple[bool, str, List[Dict]]:
         return self.generalReview(instrs, "reviewer_index_key")
-
 
 class SimulationReviewer(Reviewer):
     def review(self, instrs: str) -> Tuple[bool, str, List[Dict]]:

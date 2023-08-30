@@ -3,14 +3,12 @@ import json
 import threading
 import logging
 import os
-
 import uuid
-import json
-import openai
 import concurrent.futures
 import time
 from datetime import datetime
 
+from jarvis.smartgpt import gpt
 from jarvis.extensions.jarvis_agent import JarvisAgent, EMPTY_FIELD_INDICATOR
 
 # Logging file name and line number
@@ -87,24 +85,12 @@ class TaskRegistry:
         )
 
         print("\033[90m\033[3m" + "\nInitializing...\n" + "\033[0m")
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo-16k-0613",
-            # model="gpt-4",
-            messages=[
-                {"role": "system", "content": "You are a task creation AI."},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0,
-            max_tokens=1500,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0,
+        response = gpt.complete(
+            prompt=prompt, model=gpt.GPT_4, system_prompt="You are a task creation AI."
         )
 
-        # Extract the content of the assistant's response and parse it as JSON
-        result = response["choices"][0]["message"]["content"]
         try:
-            task_list = json.loads(result)
+            task_list = json.loads(response)
             self.tasks = task_list
         except Exception as error:
             print(error)
@@ -232,28 +218,18 @@ class TaskRegistry:
                 + "\033[0m"
             )
 
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                # model="gpt-4",
-                messages=[
-                    {"role": "system", "content": "You are a task creation AI."},
-                    {"role": "user", "content": prompt},
-                ],
-                temperature=0.7,
-                max_tokens=1500,
-                top_p=1,
-                frequency_penalty=0,
-                presence_penalty=0,
+            response = gpt.complete(
+                prompt=prompt,
+                model=gpt.GPT_4,
+                system_prompt="You are a task creation AI.",
             )
 
-            # Extract the content of the assistant's response and parse it as JSON
-            result = response["choices"][0]["message"]["content"]
-            print("\n#" + str(result))
+            print("\n#" + response)
 
             # Check if the returned result has the expected structure
-            if isinstance(result, str):
+            if isinstance(response, str):
                 try:
-                    task_list = json.loads(result)
+                    task_list = json.loads(response)
                     # print("RESULT:")
 
                     # print(task_list)
