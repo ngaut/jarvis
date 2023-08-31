@@ -14,7 +14,7 @@ REVIEWER_CLASSES = [
 ]
 
 REVIEWER_GPT4_CLASSES = [
-    (reviewer.SyntaxReviewer, [gpt.GPT_4]),
+    # (reviewer.SyntaxReviewer, [gpt.GPT_4]),
     # (reviewer.SimulationReviewer, [gpt.GPT_4]),
 ]
 
