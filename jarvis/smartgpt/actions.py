@@ -367,6 +367,7 @@ class RunPythonAction(Action):
             output += f"#stderr of process:\n{stderr_error}"
         if exit_code != 0:
             output += f"\n\nPython script code:\n{self.code}"
+            raise RuntimeError(f"Script execution failed with exit code {exit_code}. Output: {output}")
         return output
 
 @dataclass(frozen=True)
