@@ -1,16 +1,16 @@
 from __future__ import annotations
-from pydantic import Extra
 from typing import Any, Dict, List, Optional
 import openai
 import os
 
 from langsmith import Client
 from langchain.smith import RunEvalConfig, run_on_dataset
+
+from customer_evaluator import GrammarAccuracyEvaluator, YAMLCorrectnessEvaluator, InstructionValidityEvaluator
 from jarvis.smartgpt.translator import Translator
 from jarvis.smartgpt import gpt
 from jarvis.smartgpt import initializer
 from langchain.prompts.prompt import PromptTemplate
-
 
 from langchain.callbacks.manager import (
     AsyncCallbackManagerForChainRun,
@@ -18,7 +18,6 @@ from langchain.callbacks.manager import (
 )
 from langchain.chat_models import ChatOpenAI
 from langchain.chains.base import Chain
-
 
 initializer.setup()
 workspace_dir = "workspace/evaluation"
@@ -30,34 +29,34 @@ class TranslatorMockChain(Chain):
     """
     An example of a custom chain.
     """
-
+    input_key: str = "task_info"  #: :meta private:
     output_key: str = "output"  #: :meta private:
     jarvis_translator = Translator(gpt.GPT_4)
 
     class Config:
-        extra = Extra.forbid
+        extra = "forbid"
         arbitrary_types_allowed = True
 
     @property
     def input_keys(self) -> List[str]:
-        return ["task_info"]
+        return [self.input_key]
 
     @property
     def output_keys(self) -> List[str]:
         return [self.output_key]
 
     def _call(
-        self,
-        inputs: Dict[str, Any],
-        run_manager: Optional[CallbackManagerForChainRun] = None,
+            self,
+            inputs: Dict[str, Any],
+            run_manager: Optional[CallbackManagerForChainRun] = None,
     ) -> Dict[str, str]:
         result = self.jarvis_translator.translate_to_instructions(**inputs)
         return {self.output_key: result}
 
     async def _acall(
-        self,
-        inputs: Dict[str, Any],
-        run_manager: Optional[AsyncCallbackManagerForChainRun] = None,
+            self,
+            inputs: Dict[str, Any],
+            run_manager: Optional[AsyncCallbackManagerForChainRun] = None,
     ) -> Dict[str, str]:
         result = self.jarvis_translator.translate_to_instructions(**inputs)
         return {self.output_key: result}
@@ -105,6 +104,7 @@ QUESTION: {query}
 CONTEXT: {context}
 STUDENT ANSWER: {result}
 EXPLANATION:"""
+
 COT_PROMPT = PromptTemplate(
     input_variables=["query", "context", "result"], template=cot_template
 )
@@ -117,7 +117,6 @@ if gpt.API_TYPE == "azure":
             "engine": gpt.GPT_4,
         },
     )
-
 else:
     llm = ChatOpenAI(
         temperature=0.0,
@@ -125,18 +124,33 @@ else:
         client=openai.ChatCompletion,
     )
 
+client = Client()
+dataset_name = "zm-translator"
+
 eval_config = RunEvalConfig(
     evaluators=[
-        RunEvalConfig.CoTQA(prompt=COT_PROMPT, llm=llm),
+        RunEvalConfig.CoTQA(prompt=COT_PROMPT),
+    ],
+    custom_evaluators=[
+        GrammarAccuracyEvaluator(),
+        YAMLCorrectnessEvaluator(),
+        InstructionValidityEvaluator(),
     ],
     eval_llm=llm,
 )
-client = Client()
+
+
+def input_mapper(input: Dict[str, Any]):
+    return {"task_info": input}
+
+
 chain_results = run_on_dataset(
-    client,
-    dataset_name="jarvis-translator",
+    client=client,
+    dataset_name=dataset_name,
     llm_or_chain_factory=lambda: TranslatorMockChain(),
     concurrency_level=1,
     evaluation=eval_config,
     num_repetitions=2,
+    verbose=True,
+    input_mapper=input_mapper,
 )
