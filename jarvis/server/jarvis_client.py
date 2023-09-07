@@ -11,17 +11,11 @@ def run():
 
     response = stub.Execute(
         jarvis_pb2.ExecuteRequest(
-            task="hahahah",
+            task="test",
             agent_id="experiment-3-2",
         )
     )
-    reps = {
-        "result": response.result,
-        "error": response.error,
-        "skill_id": response.agent_id,
-    }
-    xstr = json.dumps(reps, indent=4, ensure_ascii=False)
-    print(f"Jarvis client received: {xstr}")
+    print(f"Jarvis client received: {response}")
 
     """
     response = stub.ChainExecute(
