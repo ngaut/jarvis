@@ -22,6 +22,8 @@ message ExecuteRequest {
     string task = 4;
     // dependent_tasks are the tasks that the current task depends on. If not provided, the task will be treated as a standalone task; if it is provided and agent_id is not provided, an error will be returned.
     repeated int32 dependent_tasks = 5;
+    bool skip_gen = 6;
+    bool enable_skill_library = 7;
 }
 
 // The ExecuteResponse message represents the result of the execute function.
@@ -53,6 +55,7 @@ message GoalExecuteResponse {
 // The SaveSkillRequest message represents the parameters of the save skill function.
 message SaveSkillRequest {
   string agent_id = 1;
+  string skill_name = 2;
 }
 
 // The SaveSkillResponse message represents the result of the save skill function.
