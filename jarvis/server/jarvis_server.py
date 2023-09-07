@@ -1,5 +1,6 @@
 import os
 import logging
+import json
 
 from datetime import datetime
 import hashlib
@@ -29,7 +30,7 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
                 error="task is not provided",
             )
         task = request.task.strip()
-        goal = task
+        goal = ""
         if len(request.goal.strip()) > 0:
             goal = request.goal.strip()
 

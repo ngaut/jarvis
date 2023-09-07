@@ -181,7 +181,7 @@ class JarvisExecutor:
         except Exception as e:
             logging.error(f"Error executing task {task}: {e}")
             os.chdir(current_workdir)
-            logging.info(traceback.format_exc())
+            logging.error(traceback.format_exc())
             raise e
 
         os.chdir(current_workdir)
