@@ -55,7 +55,7 @@ Common arguments for each instruction:
 1. 'RunPython': {  // do not use any non-existing arguments
     "code": A multiline string containing the entire Python code to be executed. Inside the code, you can call JVM's functions directly without using jvm.eval() syntax to access and manipulate data, such as ```python jvm.set("temperature.seq3.int", 67)```, jvm.get() and so on, because jvm module is imported by default.
     "code_review": does it achieve the objective? Which part does not follow the coding standards?
-    "pkg_dependencies": A list of any Python packages that the code depends on.
+    "pkg_dependencies": A list of any Python packages that the code depends on, and standard modules like json, os, sys, etc. should be excluded.
   }
   - Coding Standards:
     - Include comments to explain functionality and decision-making processes.

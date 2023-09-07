@@ -13,6 +13,7 @@ from urllib.parse import urlparse, urlunparse
 import hashlib
 from sys import platform
 import requests
+import pkgutil
 
 from bs4 import BeautifulSoup
 import yaml
@@ -307,7 +308,31 @@ class RunPythonAction(Action):
         return os.path.join(venv_dir, 'bin')
 
     def _install_dependencies(self, venv_path):
-        for dependency in self.pkg_dependencies:
+        # Get a list of all standard library modules
+        code = (
+            "import sys, pkgutil; "
+            "print('\\n'.join([module[1] for module in pkgutil.iter_modules()]))"
+        )
+        result = subprocess.check_output(
+            [os.path.join(venv_path, 'python') if os.name != 'nt' else os.path.join(venv_path, 'Scripts', 'python.exe'), '-c', code]
+        ).decode('utf-8')
+        standard_lib =  result.splitlines()
+
+        # Get a list of currently installed packages in the venv
+        installed_packages = subprocess.check_output(
+            [os.path.join(venv_path, 'pip'), 'list', '--format=freeze']
+        ).decode('utf-8').splitlines()
+        installed_packages = [pkg.split('==')[0] for pkg in installed_packages]
+
+        # Filter out already installed and standard library packages
+        packages_to_install = [
+            dependency for dependency in self.pkg_dependencies
+            if dependency not in installed_packages and dependency not in standard_lib
+        ]
+
+        logging.info(f"Installing the following packages: {packages_to_install}")
+        # Install the remaining packages
+        for dependency in packages_to_install:
             subprocess.check_call([os.path.join(venv_path, 'pip'), 'install', dependency])
 
     def _write_code_to_file(self, work_dir, file_name):
@@ -342,6 +367,7 @@ class RunPythonAction(Action):
             output += f"#stderr of process:\n{stderr_error}"
         if exit_code != 0:
             output += f"\n\nPython script code:\n{self.code}"
+            raise RuntimeError(f"Script execution failed with exit code {exit_code}. Output: {output}")
         return output
 
 @dataclass(frozen=True)
