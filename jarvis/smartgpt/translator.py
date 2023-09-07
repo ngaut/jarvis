@@ -1,4 +1,5 @@
 import logging
+import json
 from typing import List, Dict, Any
 
 from jarvis.smartgpt import gpt
@@ -76,7 +77,8 @@ class Translator:
         hints = self.prepare_user_hints(task_info)
         user_prompt = preprompts.get("translator_user").format(
             task_num=task_info.get("task_num", 0),
-            task = f"\"{task_info.get('task', '')}\"",
+            # task = f"\"{task_info.get('task', '')}\"",
+            task = json.dumps(task_info.get('task', ''), ensure_ascii=False),
             objective = f"\"{task_info.get('objective', '')}\"",
             start_seq = task_info.get("start_seq", ""),
             hints = hints,

@@ -29,7 +29,7 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
                 error="task is not provided",
             )
         task = request.task.strip()
-        goal = task
+        goal = ""
         if len(request.goal.strip()) > 0:
             goal = request.goal.strip()
 
@@ -137,9 +137,10 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
                 error="skill_id is not provided",
             )
         agent_id = request.agent_id.strip()
+        skill_name = request.skill_name.strip()
 
         try:
-            skill_name = self.agent.save_skill(agent_id)
+            skill_name = self.agent.save_skill(agent_id, skill_name)
         except Exception as e:
             return jarvis_pb2.SaveSkillResponse(
                 agent_id=agent_id,

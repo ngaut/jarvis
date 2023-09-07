@@ -3,7 +3,7 @@ import logging
 import glob
 import os
 import yaml
-from typing import Dict
+from typing import Dict, Optional
 import traceback
 
 from langchain.vectorstores import Chroma
@@ -99,9 +99,10 @@ class SkillManager:
 
         return None
 
-    def add_new_skill(self, task_dir):
+    def add_new_skill(self, task_dir, skill_name:Optional[str]=None):
         task, excution_plan = self.load_skill_from_dir(task_dir)
-        skill_name, _ = self.generate_skill_description(task, excution_plan)
+        if skill_name is None or len(skill_name) <= 3:
+            skill_name, _ = self.generate_skill_description(task, excution_plan)
         skill_description = task
 
         if skill_name in self.skills:

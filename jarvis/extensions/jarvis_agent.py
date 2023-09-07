@@ -181,7 +181,7 @@ class JarvisExecutor:
         except Exception as e:
             logging.error(f"Error executing task {task}: {e}")
             os.chdir(current_workdir)
-            logging.info(traceback.format_exc())
+            logging.error(traceback.format_exc())
             raise e
 
         os.chdir(current_workdir)
@@ -305,7 +305,12 @@ class JarvisExecutor:
         if return_key:
             return resp
 
-        keys = ast.literal_eval(resp)
+        try:
+            keys = ast.literal_eval(resp)
+        except Exception as e:
+            logging.error(f"Error parsing keys{resp}: {e}")
+            return None
+
         if len(keys) == 0:
             return None
 
@@ -388,7 +393,7 @@ class JarvisAgent:
 
         return excutor.execute_with_plan(goal, skip_gen)
 
-    def save_skill(self, skill_id: str):
+    def save_skill(self, skill_id: str, skill_name: Optional[str] = None):
         if self.skill_manager is None:
             raise Exception("skill_library_dir is not provided")
 
@@ -397,7 +402,7 @@ class JarvisAgent:
         skill_id = skill_id.strip()
 
         try:
-            skill_name = self.skill_manager.add_new_skill(skill_id)
+            skill_name = self.skill_manager.add_new_skill(skill_id, skill_name)
         except Exception as e:
             raise Exception(f"fail to save skill: {e}")
 
