@@ -1,7 +1,6 @@
-import language_tool_python
-import openai
-import yaml
 import re
+import yaml
+import openai
 from typing import Optional, Any, Dict
 
 from langsmith import RunEvaluator
@@ -12,9 +11,23 @@ from langchain.chains import LLMChain
 from langchain.chat_models import ChatOpenAI
 
 from jarvis.smartgpt import gpt
+from jarvis.smartgpt import instruction
 
 
 class GrammarAccuracyEvaluator(StringEvaluator):
+    def _check_jvm_syntax(self, prediction: str) -> bool:
+        # Checking for valid jvm.eval and jvm.get calls
+        eval_pattern = re.compile(r'jvm\.eval\([^)]+\)')
+        get_pattern = re.compile(r'jvm\.get\([^)]+\)')
+
+        if not all([bool(re.fullmatch(eval_pattern, s)) for s in re.findall(r'jvm\.eval\([^)]+\)', prediction)]):
+            return False
+        if not all([bool(re.fullmatch(get_pattern, s)) for s in re.findall(r'jvm\.get\([^)]+\)', prediction)]):
+            return False
+
+        # Add more checks for other syntax rules if needed
+        return True
+
     def _evaluate_strings(
             self,
             *,
@@ -23,15 +36,19 @@ class GrammarAccuracyEvaluator(StringEvaluator):
             input: Optional[str] = None,
             **kwargs: Any,
     ) -> Dict[str, Any]:
-        tool = language_tool_python.LanguageTool('en-US')
-        matches = tool.check(prediction)
-        grammar_errors = len(matches)
-        score = max(0, 1 - grammar_errors / len(prediction.split()))
-        return {
-            'score': score,
-            'value': prediction,
-            'reasoning': f'The prediction has {grammar_errors} grammar errors.',
-        }
+
+        if self._check_jvm_syntax(prediction):
+            return {
+                'score': 1.0,
+                'value': prediction,
+                'reasoning': 'The prediction follows the correct JVM syntax.',
+            }
+        else:
+            return {
+                'score': 0.0,
+                'value': prediction,
+                'reasoning': 'The prediction does not follow the correct JVM syntax.',
+            }
 
 
 class YAMLCorrectnessEvaluator(StringEvaluator):
@@ -83,18 +100,38 @@ class InstructionValidityEvaluator(RunEvaluator):
         """
         self.eval_chain = LLMChain.from_string(llm=llm, template=template)
 
-    def evaluate_run(
-            self, run: dict, example: Optional[dict] = None
-    ) -> EvaluationResult:
-        if "instructions" not in run:
-            return EvaluationResult(key="InstructionValidity", score=0, details="Instructions missing from run")
+    def evaluate_run(self, run: dict, example: Optional[dict] = None) -> EvaluationResult:
+        # 首先，检查run中的必要字段
+        if "instructions" not in run or "task" not in run:
+            return EvaluationResult(key="InstructionValidity", score=0, details="Instructions or task missing from run")
 
-        instruction_str = "\n".join([str(instruction) for instruction in run["instructions"]])
+        # 检查 start_seq 是否合法
+        start_seq = run.get("start_seq", -1)
+        if start_seq < 0 or start_seq >= len(run["instructions"]):
+            return EvaluationResult(key="InstructionValidity", score=0,
+                                    details=f"Invalid start sequence number: {start_seq}")
 
-        evaluator_result = self.eval_chain(dict(instructions=instruction_str))
+        execution_result = None
+        # 尝试执行指令
+        try:
+            interpreter = instruction.JVMInterpreter()
+            execution_result = interpreter.run(run["instructions"], task=run["task"])
+        except Exception as e:
+            # 如果指令执行失败，则返回评分为0
+            return EvaluationResult(key="InstructionValidity", score=0, details=str(e))
 
+        # 如果指令执行成功，将执行结果传给AI进行评估
+        evaluator_result = self.eval_chain(dict(instructions=execution_result))
+
+        # # 如果指令执行成功，则将指令转换为字符串，并使用AI评估
+        # instruction_str = "\n".join([str(instruction) for instruction in run["instructions"]])
+        # evaluator_result = self.eval_chain(dict(instructions=instruction_str))
+
+        # 从AI的评估结果中提取得分
         score = re.search(r"\d+", evaluator_result["text"]).group(0)
         if score is not None:
             score = float(score.strip()) / 100.0
+        else:
+            score = 0
 
         return EvaluationResult(key="InstructionValidity", score=score)
