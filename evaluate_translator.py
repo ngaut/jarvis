@@ -125,7 +125,7 @@ else:
     )
 
 client = Client()
-dataset_name = "zm-translator"
+dataset_name = "Jarvis translator"
 
 eval_config = RunEvalConfig(
     evaluators=[

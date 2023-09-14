@@ -75,63 +75,69 @@ class YAMLCorrectnessEvaluator(StringEvaluator):
 
 
 class InstructionValidityEvaluator(RunEvaluator):
+    LLM_TEMPLATE = """
+    Here are a set of instructions:
+    --------
+    {instructions}
+    --------
+    On a scale from 0 to 100, how valid and complete do these instructions appear? Provide a score at the end.
+    """
+
     def __init__(self):
+        self.llm = self._initialize_llm()
+
+    @staticmethod
+    def _initialize_llm():
+        """Initialize the ChatOpenAI based on the API type."""
         if gpt.API_TYPE == "azure":
-            llm = ChatOpenAI(
+            return ChatOpenAI(
                 client=openai.ChatCompletion,
                 temperature=0.0,
                 model_kwargs={
                     "engine": gpt.GPT_4,
-                },
+                }
             )
-        else:
-            llm = ChatOpenAI(
-                temperature=0.0,
-                model=gpt.GPT_4,
-                client=openai.ChatCompletion,
-            )
+        return ChatOpenAI(
+            temperature=0.0,
+            model=gpt.GPT_4,
+            client=openai.ChatCompletion,
+        )
 
-        template = """
-        Here are a set of instructions:
-        --------
-        {instructions}
-        --------
-        On a scale from 0 to 100, how valid and complete do these instructions appear? Provide a score at the end.
-        """
-        self.eval_chain = LLMChain.from_string(llm=llm, template=template)
+    def evaluate_run(self, run, example: Optional[dict] = None) -> EvaluationResult:
+        output_string = run.outputs.get('output')
+        output_content = yaml.safe_load(output_string)
+        task = output_content.get('task')
 
-    def evaluate_run(self, run: dict, example: Optional[dict] = None) -> EvaluationResult:
-        # 首先，检查run中的必要字段
-        if "instructions" not in run or "task" not in run:
-            return EvaluationResult(key="InstructionValidity", score=0, details="Instructions or task missing from run")
+        instructions_list = self._get_instructions_from_output(output_content)
+        if not instructions_list:
+            return EvaluationResult(key="InstructionValidity", score=0, details="No instructions found")
 
-        # 检查 start_seq 是否合法
-        start_seq = run.get("start_seq", -1)
-        if start_seq < 0 or start_seq >= len(run["instructions"]):
-            return EvaluationResult(key="InstructionValidity", score=0,
-                                    details=f"Invalid start sequence number: {start_seq}")
+        return self._execute_and_evaluate_instructions(instructions_list, task)
 
-        execution_result = None
-        # 尝试执行指令
+    @staticmethod
+    def _get_instructions_from_output(output_content):
+        """Extract instructions if they exist and are non-empty."""
+        instructions = output_content.get('instructions')
+        return instructions if isinstance(instructions, list) and instructions else None
+
+    def _execute_and_evaluate_instructions(self, instructions, task):
         try:
             interpreter = instruction.JVMInterpreter()
-            execution_result = interpreter.run(run["instructions"], task=run["task"])
+            interpreter.run(instructions, task=task)
+            execution_result = interpreter.get_results()
         except Exception as e:
-            # 如果指令执行失败，则返回评分为0
             return EvaluationResult(key="InstructionValidity", score=0, details=str(e))
 
-        # 如果指令执行成功，将执行结果传给AI进行评估
-        evaluator_result = self.eval_chain(dict(instructions=execution_result))
+        return self._evaluate_execution_result(execution_result)
 
-        # # 如果指令执行成功，则将指令转换为字符串，并使用AI评估
-        # instruction_str = "\n".join([str(instruction) for instruction in run["instructions"]])
-        # evaluator_result = self.eval_chain(dict(instructions=instruction_str))
-
-        # 从AI的评估结果中提取得分
-        score = re.search(r"\d+", evaluator_result["text"]).group(0)
-        if score is not None:
-            score = float(score.strip()) / 100.0
-        else:
-            score = 0
-
+    def _evaluate_execution_result(self, execution_result):
+        evaluator_result = LLMChain.from_string(llm=self.llm, template=self.LLM_TEMPLATE)(
+            dict(instructions=execution_result))
+        score = self._extract_score_from_evaluator_result(evaluator_result)
         return EvaluationResult(key="InstructionValidity", score=score)
+
+    @staticmethod
+    def _extract_score_from_evaluator_result(evaluator_result):
+        """Extract score from the AI's evaluator result."""
+        score_match = re.search(r"\d+", evaluator_result["text"])
+        return float(score_match.group(0).strip()) / 100.0 if score_match else 0
