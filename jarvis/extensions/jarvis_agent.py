@@ -393,6 +393,17 @@ class JarvisAgent:
 
         return excutor.execute_with_plan(goal, skip_gen)
 
+    def execute_skill(
+        self,
+        executor_id: str,
+        skill_name: str,
+    ):
+        executor_id, excutor = self._load_executor(executor_id)
+        if self.skill_manager is None:
+            raise Exception("skill_library_dir is not provided")
+        self.skill_manager.clone_skill(skill_name, executor_id)
+        return excutor.execute_with_plan(f"execute skill {skill_name}", True)
+
     def save_skill(self, skill_id: str, skill_name: Optional[str] = None):
         if self.skill_manager is None:
             raise Exception("skill_library_dir is not provided")
