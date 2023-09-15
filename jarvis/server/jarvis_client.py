@@ -6,12 +6,15 @@ import jarvis.server.jarvis_pb2_grpc as jarvis_pb2_grpc
 from google.protobuf.json_format import MessageToJson
 
 
-long_task1 = """Provide tweets about TiDB on Twitter in the past day, and insert these tweets data into tidb cloud tables.
+tweet_extraction = """Provide tweets about TiDB on Twitter in the past day, and insert these tweets data into TiDB cloud tables.
 * "TiDB Cloud", "TiDB", "PingCAP", "tidbcloud" are some useful tweet search query keywords, and exclude the retweet e.g. query='(tidb OR pingcap OR TiDB Cloud OR tidbcloud) -is:retweet'.
+* These tweets' topic should be "TiDB" in the tidb cloud tables.
 * The bearer token should be fetched from the environment variable TWEET_BEARER_TOKEN.
 * The start_time query parameter value should be an RFC3339 date-time for the past day, formatted correctly as 'YYYY-MM-DDTHH:MM:SSZ'.
+* The max_results query parameter value should be 100.
 * In addition to the above requirements, please make sure to fetch the following tweet fields when making the request: 'public_metrics', "id", "created_at", "referenced_tweets".  Ensure the correct format and presence of all required fields in the response.
 * Please avoid the error (1062, "Duplicate entry '?' for key 'tweets.PRIMARY'") while inserting the tweets data into tidb cloud tables.
+* Please checkout the http response status, raise an error if the status is not 200.
 * Finally here a simple specification that you need
 # Response schema for https://api.twitter.com/2/tweets/search/recent
 {
@@ -56,7 +59,7 @@ long_task1 = """Provide tweets about TiDB on Twitter in the past day, and insert
              "type": "string"
            }
          },
-         "required": ["public_metrics", "edit_history_tweet_ids", "id", "referenced_tweets", "created_at", "text"]
+         "required": ["public_metrics", "id", "created_at", "text"]
        }
      }
    },
@@ -70,6 +73,7 @@ use jarvis_store;
 CREATE TABLE tweets (
     id BIGINT PRIMARY KEY,
     created_at DATETIME,
+    topic VARCHAR(64),
     text TEXT
 );
 
@@ -133,64 +137,41 @@ def connect_to_db():
     return connection
 """
 
-long_task2 = """Create a comprehensive MySQL test case that encapsulates the concept of stored procedures, following this article from https://www.freecodecamp.org/news/how-to-simplify-database-operations-using-mysql-stored-procedures/.
 
-The case should consist of:
-* Necessary table creation to set up the initial database environment: database creation, table creation, and sample data insertion
-* Definition and creation of a stored procedure, showcasing best practices as defined in the aforementioned article.
-* Execution of the stored procedure to validate its functionality.
-
-Ensure that the case is self-contained, meaning it can be run on any MySQL environment and demonstrate the end-to-end process of utilizing stored procedures in MySQL.
-"""
-
-long_task3 = """Considering that TiDB does not support functions and keywords such as stored procedure, UNTIL, WHILE, and their related statements (create procedure, call procedure, drop procedure, UNTIL... end, REPEAT, and WHILE ... DO ... END WHILE). 
-Given the provided MySQL stored procedure case, translate it into TiDB SQL syntax and run it on TiDB Cloud Database. 
-Some instructions:
-* Stored procedures can be converted to views if they're query-based, lack procedural elements, and produce a single, deterministic result set without side effects."""
-
-def run():
-    channel = grpc.insecure_channel("localhost:51155")
-    stub = jarvis_pb2_grpc.JarvisStub(channel)
-
-    """
+def train_skill(stub, task):
     response = stub.Execute(
         jarvis_pb2.ExecuteRequest(
-            task=long_task3,
-            agent_id="xxxx",
+            task=task,
         )
     )
     print(f"Jarvis client received: {response}")
-    """
 
-    """
+
+def save_skill(stub, agent_id, skill_name):
     response = stub.SaveSkill(
         jarvis_pb2.SaveSkillRequest(
-            agent_id="xxxx",
-            skill_name="convert_store_procedure_case",
+            agent_id=agent_id,
+            skill_name=skill_name,
         )
     )
     print(f"Jarvis client received: {MessageToJson(response)}")
-    """
 
+
+def replay(stub, agent_id):
     response = stub.ChainExecute(
         jarvis_pb2.GoalExecuteRequest(
-            goal= "{\"Task description\": \"Provide tweets about TiDB on Twitter in the past day.  \\\"TiDB Cloud\\\", \\\"TiDB\\\", \\\"PingCAP\\\", \\\"tidbcloud\\\" are some useful tweet search query keywords, e.g. query='(tidb OR pingcap OR tidb serverless)'. The bearer token should be fetched from the environment variable TWEET_BEARER_TOKEN. The start_time query parameter value should be an RFC3339 date-time for the past day, formatted correctly as 'YYYY-MM-DDTHH:MM:SSZ'.  In addition to the above requirements, please make sure to fetch the following tweet fields when making the request: 'public_metrics', \\\"entities\\\", \\\"id\\\", \\\"created_at\\\", \\\"referenced_tweets\\\". If any previous results included tweets that were retweeted, make sure to exclude those in the new results. Ensure the correct format and presence of all required fields in the response.\", \"Guide\": \"To handle the errors identified previously, ensure that the date for the past day is generated correctly in RFC3339 format. Also, check the code for parsing a block mapping and make sure the socket connection is stable. The bearer token should be fetched correctly from the environment variable TWEET_BEARER_TOKEN. Lastly, ensure that the search query includes the specified keywords and excludes retweets.\"}",
-            agent_id="xxxx",
-            enable_skill_library=True,
+            goal=f"replay {agent_id}",
+            agent_id=agent_id,
+            skip_gen=True,
+            enable_skill_library=False,
         )
     )
     print(f"Jarvis client received: {MessageToJson(response)}")
-    exit()
-    time.sleep(10)
 
-    response = stub.ChainExecute(
-        jarvis_pb2.GoalExecuteRequest(
-            goal=long_task3,
-            agent_id="xxxx",
-            enable_skill_library=True,
-        )
-    )
-    print(f"Jarvis client received: {MessageToJson(response)}")
 
 if __name__ == "__main__":
-    run()
+    channel = grpc.insecure_channel("localhost:51155")
+    stub = jarvis_pb2_grpc.JarvisStub(channel)
+    # replay(stub, "tidb")
+    save_skill(stub, "tidb", "load_tidb_tweets_of_past_days_into_tidbcloud")
+    # train_skill(stub, tweet_extraction)
