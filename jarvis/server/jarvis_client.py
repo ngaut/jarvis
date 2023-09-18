@@ -137,6 +137,97 @@ def connect_to_db():
     return connection
 """
 
+tweet_analysis = """write a twitter analysis report related to TiDB and CockroachDB to understand their presence and influence in social media. the Guides:
+1. Load tweets, tweets_public_metrics, referenced_tweets into pandas dataframe for further analysis
+2. Generate code to do the following analysis at least:
+  * Tweet Volume Analysis: Compare the number of tweets for each product (TiDB and CockroachDB) over a defined period of time.
+  * Impression Analysis: Calculate the total impressions for tweets related to each product and identify tweets that had the highest impression count.
+  * Interaction Type Analysis: Analyze how many of the tweets for each product are original vs. replies or retweets.
+3. Generate a analysis report file named `tidb_and_cockroach_tweets_analysis_report.md` using markdown format
+
+In adddition, the following are some QA that you need
+
+# how to store pandas dataframe into jvm, and load dataframe from jvm
+
+save dataframe: jvm.set("tweets_df.seq1.df", tweets_df.to_json())
+get dataframe: tweets_df = pd.read_json(jvm.get("tweets_df.seq1.df"))
+
+# Table schema in TiDB Cloud Database (mysql protocol)
+
+use jarvis_store;
+
+CREATE TABLE tweets (
+    id BIGINT PRIMARY KEY,
+    created_at DATETIME,
+    topic VARCHAR(64),
+    text TEXT
+);
+
+CREATE TABLE tweets_public_metrics (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tweet_id BIGINT UNIQUE KEY,
+    retweet_count INT,
+    reply_count INT,
+    like_count INT,
+    quote_count INT,
+    bookmark_count INT,
+    impression_count INT,
+    FOREIGN KEY (tweet_id) REFERENCES tweets(id)
+);
+
+CREATE TABLE referenced_tweets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tweet_id BIGINT UNIQUE KEY,
+    referenced_type VARCHAR(255),
+    referenced_tweet_id BIGINT,
+    FOREIGN KEY (tweet_id) REFERENCES tweets(id)
+);
+
+# How to distinguish TiDB and CockroachDB tweets
+
+TiDB tweets: tweets.topic='TiDB'
+CockroachDB tweets: tweets.topic='CockroachDB'
+
+# How to connect to TiDB Cloud Database (mysql protocol)
+
+import pymysql
+import os
+
+def connect_to_db():
+    \"\"\"
+    example:
+    # Create a connection to the TiDB Cloud database
+    connection = connect_to_mysql_db()
+
+    # Check if the connection was successful
+    try:
+        with connection.cursor() as cursor:
+            ...
+    finally:
+        connection.close()
+    \"\"\"
+
+    user = os.getenv("TIDB_USER")
+    password = os.getenv("TIDB_PASSWORD")
+    host = os.getenv("TIDB_HOST")
+    port = os.getenv("TIDB_PORT") or 4000
+    database = os.getenv("TIDB_DATABASE", "jarvis_store")
+    assert user is not None
+    assert password is not None
+    assert host is not None
+
+    connection = pymysql.connect(
+        host=host,
+        user=user,
+        port=int(port),
+        password=password,
+        database=database,
+        ssl={'ca': '/etc/ssl/cert.pem'}
+    )
+
+    return connection
+"""
+
 
 def train_skill(stub, task):
     response = stub.Execute(
@@ -172,6 +263,10 @@ def replay(stub, agent_id):
 if __name__ == "__main__":
     channel = grpc.insecure_channel("localhost:51155")
     stub = jarvis_pb2_grpc.JarvisStub(channel)
-    # replay(stub, "tidb")
-    save_skill(stub, "tidb", "load_tidb_tweets_of_past_days_into_tidbcloud")
-    # train_skill(stub, tweet_extraction)
+    # replay(stub, "c54d26ae919acdd180263e8efe995947")
+    save_skill(
+        stub,
+        "c54d26ae919acdd180263e8efe995947",
+        "generate_tidb_and_cockroach_tweets_analysis_report",
+    )
+    # train_skill(stub, tweet_analysis)
