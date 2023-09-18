@@ -1,6 +1,6 @@
 import logging
 import json
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 from jarvis.smartgpt import gpt
 from jarvis.smartgpt import utils
@@ -19,16 +19,17 @@ REVIEWER_GPT4_CLASSES = [
     # (reviewer.SimulationReviewer, [gpt.GPT_4]),
 ]
 
-FEW_SHOT_EXAMPLE = "4"
+DAFAULT_FEW_SHOT_EXAMPLE = "4"
 
 class Translator:
     def __init__(self, model):
         self.model = model
         self.reviewers = [cls(*params) for cls, params in REVIEWER_GPT4_CLASSES]
 
-    def build_system_prompt(self) -> List[Dict]:
+    def build_system_prompt(self, few_shot_data:Optional[str]=None) -> List[Dict]:
         messages = []
-        messages.append({"role": "system", "content": preprompts.get("translator_sys") + "\n" + fewshot.get(FEW_SHOT_EXAMPLE)})
+        fewshot_data = few_shot_data or fewshot.get(DAFAULT_FEW_SHOT_EXAMPLE)
+        messages.append({"role": "system", "content": preprompts.get("translator_sys") + "\n" + fewshot_data})
         return messages
 
     def prepare_user_hints(self, task_info: Dict[str, Any]):
@@ -83,10 +84,11 @@ class Translator:
             start_seq = task_info.get("start_seq", ""),
             hints = hints,
         )
+        reference_example = task_info.get("reference_example", None)
 
         logging.info(f"User Prompt: \n{user_prompt}")
 
-        messages = self.build_system_prompt()
+        messages = self.build_system_prompt(few_shot_data=reference_example)
         messages.append({"role": "user", "content": user_prompt})
 
         resp = gpt.send_messages(messages, self.model)
