@@ -99,10 +99,10 @@ class SkillManager:
 
         return None
 
-    def add_new_skill(self, task_dir, skill_name:Optional[str]=None):
-        task, excution_plan = self.load_skill_from_dir(task_dir)
+    def add_new_skill(self, task_dir, skill_name: Optional[str] = None):
+        task, code = self.load_skill_from_dir(task_dir)
         if skill_name is None or len(skill_name) <= 3:
-            skill_name, _ = self.generate_skill_description(task, excution_plan)
+            skill_name, _ = self.generate_skill_description(task, code)
         skill_description = task
 
         if skill_name in self.skills:
@@ -133,7 +133,7 @@ class SkillManager:
             metadatas=[{"skill_name": skill_name}],
         )
         self.skills[skill_name] = {
-            "skill_code": excution_plan,
+            "skill_code": code,
             "skill_description": skill_description,
             "skill_name_w_ver": dumped_skill_name,
         }
@@ -151,9 +151,9 @@ class SkillManager:
         logging.info(f"Saving skill {skill_name} for {task} to {skill_dir}")
         return skill_name
 
-    def generate_skill_description(self, task, excution_plan):
+    def generate_skill_description(self, task, code):
         sys_prompt = "Please review the task and its execution plan, and give the task a suitable name\n"
-        user_prompt = f"Come up with a detail skill name (skill name should be function-name style, eg. 'get_weather'; skill name should detailed to be unqieu) for the task({task}) execution plan:{excution_plan}\n###\nSKILL_NAME:"
+        user_prompt = f"Come up with a detail skill name (skill name should be function-name style, eg. 'get_weather'; skill name should detailed to be unqieu) for the task({task}) execution plan:\n{code}\n###\nSKILL_NAME:"
         skill_name = gpt.complete(
             prompt=user_prompt, model=self.model_name, system_prompt=sys_prompt
         )
@@ -163,7 +163,7 @@ class SkillManager:
         sys_prompt = skill_gen_prompt
         user_prompt = (
             f"task: {task};\n"
-            f"excution_plan: {excution_plan};\n"
+            f"code: {code};\n"
         )
 
         content = gpt.complete(
@@ -217,11 +217,11 @@ class SkillManager:
         pwd = os.getcwd()
         logging.info(f"Loading skill from {pwd}/{task_dir}")
         if os.path.exists(plan_file) and os.path.isfile(plan_file):
-            execution_plan = self.load_yaml(plan_file)
+            execution_plan, code = self.load_yaml(plan_file)
             plan = execution_plan.get("goal")
             if not plan:
                 raise ValueError(f"plan not defined in {plan_file}")
-            return (plan, execution_plan)
+            return (plan, code)
 
         task_files = glob.glob("[0-9]*.yaml", root_dir=task_dir)
         if len(task_files) != 1:
@@ -230,16 +230,18 @@ class SkillManager:
             )
 
         task_file = task_files[0]
-        execution_plan = self.load_yaml(os.path.join(task_dir, task_file))
+        execution_plan, code = self.load_yaml(os.path.join(task_dir, task_file))
         task = execution_plan.get("task")
         if not task:
             raise ValueError(f"task is not defined in {task_dir}/{task_file}")
-        return (task, execution_plan)
+        return (task, code)
 
-    def load_yaml(self, file_name: str) -> Dict:
+    def load_yaml(self, file_name: str) -> (Dict, str):
         try:
             with open(file_name, "r") as stream:
-                return yaml.safe_load(stream)
+                data = stream.read()
+                return yaml.safe_load(data), data
+                # return yaml.safe_load(stream), stream.read()
         except Exception as e:
             logging.error(f"Error loading file {file_name}: {e}")
             logging.info(traceback.format_exc())

@@ -117,8 +117,10 @@ class Compiler:
 
         return result
 
-    def compile_task(self, task_num: int, task: str, goal: str, previous_outcomes: List, hints: Optional[List]=[], objective: Optional[str]="") -> Dict:
+    def compile_task(self, task_num: int, task: str, goal: str, previous_outcomes: List, hints: Optional[List]=[], objective: Optional[str]="", reference:Optional[str]=None) -> Dict:
         task_info = self.create_task_info(task, objective, task_num, hints, previous_outcomes, goal)
+        if reference:
+            task_info["reference_example"] = reference
         instructions_yaml_str = self.translator.translate_to_instructions(task_info)
         self.write_yaml(f"{task_num}.yaml", instructions_yaml_str)
         result = yaml.safe_load(instructions_yaml_str)

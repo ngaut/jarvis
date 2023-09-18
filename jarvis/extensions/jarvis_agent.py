@@ -153,6 +153,7 @@ class JarvisExecutor:
         task_num: Optional[int] = None,
         dependent_taskIDs: List = [],
         skip_gen: bool = False,
+        reference: Optional[str] = None,
     ) -> TaskInfo | None:
         # skip_gen and subdir are used for testing purpose
         current_workdir = os.getcwd()
@@ -176,7 +177,9 @@ class JarvisExecutor:
             if skip_gen:
                 instrs = self.load_instructions()
             else:
-                instrs = self.gen_instructions(task, goal, previous_tasks, task_num)
+                instrs = self.gen_instructions(
+                    task, goal, previous_tasks, task_num, reference
+                )
             result = self.execute_instructions(instrs)
         except Exception as e:
             logging.error(f"Error executing task {task}: {e}")
@@ -220,6 +223,7 @@ class JarvisExecutor:
         goal: str,
         dependent_tasks: List[TaskInfo],
         task_num: Optional[int] = None,
+        reference: Optional[str] = None,
     ) -> List:
         compiler = Compiler(gpt.GPT_4)
         previous_outcomes = []
@@ -240,7 +244,7 @@ class JarvisExecutor:
             task_num = computed_task_num
 
         generated_instrs = compiler.compile_task(
-            task_num, task, goal, previous_outcomes
+            task_num, task, goal, previous_outcomes, reference=reference
         )
         return [(task_num, generated_instrs)]
 
@@ -368,9 +372,23 @@ class JarvisAgent:
         dependent_taskIDs: List,
         task_num: Optional[int] = None,
         skip_gen: bool = False,
+        enable_skill_library: bool = False,
     ):
         _, executor = self._load_executor(executor_id)
-        return executor.execute(goal, task, task_num, dependent_taskIDs, skip_gen)
+        skill_code = None
+        if enable_skill_library and self.skill_manager is not None:
+            skills = self.skill_manager.retrieve_skills(task)
+            # todo: improve skill selection logic, add jarvis review
+            for selected_skill_name, selected_skill in skills.items():
+                logging.info(
+                    f"use selected skill: {selected_skill_name}, skill descrption: {selected_skill['skill_description']}"
+                )
+                skill_code = f"### An similar task Output for reference\n```yaml\n{selected_skill['skill_code']}\n```"
+                break
+
+        return executor.execute(
+            goal, task, task_num, dependent_taskIDs, skip_gen, skill_code
+        )
 
     def execute_with_plan(
         self,

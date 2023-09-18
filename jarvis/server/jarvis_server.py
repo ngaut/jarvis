@@ -43,13 +43,21 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
             task_id = request.task_id
 
         dependent_tasks = request.dependent_tasks
+        enable_skill_library = request.enable_skill_library
+        skip_gen = request.skip_gen
 
         retry_num = 0
         task_info = None
         while retry_num < 3:
             try:
                 task_info = self.agent.execute(
-                    agent_id, goal, task, dependent_tasks, task_id
+                    agent_id,
+                    goal,
+                    task,
+                    dependent_tasks,
+                    task_id,
+                    skip_gen,
+                    enable_skill_library,
                 )
             except Exception as e:
                 return jarvis_pb2.ExecuteResponse(

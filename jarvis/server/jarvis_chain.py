@@ -56,7 +56,7 @@ def execute(workspace_dir, skill_lib_dir, execution_dir, skills):
     agent = JarvisAgent(skill_lib_dir)
 
     for index, skill in enumerate(skills):
-        if index > 1:
+        if index > 0:
             logging.info(f"waitting for next skill {skill}")
             print(f"waitting for next skill {skill}")
             time.sleep(5)
