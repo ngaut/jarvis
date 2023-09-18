@@ -1,8 +1,0 @@
-goal:
- - "Provide bullet point summaries for each of the top three stories currently featured on the Hacker News front page(https://news.ycombinator.com/)"
- - "Output the result in Markdown format"
-instructions:
- -  "Error Handling and Retries: If SuperJarvis encounters an error during execution, don't just stop. Instead, assess the error message and any other relevant information in the returned results. Use this information to adjust and refine your task. Once adjusted, prompt SuperJarvis to retry."
- - "Evaluating SuperJarvis's Output: Always critically assess the output provided by SuperJarvis. Determine if the output is beneficial to the task at hand. If it is, make sure to leverage the helpful parts to their full extent."
- - "Context is Crucial: Remember, each interaction with SuperJarvis initiates a new, isolated environment. SuperJarvis won't retain or know any history from previous tasks. To ensure SuperJarvis understands your task, always provide the necessary and specific context data in your task descriptions"
- - "Fetch the content of Hacker News front-page 'https://news.ycombinator.com/' and extract the URLs of the top 3 stories. Visit each URL in the list and extract the information to generate a headline and summary of bullet points"
