@@ -225,7 +225,7 @@ class JarvisExecutor:
         task_num: Optional[int] = None,
         reference: Optional[str] = None,
     ) -> List:
-        compiler = Compiler(gpt.GPT_4)
+        compiler = Compiler(BASE_MODEL)
         previous_outcomes = []
         computed_task_num = 1
 

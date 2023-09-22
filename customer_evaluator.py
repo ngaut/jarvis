@@ -89,19 +89,7 @@ class InstructionValidityEvaluator(RunEvaluator):
     @staticmethod
     def _initialize_llm():
         """Initialize the ChatOpenAI based on the API type."""
-        if gpt.API_TYPE == "azure":
-            return ChatOpenAI(
-                client=openai.ChatCompletion,
-                temperature=0.0,
-                model_kwargs={
-                    "engine": gpt.GPT_4,
-                }
-            )
-        return ChatOpenAI(
-            temperature=0.0,
-            model=gpt.GPT_4,
-            client=openai.ChatCompletion,
-        )
+        return gpt.OPEN_AI_MODELS_HUB[gpt.GPT_4].get_llm()
 
     def evaluate_run(self, run, example: Optional[dict] = None) -> EvaluationResult:
         output_string = run.outputs.get('output')

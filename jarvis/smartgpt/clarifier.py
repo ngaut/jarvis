@@ -10,7 +10,7 @@ def clarify(goal: str, model: str) -> List[Dict[str, str]]:
 
     while True:
         print()
-        messages = gpt.chat(messages, model, user_input)
+        messages = gpt.chat(model, messages, user_input)
         if messages[-1]["content"].strip() == "Nothing more to clarify.":
             break
         if messages[-1]["content"].strip().lower().startswith("no"):
@@ -23,8 +23,8 @@ def clarify(goal: str, model: str) -> List[Dict[str, str]]:
             print()
             print("\n(letting Jarvis make its own assumptions)\n")
             messages = gpt.chat(
-                messages,
                 model,
+                messages,
                 "Make your own assumptions and state them explicitly before starting",
             )
             return messages
@@ -42,5 +42,5 @@ def clarify_and_summarize(goal: str, model: str) -> str:
     messages = [{"role": "system", "content": "You are an AI assistant to clarify user's goal"}] + messages[1:]
 
     user_prompt = "Summary the goal into a single sentence to make it clear and detailed"
-    resp = gpt.complete_with_messages(user_prompt, model, messages)
+    resp = gpt.complete_with_messages(model, messages, user_prompt)
     return resp

@@ -109,20 +109,7 @@ COT_PROMPT = PromptTemplate(
     input_variables=["query", "context", "result"], template=cot_template
 )
 
-if gpt.API_TYPE == "azure":
-    llm = ChatOpenAI(
-        client=openai.ChatCompletion,
-        temperature=0.0,
-        model_kwargs={
-            "engine": gpt.GPT_4,
-        },
-    )
-else:
-    llm = ChatOpenAI(
-        temperature=0.0,
-        model=gpt.GPT_4,
-        client=openai.ChatCompletion,
-    )
+llm = gpt.OPEN_AI_MODELS_HUB[gpt.GPT_4].get_llm()
 
 client = Client()
 dataset_name = "Jarvis translator"

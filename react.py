@@ -124,21 +124,7 @@ class ReactOutputParser(AgentOutputParser):
 def setup_react_planner(
     tools: List[Tool], model: str = "gpt-4"
 ) -> BaseSingleActionAgent:
-    if gpt.API_TYPE == "azure":
-        llm = ChatOpenAI(
-            client=openai.ChatCompletion,
-            temperature=0.0,
-            model_kwargs={
-                "engine": model,
-            },
-        )
-
-    else:
-        llm = ChatOpenAI(
-            temperature=0.0,
-            model=model,
-            client=openai.ChatCompletion,
-        )
+    llm = gpt.OPEN_AI_MODELS_HUB[model].get_llm()
 
     # LLM chain consisting of the LLM and a prompt
     llm_chain = LLMChain(

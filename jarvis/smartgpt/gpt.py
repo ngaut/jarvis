@@ -1,24 +1,46 @@
 import os
-import time
-import logging
-import random
 from typing import Optional, List, Dict
+from dataclasses import dataclass, field
 
 import openai
 import tiktoken
 
-import jarvis.smartgpt.initializer
+from langchain.chat_models import ChatOpenAI
+from langchain.llms.openai import OpenAI, AzureOpenAI
+from langchain.schema.language_model import BaseLanguageModel
+from langchain.schema.messages import (
+    HumanMessage,
+    SystemMessage,
+    BaseMessage,
+    ChatMessage,
+)
+from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.embeddings.base import Embeddings
 
+import jarvis.smartgpt.initializer  # ignore this line
 
+GPT_4 = "gpt-4"
+GPT_3_5_TURBO = "gpt-3.5-turbo"
+GPT_3_5_TURBO_16K = "gpt-3.5-turbo-16k"
+GPT_3_5_TURBO_INSTRUCT = "gpt-3.5-turbo-instruct"
+
+## handle openai api arguments
 API_TYPE = os.getenv("OPENAI_API_TYPE")
 
 # Set OpenAI or Azure API based on the OPENAI_API_TYPE
 if API_TYPE == "azure":
-    openai.api_type = API_TYPE
-    openai.api_base = os.getenv("OPENAI_API_BASE")
-    openai.api_version = os.getenv("OPENAI_API_VERSION")
-
-openai.api_key = os.getenv("OPENAI_API_KEY")
+    azure_openai_model_kwargs = {
+        "api_key": os.getenv("OPENAI_API_KEY"),
+        "api_version": os.getenv("OPENAI_API_VERSION"),
+        "api_type": "azure",
+        "api_base": os.getenv("OPENAI_API_BASE"),
+    }
+    azure_deployment_map = {
+        "gpt-4": "gpt-4-0613-azure",
+        "gpt-3.5-turbo": "gpt-35-turbo-0613-azure",
+        "gpt-3.5-turbo-16k": "gpt-35-turbo-16k-azure",
+        "text-embedding-ada-002": "text-embedding-ada-002-azure",
+    }
 
 try:
     TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", "0.7"))
@@ -26,46 +48,135 @@ except (ValueError, TypeError):
     TEMPERATURE = 0.7
 
 
-TOKEN_BUFFER = 50
-TOKENS_PER_MESSAGE = 3
-TOKENS_PER_NAME = 1
-ENCODING = tiktoken.encoding_for_model("gpt-4")
+## define openai models
+@dataclass
+class ModelInfo:
+    """Struct for model information.
 
-MODELS = {
-    "gpt-4": 8192,
-    "gpt-4-0613": 8192,
-    "gpt-3.5-turbo": 4096,
-    "gpt-3.5-turbo-0613": 4096,
-    "gpt-3.5-turbo-16k": 16384,
-    "mpt-7b-chat": 4096,
-    "gpt-35-turbo-0613-azure": 4096,
-    "gpt-35-turbo-16k-azure": 16384,
-    "gpt-4-0613-azure": 8192,
-    "gpt-4-32k-0613-azure": 32768,
+    Would be lovely to eventually get this directly from APIs, but needs to be scraped from
+    websites for now.
+    """
+
+    name: str
+    max_tokens: int
+    prompt_token_cost: float
+
+
+@dataclass
+class CompletionModelInfo(ModelInfo):
+    """Struct for generic completion model information."""
+
+    completion_token_cost: float
+
+
+@dataclass
+class ChatModelInfo(CompletionModelInfo):
+    """Struct for chat model information."""
+
+    supports_functions: bool = False
+
+
+@dataclass
+class EmbeddingModelInfo(ModelInfo):
+    """Struct for embedding model information."""
+
+    embedding_dimensions: int
+
+
+OPEN_AI_CHAT_MODELS = {
+    info.name: info
+    for info in [
+        ChatModelInfo(
+            name="gpt-3.5-turbo-0613",
+            prompt_token_cost=0.0015,
+            completion_token_cost=0.002,
+            max_tokens=4096,
+            supports_functions=True,
+        ),
+        ChatModelInfo(
+            name="gpt-3.5-turbo-16k-0613",
+            prompt_token_cost=0.003,
+            completion_token_cost=0.004,
+            max_tokens=16384,
+            supports_functions=True,
+        ),
+        ChatModelInfo(
+            name="gpt-4-0613",
+            prompt_token_cost=0.03,
+            completion_token_cost=0.06,
+            max_tokens=8191,
+            supports_functions=True,
+        ),
+        ChatModelInfo(
+            name="gpt-4-32k-0613",
+            prompt_token_cost=0.06,
+            completion_token_cost=0.12,
+            max_tokens=32768,
+            supports_functions=True,
+        ),
+    ]
+}
+# Set aliases for rolling model IDs
+chat_model_mapping = {
+    "gpt-3.5-turbo": "gpt-3.5-turbo-0613",
+    "gpt-3.5-turbo-16k": "gpt-3.5-turbo-16k-0613",
+    "gpt-4": "gpt-4-0613",
+    "gpt-4-32k": "gpt-4-32k-0613",
+}
+for alias, target in chat_model_mapping.items():
+    alias_info = ChatModelInfo(**OPEN_AI_CHAT_MODELS[target].__dict__)
+    alias_info.name = alias
+    OPEN_AI_CHAT_MODELS[alias] = alias_info
+
+OPEN_AI_COMPLETION_MODELS = {
+    info.name: info
+    for info in [
+        CompletionModelInfo(
+            name="gpt-3.5-turbo-instruct",
+            prompt_token_cost=0.0015,
+            completion_token_cost=0.002,
+            max_tokens=4097,
+        ),
+    ]
 }
 
-if API_TYPE == "azure":
-    GPT_4 = "gpt-4-0613-azure"
-    GPT_3_5_TURBO = "gpt-35-turbo-0613-azure"
-    GPT_3_5_TURBO_16K = "gpt-35-turbo-16k-azure"
-    GPT_EMBEDDING = "text-embedding-ada-002-azure"
-else:
-    GPT_4 = "gpt-4-0613"
-    GPT_3_5_TURBO = "gpt-3.5-turbo-0613"
-    GPT_3_5_TURBO_16K = "gpt-3.5-turbo-16k"
-    GPT_EMBEDDING = "text-embedding-ada-002"
+OPEN_AI_EMBEDDING_MODELS = {
+    info.name: info
+    for info in [
+        EmbeddingModelInfo(
+            name="text-embedding-ada-002",
+            prompt_token_cost=0.0001,
+            max_tokens=8191,
+            embedding_dimensions=1536,
+        ),
+    ]
+}
 
-GPT_LOCAL = "mpt-7b-chat"
+OPEN_AI_MODELS: dict[str, ChatModelInfo | EmbeddingModelInfo | CompletionModelInfo] = {
+    **OPEN_AI_CHAT_MODELS,
+    **OPEN_AI_COMPLETION_MODELS,
+    **OPEN_AI_EMBEDDING_MODELS,
+}
+
+# tokenization helper function
+TOKEN_BUFFER = 50
+TOKENS_PER_MESSAGE = 4
+ENCODING = tiktoken.encoding_for_model("gpt-4")
+
 
 def get_max_tokens(model: str) -> int:
-    return MODELS[model] - TOKEN_BUFFER
+    return OPEN_AI_MODELS[model].max_tokens - TOKEN_BUFFER
+
 
 def count_tokens(messages) -> int:
     # abstracted token count logic
     if isinstance(messages, str):
         return len(ENCODING.encode(messages))
 
-    return sum(len(ENCODING.encode(item['content'])) for item in messages) + (len(messages) * TOKENS_PER_MESSAGE)
+    return sum(len(ENCODING.encode(item["content"])) for item in messages) + (
+        len(messages) * TOKENS_PER_MESSAGE
+    )
+
 
 def truncate_to_tokens(content: str, max_token_count: int) -> str:
     """Truncates the content to fit within the model's max tokens."""
@@ -84,130 +195,189 @@ def truncate_to_tokens(content: str, max_token_count: int) -> str:
 
     return truncated_str
 
-def send_messages(messages: List[Dict[str, str]], model: str) -> str:
-    max_response_tokens = get_max_tokens(model) - count_tokens(messages)
 
-    if max_response_tokens < 0:
-        raise ValueError(
-            f"Max response tokens must be greater than 0. Got {max_response_tokens}"
+## LLM helper functions
+def create_chat_client(
+    model: str,
+    temperature: float = 0.7,
+    use_azure: bool = False,
+    deployment_engine: Optional[str] = None,
+    model_kwargs: Optional[dict] = None,
+) -> BaseLanguageModel:
+    if use_azure:
+        if deployment_engine is None:
+            raise ValueError("Deployment engine must be specified for Azure API")
+        if model_kwargs is None:
+            raise ValueError(
+                "Azure OpenAI model kwargs must be specified for Azure API"
+            )
+        return ChatOpenAI(
+            client=openai.ChatCompletion,
+            temperature=temperature,
+            model_kwargs={
+                "engine": deployment_engine,
+                **model_kwargs,
+            },
+        )
+    else:
+        return ChatOpenAI(
+            temperature=temperature,
+            model=model,
+            client=openai.ChatCompletion,
         )
 
-    for _ in range(5):
-        try:
-            if API_TYPE == "azure":
-                response = openai.ChatCompletion.create(
-                    engine=model,
-                    messages=messages,
-                    max_tokens=max_response_tokens,
-                    temperature=TEMPERATURE,
-                )
-            else:
-                response = openai.ChatCompletion.create(
-                    model=model,
-                    messages=messages,
-                    max_tokens=max_response_tokens,
-                    temperature=TEMPERATURE,
-                )
 
-            logging.info(f"Called OpenAI: Model={model}, Total Tokens={response.usage['total_tokens']}")  # type: ignore
-
-            return response.choices[0].message["content"]  # type: ignore
-
-        except openai.error.RateLimitError:  # type: ignore
-            # Handling Rate Limit Error
-            backoff_time = random.randint(40, 60)
-            logging.info(f"Rate Limit Exceeded for Model {model}. Waiting {backoff_time} seconds ...")
-            time.sleep(backoff_time)
-
-        except openai.error.APIError as api_error:  # type: ignore
-            # Handling API Errors
-            logging.error("API Error for Model %s. Error: %s", model, api_error)
-            raise ValueError(f"API Error for Model {model}. Error:{api_error}")
-
-        except openai.error.APIConnectionError as conn_err:  # type: ignore
-            # Handling Connection Errors
-            logging.error("Connection Error for Model %s. Error: %s", model, conn_err)
-            raise ValueError(f"Connection Error for Model {model}. Error:{conn_err}")
-
-        except openai.error.InvalidRequestError as invalid_request_err:  # type: ignore
-            # Handling Invalid Request Errors
-            logging.error(
-                "Invalid Request for Model %s. Error: %s", model, invalid_request_err
+def create_completion_client(
+    model: str,
+    temperature: float = 0.7,
+    use_azure: bool = False,
+    deployment_engine: Optional[str] = None,
+    model_kwargs: Optional[dict] = None,
+) -> BaseLanguageModel:
+    if use_azure:
+        if deployment_engine is None:
+            raise ValueError("Deployment engine must be specified for Azure API")
+        if model_kwargs is None:
+            raise ValueError(
+                "Azure OpenAI model kwargs must be specified for Azure API"
             )
-            raise ValueError(f"Invalid Request for Model {model}. Error:{invalid_request_err}")
+        return AzureOpenAI(
+            model=model,
+            client=openai.Completion,
+            deployment_name=deployment_engine,
+            temperature=temperature,
+            model_kwargs=model_kwargs,
+        )
+    else:
+        return OpenAI(
+            temperature=temperature,
+            model=model,
+            client=openai.Completion,
+        )
 
-        except Exception as err:
-            # Handling General Exceptions
-            logging.error("Unexpected Error for Model %s. Error: %s", model, err)
-            raise ValueError(f"Unexpected Error for Model {model}. Error:{err}")
 
-    raise ValueError(f"Failed after retry 5 times for Model {model}")
+def create_embedding_client(
+    model: str,
+    use_azure: bool = False,
+    deployment_engine: Optional[str] = None,
+    model_kwargs: Optional[dict] = None,
+) -> Embeddings:
+    if use_azure:
+        if deployment_engine is None:
+            raise ValueError("Deployment engine must be specified for Azure API")
+        if model_kwargs is None:
+            raise ValueError(
+                "Azure OpenAI model kwargs must be specified for Azure API"
+            )
+        return OpenAIEmbeddings(
+            model=model, client=openai.Embedding, deployment=deployment_engine
+        )
+    return OpenAIEmbeddings(model=model, client=openai.Embedding)
 
 
-def send_messages_stream(messages: List[Dict[str, str]], model: str) -> str:
-    while True:
-        try:
-            if API_TYPE == "azure":
-                response = openai.ChatCompletion.create(
-                    messages=messages,
-                    stream=True,
-                    engine=model,
-                    temperature=TEMPERATURE,
-                )
-            else:
-                response = openai.ChatCompletion.create(
-                    messages=messages, stream=True, model=model, temperature=TEMPERATURE
-                )
+class BaseLLM:
+    def __init__(self, model: str):
+        # check whether chat API
+        if model not in OPEN_AI_MODELS:
+            raise ValueError(f"Invalid model {model}")
 
-            chat = []
-            for chunk in response:
-                delta = chunk["choices"][0]["delta"]  # type: ignore
-                msg = delta.get("content", "")
-                print(msg, end="")
-                chat.append(msg)
-            print()
-            messages.append({"role": "assistant", "content": "".join(chat)})
-            return messages[-1]["content"]
+        self.model = model
+        deployment_engine = None
+        use_azure = False
+        model_kwargs = None
+        if API_TYPE == "azure":
+            use_azure = True
+            if model not in azure_deployment_map:
+                raise ValueError(f"Please deploy {model} on Azure")
+            deployment_engine = azure_deployment_map[model]
+            model_kwargs = azure_openai_model_kwargs
 
-        except Exception as err:
-            # Handling General Exceptions
-            logging.error("Unexpected Error for model %s. Error: %s", model, err)
-            raise ValueError(f"OpenAI Error: {err}") from err
+        if model == "gpt-3.5-turbo-instruct":
+            self._llm = create_completion_client(
+                model,
+                deployment_engine=deployment_engine,
+                temperature=TEMPERATURE,
+                use_azure=use_azure,
+                model_kwargs=model_kwargs,
+            )
+        else:
+            self._llm = create_chat_client(
+                model,
+                deployment_engine=deployment_engine,
+                temperature=TEMPERATURE,
+                use_azure=use_azure,
+                model_kwargs=model_kwargs,
+            )
+
+    def get_llm(self):
+        return self._llm
+
+    def predict(self, prompt: str) -> str:
+        print("model!!!!!! predict", self.model)
+        return self._llm.predict(prompt)
+
+    def chat(self, messages: List[BaseMessage]) -> BaseMessage:
+        print("model!!!!!! chat", self.model)
+        return self._llm.predict_messages(messages)
+
+
+# declare llm models
+OPEN_AI_MODELS_HUB = {
+    "gpt-4": BaseLLM("gpt-4"),
+    "gpt-3.5-turbo": BaseLLM("gpt-3.5-turbo"),
+    "gpt-3.5-turbo-16k": BaseLLM("gpt-3.5-turbo-16k"),
+    "gpt-3.5-turbo-instruct": BaseLLM("gpt-3.5-turbo-instruct"),
+    "text-embedding-ada-002": create_embedding_client("text-embedding-ada-002")
+    if API_TYPE != "azure"
+    else create_embedding_client(
+        "text-embedding-ada-002",
+        use_azure=True,
+        deployment_engine=azure_deployment_map.get("text-embedding-ada-002"),
+        model_kwargs=azure_openai_model_kwargs,
+    ),
+}
 
 
 def complete(prompt: str, model: str, system_prompt: Optional[str] = None) -> str:
-    messages = []
     if system_prompt:
-        messages.append({"role": "system", "content": system_prompt})
-    else:
-        messages.append({"role": "system", "content": "You are an AI agent."})
-
-    return complete_with_messages(prompt, model, messages)
+        prompt = f"{system_prompt}\n##User question\n{prompt}\n"
+    if model not in OPEN_AI_MODELS_HUB:
+        raise ValueError(f"Not found model {model}")
+    return OPEN_AI_MODELS_HUB[model].predict(prompt)
 
 
 def complete_with_messages(
-    prompt: str, model: str, messages: List[Dict[str, str]]
+    model: str,
+    messages: List[Dict[str, str]],
+    prompt: Optional[str] = None,
 ) -> str:
-    messages.append({"role": "user", "content": prompt[: get_max_tokens(model)]})
-    return send_messages(messages, model)
+    chat_messages = []
+    for message in messages:
+        if message["role"] == "user":
+            chat_messages.append(HumanMessage(content=message["content"]))
+        elif message["role"] == "system":
+            chat_messages.append(SystemMessage(content=message["content"]))
+        else:
+            chat_messages.append(
+                ChatMessage(role=message["role"], content=message["content"])
+            )
+
+    if prompt is not None:
+        chat_messages.append(HumanMessage(content=prompt))
+
+    if model not in OPEN_AI_MODELS_HUB:
+        raise ValueError(f"Not found model {model}")
+
+    return OPEN_AI_MODELS_HUB[model].chat(chat_messages).content
 
 
-def start(system_prompt: str, user_prompt: str, model: str) -> List[Dict[str, str]]:
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_prompt},
-    ]
-
-    return chat(messages, model)
+def send_messages(messages: List[Dict[str, str]], model: str) -> str:
+    return complete_with_messages(model, messages)
 
 
 def chat(
-    messages: List[Dict[str, str]], model: str, prompt=None
+    model: str, messages: List[Dict[str, str]], prompt=None
 ) -> List[Dict[str, str]]:
-    if prompt:
-        messages.append({"role": "user", "content": prompt})
-
-    response = send_messages_stream(messages, model)
-
+    response = complete_with_messages(model, messages, prompt)
     messages.append({"role": "assistant", "content": response})
     return messages
