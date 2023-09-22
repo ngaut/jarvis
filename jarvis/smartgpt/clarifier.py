@@ -17,6 +17,7 @@ def clarify(goal: str, model: str) -> List[Dict[str, str]]:
             print("Nothing more to clarify.")
             break
 
+        print(messages[-1]["content"])
         user_input = input('\n(answer in text, or "c" to move on)\n')
 
         if not user_input or user_input == "c":
