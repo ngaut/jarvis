@@ -313,11 +313,9 @@ class BaseLLM:
         return self._llm
 
     def predict(self, prompt: str) -> str:
-        print("model!!!!!! predict", self.model)
         return self._llm.predict(prompt)
 
     def chat(self, messages: List[BaseMessage]) -> BaseMessage:
-        print("model!!!!!! chat", self.model)
         return self._llm.predict_messages(messages)
 
 
@@ -326,7 +324,7 @@ OPEN_AI_MODELS_HUB = {
     "gpt-4": BaseLLM("gpt-4"),
     "gpt-3.5-turbo": BaseLLM("gpt-3.5-turbo"),
     "gpt-3.5-turbo-16k": BaseLLM("gpt-3.5-turbo-16k"),
-    "gpt-3.5-turbo-instruct": BaseLLM("gpt-3.5-turbo-instruct"),
+    # "gpt-3.5-turbo-instruct": BaseLLM("gpt-3.5-turbo-instruct"),
     "text-embedding-ada-002": create_embedding_client("text-embedding-ada-002")
     if API_TYPE != "azure"
     else create_embedding_client(
