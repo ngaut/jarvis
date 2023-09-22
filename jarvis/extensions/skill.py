@@ -66,10 +66,7 @@ class SkillManager:
         else:
             self.skills = {}
 
-        if gpt.API_TYPE == "azure":
-            embedding_func = OpenAIEmbeddings(deployment=gpt.GPT_EMBEDDING)
-        else:
-            embedding_func = OpenAIEmbeddings(model=gpt.GPT_EMBEDDING)
+        embedding_func = gpt.OPEN_AI_MODELS_HUB["text-embedding-ada-002"]
         self.vectordb = Chroma(
             collection_name="skill_vectordb",
             embedding_function=embedding_func,
