@@ -12,7 +12,6 @@ instructions:
     type: WebSearch
     inside_loop: false
     objective: "Find URLs of the top stories on Hacker News"
-    rule_num: 2
     args:
       query: "Hacker News top stories"
       save_to: "story_urls.seq1.list"
@@ -20,7 +19,6 @@ instructions:
     type: Loop
     inside_loop: false
     objective: "Loop through the URLs to fetch the content and decide whether to post to Slack"
-    rule_num: 1
     args:
       count: "jvm.eval(len(jvm.get('story_urls.seq1.list')))"
       idx: "jvm.eval(jvm.get('idx'))"
@@ -29,7 +27,6 @@ instructions:
           type: FetchWebContent
           inside_loop: true
           objective: "Fetch the content from the current URL"
-          rule_num: 2
           args:
             url: "jvm.eval(jvm.get('story_urls.seq1.list')[jvm.get('idx')])"
             save_to: "jvm.eval('story_content_' + str(jvm.get('idx')) + '.seq3.str')"
@@ -37,7 +34,6 @@ instructions:
           type: TextCompletion
           inside_loop: true
           objective: "Decide if the story is relevant to AI"
-          rule_num: 3
           args:
             request: "Determine if this story is about AI"
             output_format:
@@ -49,7 +45,6 @@ instructions:
           type: If
           inside_loop: true
           objective: "If the story is relevant to AI, prepare to post it to Slack"
-          rule_num: 5
           args:
             condition: "jvm.eval(jvm.get('is_relevant_' + str(jvm.get('idx')) + '.seq4.bool'))"
             then:
@@ -57,7 +52,6 @@ instructions:
                 type: TextCompletion
                 inside_loop: true
                 objective: "Prepare the message to be posted to Slack"
-                rule_num: 3
                 args:
                   request: "Generate the message to be posted to Slack"
                   output_format:
