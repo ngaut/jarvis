@@ -247,12 +247,14 @@ def create_completion_client(
             deployment_name=deployment_engine,
             temperature=temperature,
             model_kwargs=model_kwargs,
+            max_tokens=-1,
         )
     else:
         return OpenAI(
             temperature=temperature,
             model=model,
             client=openai.Completion,
+            max_tokens=-1,
         )
 
 
@@ -324,7 +326,7 @@ OPEN_AI_MODELS_HUB = {
     "gpt-4": BaseLLM("gpt-4"),
     "gpt-3.5-turbo": BaseLLM("gpt-3.5-turbo"),
     "gpt-3.5-turbo-16k": BaseLLM("gpt-3.5-turbo-16k"),
-    # "gpt-3.5-turbo-instruct": BaseLLM("gpt-3.5-turbo-instruct"),
+    "gpt-3.5-turbo-instruct": BaseLLM("gpt-3.5-turbo-instruct"),
     "text-embedding-ada-002": create_embedding_client("text-embedding-ada-002")
     if API_TYPE != "azure"
     else create_embedding_client(
