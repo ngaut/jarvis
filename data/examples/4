@@ -36,7 +36,7 @@ instructions:
     args:
       url: "jvm.eval(jvm.get('hacker_news_front_page_url.seq2.str'))"
       save_to: "hacker_news_content.seq3.str"
-- seq: 4
+  - seq: 4
     type: TextCompletion
     inside_loop: false
     objective: "Extract the stories' URLs from the Hacker News front page content"
