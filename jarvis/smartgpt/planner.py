@@ -23,7 +23,7 @@ def gen_plan(model: str, goal: str) -> Dict:
 
         system_prompt = preprompts.get("planner_sys")
         user_prompt = (
-            f"The goal: \"\"\"\n{goal}\n\"\"\"\n\n"
+            f'The goal: """\n{goal}\n"""\n\n'
             "Please generate the task list that can finish the goal.\n"
             "Your YAML response:```yaml\n"
         )
@@ -41,6 +41,7 @@ def gen_plan(model: str, goal: str) -> Dict:
         time.sleep(1)
         raise err
 
+
 def reorder_tasks(plan_yaml_str: str) -> str:
     try:
         plan = yaml.safe_load(plan_yaml_str)
@@ -52,7 +53,7 @@ def reorder_tasks(plan_yaml_str: str) -> str:
     graph = plan.get("task_dependency", {})
 
     # Initialize a dictionary to hold the in-degree of all nodes
-    in_degree = {task['task_num']: 0 for task in task_list}
+    in_degree = {task["task_num"]: 0 for task in task_list}
     # Initialize a dictionary to hold the out edges of all nodes
     out_edges = defaultdict(list)
 
@@ -87,22 +88,26 @@ def reorder_tasks(plan_yaml_str: str) -> str:
 
     # Update task IDs in the task list
     for task in task_list:
-        task['task_num'] = id_map[task['task_num']]
+        task["task_num"] = id_map[task["task_num"]]
 
     # Sort task list by task_num
-    plan['task_list'] = sorted(task_list, key=lambda task: task['task_num'])
+    plan["task_list"] = sorted(task_list, key=lambda task: task["task_num"])
 
     # Update task IDs in the task dependency list
-    new_task_dependency = {str(id_map[int(task_id)]): [id_map[dep] for dep in deps] for task_id, deps in graph.items()}
-    plan['task_dependency'] = new_task_dependency
+    new_task_dependency = {
+        str(id_map[int(task_id)]): [id_map[dep] for dep in deps]
+        for task_id, deps in graph.items()
+    }
+    plan["task_dependency"] = new_task_dependency
 
     # Dump the updated plan back to YAML
     sorted_plan_yaml_str = yaml.dump(plan, sort_keys=False)
     return sorted_plan_yaml_str
 
+
 def evaluate_plan(model: str, goal: str):
     try:
-        with open("plan.yaml", 'r') as file:
+        with open("plan.yaml", "r") as file:
             plan = file.read()
     except Exception as e:
         logging.error(f"Error loading 'plan.yaml' in current workdir, Error: {e}")
@@ -110,13 +115,10 @@ def evaluate_plan(model: str, goal: str):
 
     messages = []
     messages.append({"role": "system", "content": preprompts.get("plan_eval_sys")})
-    user_prompt = preprompts.get("plan_eval_user").format(
-        goal=goal,
-        plan=plan
-    )
+    user_prompt = preprompts.get("plan_eval_user").format(goal=goal, plan=plan)
     messages.append({"role": "user", "content": user_prompt})
     resp = gpt.send_messages(messages, model)
     messages.append({"role": "assistant", "content": resp})
 
-    match_answer = re.match(r'(yes|no)', resp.lower())
-    return match_answer.group(1) if match_answer else 'no'
+    match_answer = re.match(r"(yes|no)", resp.lower())
+    return match_answer.group(1) if match_answer else "no"

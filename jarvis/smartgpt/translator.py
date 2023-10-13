@@ -21,21 +21,27 @@ REVIEWER_GPT4_CLASSES = [
 
 DAFAULT_FEW_SHOT_EXAMPLE = "4"
 
+
 class Translator:
     def __init__(self, model):
         self.model = model
         self.reviewers = [cls(*params) for cls, params in REVIEWER_GPT4_CLASSES]
 
-    def build_system_prompt(self, few_shot_data:Optional[str]=None) -> List[Dict]:
+    def build_system_prompt(self, few_shot_data: Optional[str] = None) -> List[Dict]:
         messages = []
         fewshot_data = few_shot_data or fewshot.get(DAFAULT_FEW_SHOT_EXAMPLE)
-        messages.append({"role": "system", "content": preprompts.get("translator_sys") + "\n" + fewshot_data})
+        messages.append(
+            {
+                "role": "system",
+                "content": preprompts.get("translator_sys") + "\n" + fewshot_data,
+            }
+        )
         return messages
 
     def prepare_user_hints(self, task_info: Dict[str, Any]):
         hints = ""
         if task_info.get("first_task", False):
-            hints = "\n  - \"This is the first task, so there are no previous tasks or outcomes.\""
+            hints = '\n  - "This is the first task, so there are no previous tasks or outcomes."'
         else:
             for item in task_info.get("previous_outcomes", []):
                 hints += f"\n  - \"This is the #{task_info.get('task_num')} task, the previous task #{item.get('task_num')} has outcome: {item.get('outcome')}\""
@@ -44,13 +50,15 @@ class Translator:
             hints += f"\n  - \"The user's original request: {task_info.get('goal')}\""
 
         for item in task_info.get("hints", []):
-            hints += f"\n  - \"{item}\""
+            hints += f'\n  - "{item}"'
 
         if not hints:
             hints = "[]"
         return hints
 
-    def revise_instructions(self, task_info: Dict[str, Any], instrs, review_results, review_comments):
+    def revise_instructions(
+        self, task_info: Dict[str, Any], instrs, review_results, review_comments
+    ):
         review_feedbacks = []
         for i, (result, comment) in enumerate(zip(review_results, review_comments)):
             if result is False:
@@ -62,10 +70,15 @@ class Translator:
 
         messages = []
         messages.append({"role": "system", "content": preprompts.get("reviser_sys")})
-        messages.append({"role": "user", "content": preprompts.get("reviser_user").format(
-            instructions = instrs,
-            review_feedback="\n\n".join(review_feedbacks),
-        )})
+        messages.append(
+            {
+                "role": "user",
+                "content": preprompts.get("reviser_user").format(
+                    instructions=instrs,
+                    review_feedback="\n\n".join(review_feedbacks),
+                ),
+            }
+        )
 
         resp = gpt.send_messages(messages, self.model)
         messages.append({"role": "asssistant", "content": resp})
@@ -79,10 +92,10 @@ class Translator:
         user_prompt = preprompts.get("translator_user").format(
             task_num=task_info.get("task_num", 0),
             # task = f"\"{task_info.get('task', '')}\"",
-            task = json.dumps(task_info.get('task', ''), ensure_ascii=False),
-            objective = f"\"{task_info.get('objective', '')}\"",
-            start_seq = task_info.get("start_seq", ""),
-            hints = hints,
+            task=json.dumps(task_info.get("task", ""), ensure_ascii=False),
+            objective=f"\"{task_info.get('objective', '')}\"",
+            start_seq=task_info.get("start_seq", ""),
+            hints=hints,
         )
         reference_example = task_info.get("reference_example", None)
 
@@ -106,7 +119,9 @@ class Translator:
             review_results.append(result)
             review_comments.append(comment)
 
-        return self.revise_instructions(task_info, resp, review_results, review_comments)
+        return self.revise_instructions(
+            task_info, resp, review_results, review_comments
+        )
 
     def _trace_llm_gen(self, task_info, messages):
         with open(f"review_{task_info.get('task_num', 0)}.txt", "w") as f:

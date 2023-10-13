@@ -7,6 +7,7 @@ from jarvis.smartgpt.fewshot import init as init_examples
 load_dotenv(verbose=True, override=True)
 del load_dotenv
 
+
 def setup():
     init_prompts()
     init_examples()

@@ -337,6 +337,7 @@ OPEN_AI_MODELS_HUB = {
     ),
 }
 
+
 def complete(prompt: str, model: str, system_prompt: Optional[str] = None) -> str:
     if system_prompt:
         prompt = f"{system_prompt}\n##User question\n{prompt}\n"

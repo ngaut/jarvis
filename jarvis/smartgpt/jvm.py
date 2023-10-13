@@ -9,23 +9,27 @@ from jarvis.smartgpt import utils
 kv_store_file = "kv_store.json"
 kv_store = {}
 
+
 def reset_kv_store():
     global kv_store
     kv_store = {}
     save_kv_store()
 
+
 def load_kv_store():
     global kv_store
     # Load the kv_store dictionary from the file if it exists
     if os.path.exists(kv_store_file):
-        with open(kv_store_file, 'r') as f:
+        with open(kv_store_file, "r") as f:
             kv_store = json.load(f)
     else:
         kv_store = {}
 
+
 def save_kv_store():
-    with open(kv_store_file, 'w') as f:
+    with open(kv_store_file, "w") as f:
         json.dump(kv_store, f)
+
 
 def get(key, default=None):
     try:
@@ -39,6 +43,7 @@ def get(key, default=None):
     except Exception as err:
         logging.fatal(f"get, An error occurred: {err}")
         return default
+
 
 def set(key, value):
     try:
@@ -56,11 +61,12 @@ def list_values_with_key_prefix(prefix):
         for key in kv_store.keys():
             if key.startswith(prefix):
                 values.append(get(key))
-        #logging.info(f"list_values_with_key_prefix, values: {values}")
+        # logging.info(f"list_values_with_key_prefix, values: {values}")
         return values
     except Exception as err:
         logging.fatal(f"list_values_with_key_prefix, An error occurred: {err}")
         return []
+
 
 def list_keys_with_prefix(prefix):
     try:
@@ -70,10 +76,13 @@ def list_keys_with_prefix(prefix):
         logging.fatal(f"list_keys_with_prefix, An error occurred: {err}")
         return []
 
+
 def set_loop_idx(value):
     set("idx", value)
 
+
 LAZY_EVAL_PREFIX = "jvm.eval("
+
 
 def eval(text, lazy_eval_prefix=LAZY_EVAL_PREFIX):
     if not isinstance(text, str):
@@ -86,13 +95,13 @@ def eval(text, lazy_eval_prefix=LAZY_EVAL_PREFIX):
             return None
         prefix_len = len(lazy_eval_prefix)
         # find the corresponding closing tag with parentheses balance
-        rest = text[start+prefix_len:]
+        rest = text[start + prefix_len :]
         balance = 0
         end = 0
         for char in rest:
-            if char == '(':
+            if char == "(":
                 balance += 1
-            elif char == ')':
+            elif char == ")":
                 if balance == 0:
                     break
                 balance -= 1
@@ -102,18 +111,20 @@ def eval(text, lazy_eval_prefix=LAZY_EVAL_PREFIX):
             logging.critical(f"Error: parentheses are not balanced in {text}")
             return None
 
-        logging.debug(f"eval_and_patch_template_before_exec, {start}-{end} text: {text}\n")
+        logging.debug(
+            f"eval_and_patch_template_before_exec, {start}-{end} text: {text}\n"
+        )
 
         # adjust the end position relative to the original string
         end = end + start + prefix_len
         # evaluate the substring between jvm.eval( and )
-        expression = text[start+prefix_len:end].strip()
+        expression = text[start + prefix_len : end].strip()
     else:
         start = 0
         end = len(text)
         prefix_len = 0
 
-    expression = text[start+prefix_len:end].strip()
+    expression = text[start + prefix_len : end].strip()
     logging.debug(f"eval_and_patch_template_before_exec, expression: {expression}\n")
     try:
         evaluated = utils.sys_eval(expression)
@@ -122,7 +133,7 @@ def eval(text, lazy_eval_prefix=LAZY_EVAL_PREFIX):
         return None
 
     # replace the evaluated part in the original string
-    text = text[:start] + str(evaluated) + text[end+1:]
+    text = text[:start] + str(evaluated) + text[end + 1 :]
     logging.debug(f"text after patched: {text}\n")
 
     return text

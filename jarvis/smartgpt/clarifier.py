@@ -40,8 +40,12 @@ def clarify_and_summarize(goal: str, model: str) -> str:
     messages = clarify(goal, model)
 
     # Summarize the messages to a clear goal
-    messages = [{"role": "system", "content": "You are an AI assistant to clarify user's goal"}] + messages[1:]
+    messages = [
+        {"role": "system", "content": "You are an AI assistant to clarify user's goal"}
+    ] + messages[1:]
 
-    user_prompt = "Summary the goal into a single sentence to make it clear and detailed"
+    user_prompt = (
+        "Summary the goal into a single sentence to make it clear and detailed"
+    )
     resp = gpt.complete_with_messages(model, messages, user_prompt)
     return resp

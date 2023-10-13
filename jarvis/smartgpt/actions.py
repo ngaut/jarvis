@@ -34,6 +34,7 @@ TEXT_COMPLETION_MODEL = gpt.GPT_3_5_TURBO_16K
 _CACHE = {}
 _ENABLE_CACHE = True
 
+
 def load_cache():
     global _CACHE
     if os.path.exists("cache.json"):
@@ -42,19 +43,23 @@ def load_cache():
     else:
         _CACHE = {}
 
+
 def enable_cache():
     global _ENABLE_CACHE
     _ENABLE_CACHE = True
 
+
 def disable_cache():
     global _ENABLE_CACHE
     _ENABLE_CACHE = False
+
 
 def get_from_cache(key):
     if _ENABLE_CACHE:
         return _CACHE.get(key, None)
     else:
         return None
+
 
 def save_to_cache(key, value):
     if not _ENABLE_CACHE:
@@ -63,6 +68,7 @@ def save_to_cache(key, value):
     _CACHE[key] = value
     with open("cache.json", "w") as f:
         json.dump(_CACHE, f)
+
 
 @dataclass(frozen=True)
 class Action(ABC):
@@ -85,7 +91,7 @@ class Action(ABC):
         constructor_args = {}
         for param_name, _ in constructor_params.items():
             if param_name != "self" and param_name in data:
-                constructor_args[param_name] = data[param_name] # type: ignore
+                constructor_args[param_name] = data[param_name]  # type: ignore
 
         return action_class(**constructor_args)
 
@@ -101,6 +107,7 @@ class Action(ABC):
     def run(self) -> str:
         """Returns what jarvis should learn from running the action."""
         raise NotImplementedError
+
 
 @dataclass(frozen=True)
 class FetchWebContentAction:
@@ -121,7 +128,7 @@ class FetchWebContentAction:
     def ensure_url_scheme(url) -> str:
         parsed = urlparse(url)
         if not parsed.scheme:
-            parsed = parsed._replace(scheme='https', netloc=parsed.path, path='')
+            parsed = parsed._replace(scheme="https", netloc=parsed.path, path="")
         return urlunparse(parsed)
 
     @staticmethod
@@ -130,7 +137,7 @@ class FetchWebContentAction:
         chrome_options = ChromeOptions()
         chrome_options.headless = True
 
-        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument("--no-sandbox")
         if platform == "linux" or platform == "linux2":
             chrome_options.add_argument("--disable-dev-shm-usage")
             chrome_options.add_argument("--remote-debugging-port=9222")
@@ -139,8 +146,10 @@ class FetchWebContentAction:
         driver_path = ChromeDriverManager("116.0.5845.96").install()
 
         # Use context management to ensure the browser is quit
-        with ChromeWebDriver(executable_path=driver_path, options=chrome_options) as browser:
-        # with webdriver.Chrome(options=chrome_options) as browser:
+        with ChromeWebDriver(
+            executable_path=driver_path, options=chrome_options
+        ) as browser:
+            # with webdriver.Chrome(options=chrome_options) as browser:
             # Access the provided URL
             browser.get(url)
 
@@ -158,11 +167,11 @@ class FetchWebContentAction:
             script.extract()
 
         # modify a tags to include href in markdown format
-        for a in soup.find_all('a'):
-            url = a.get('href', '')
+        for a in soup.find_all("a"):
+            url = a.get("href", "")
 
             # Only modify the link if it's an external link (i.e., starts with 'http' or 'https')
-            if url and (url.startswith('http://') or url.startswith('https://')):
+            if url and (url.startswith("http://") or url.startswith("https://")):
                 a.string = f"[{a.get_text()}]({url})"
 
         text = soup.get_text()
@@ -184,8 +193,12 @@ class FetchWebContentAction:
             html = self.get_html(url)
             text = self.extract_text(html)
         except Exception as err:
-            logging.error(f"FetchWebContentAction RESULT: An error occurred: {str(err)}")
-            raise ValueError(f"FetchWebContentAction RESULT: An error occurred: {str(err)}")
+            logging.error(
+                f"FetchWebContentAction RESULT: An error occurred: {str(err)}"
+            )
+            raise ValueError(
+                f"FetchWebContentAction RESULT: An error occurred: {str(err)}"
+            )
             return f"FetchWebContentAction RESULT: An error occurred: {str(err)}"
         else:
             logging.debug(f"\nFetchWebContentAction RESULT:\n{text}")
@@ -194,11 +207,12 @@ class FetchWebContentAction:
             save_to_cache(cached_key, result_str)
             return result_str
 
+
 @dataclass(frozen=True)
 class WebSearchAction:
     action_id: int
     query: str
-    save_to: str # the key that will be used to save content to database
+    save_to: str  # the key that will be used to save content to database
 
     def key(self):
         return "WebSearch"
@@ -219,10 +233,10 @@ class WebSearchAction:
 
         url = "https://www.googleapis.com/customsearch/v1"
         params = {
-            'q': self.query,
-            'num': 3,
-            'key': os.getenv("GOOGLE_API_KEY"),
-            'cx': os.getenv("GOOGLE_SEARCH_ENGINE_ID"),
+            "q": self.query,
+            "num": 3,
+            "key": os.getenv("GOOGLE_API_KEY"),
+            "cx": os.getenv("GOOGLE_SEARCH_ENGINE_ID"),
         }
 
         for _ in range(3):  # retry for 3 times
@@ -231,15 +245,19 @@ class WebSearchAction:
                 response.raise_for_status()  # raise exception if the request was unsuccessful
 
                 search_results = response.json()
-                if not search_results.get('items'):
-                    logging.error(f"WebSearchAction RESULT: The online search for `{self.query}` appears to have failed.")
+                if not search_results.get("items"):
+                    logging.error(
+                        f"WebSearchAction RESULT: The online search for `{self.query}` appears to have failed."
+                    )
                     continue  # retry on failure
 
                 # return a list of links
-                result = [item['link'] for item in search_results['items']]
+                result = [item["link"] for item in search_results["items"]]
                 logging.debug(f"WebSearchAction RESULT: {result}")
 
-                result_str = json.dumps({"kvs": [{"key": self.save_to, "value": result}]})
+                result_str = json.dumps(
+                    {"kvs": [{"key": self.save_to, "value": result}]}
+                )
 
                 save_to_cache(cached_key, result_str)
                 return result_str
@@ -247,7 +265,9 @@ class WebSearchAction:
                 if http_err.response.status_code == 429:
                     time.sleep(30)
                 else:
-                    logging.error(f"WebSearchAction RESULT: An HTTP error occurred: {http_err}")
+                    logging.error(
+                        f"WebSearchAction RESULT: An HTTP error occurred: {http_err}"
+                    )
             except Exception as err:
                 logging.error(f"WebSearchAction RESULT: An error occurred: {err}")
 
@@ -257,7 +277,7 @@ class WebSearchAction:
 @dataclass(frozen=True)
 class RunPythonAction(Action):
     action_id: int
-    timeout: int = 30 # in seconds
+    timeout: int = 30  # in seconds
     code: str = ""
     pkg_dependencies: List[str] = field(default_factory=list)
     cmd_args: str = ""
@@ -279,7 +299,7 @@ class RunPythonAction(Action):
         work_dir = os.getcwd()
 
         # Generate a random file name for each execution
-        file_name = f'run_{uuid.uuid4()}.py'
+        file_name = f"run_{uuid.uuid4()}.py"
 
         # Make sure code isn't None
         if not self.code:
@@ -296,16 +316,20 @@ class RunPythonAction(Action):
         self._write_code_to_file(work_dir, file_name)
 
         # Run the python script and fetch the output
-        exit_code, stdout_output, stderr_error = self._run_script(venv_path, work_dir, file_name)
-        output = self._construct_output(exit_code, stdout_output, stderr_error, work_dir, file_name)
+        exit_code, stdout_output, stderr_error = self._run_script(
+            venv_path, work_dir, file_name
+        )
+        output = self._construct_output(
+            exit_code, stdout_output, stderr_error, work_dir, file_name
+        )
 
         return output
 
     def _create_or_use_virtual_env(self, work_dir):
-        venv_dir = os.path.join(work_dir, 'venv')
+        venv_dir = os.path.join(work_dir, "venv")
         if not os.path.exists(venv_dir):
             venv.EnvBuilder(with_pip=True).create(venv_dir)
-        return os.path.join(venv_dir, 'bin')
+        return os.path.join(venv_dir, "bin")
 
     def _install_dependencies(self, venv_path):
         # Get a list of all standard library modules
@@ -314,29 +338,44 @@ class RunPythonAction(Action):
             "print('\\n'.join([module[1] for module in pkgutil.iter_modules()]))"
         )
         result = subprocess.check_output(
-            [os.path.join(venv_path, 'python') if os.name != 'nt' else os.path.join(venv_path, 'Scripts', 'python.exe'), '-c', code]
-        ).decode('utf-8')
-        standard_lib =  result.splitlines()
+            [
+                os.path.join(venv_path, "python")
+                if os.name != "nt"
+                else os.path.join(venv_path, "Scripts", "python.exe"),
+                "-c",
+                code,
+            ]
+        ).decode("utf-8")
+        standard_lib = result.splitlines()
 
         # Get a list of currently installed packages in the venv
-        installed_packages = subprocess.check_output(
-            [os.path.join(venv_path, 'pip'), 'list', '--format=freeze']
-        ).decode('utf-8').splitlines()
-        installed_packages = [pkg.split('==')[0] for pkg in installed_packages]
+        installed_packages = (
+            subprocess.check_output(
+                [os.path.join(venv_path, "pip"), "list", "--format=freeze"]
+            )
+            .decode("utf-8")
+            .splitlines()
+        )
+        installed_packages = [pkg.split("==")[0] for pkg in installed_packages]
 
         # Filter out already installed and standard library packages
         packages_to_install = [
-            dependency for dependency in self.pkg_dependencies
+            dependency
+            for dependency in self.pkg_dependencies
             if dependency not in installed_packages and dependency not in standard_lib
         ]
 
         logging.info(f"Installing the following packages: {packages_to_install}")
         # Install the remaining packages
         for dependency in packages_to_install:
-            subprocess.check_call([os.path.join(venv_path, 'pip'), 'install', dependency])
+            subprocess.check_call(
+                [os.path.join(venv_path, "pip"), "install", dependency]
+            )
 
     def _write_code_to_file(self, work_dir, file_name):
-        with open(os.path.join(work_dir, file_name), mode="w", encoding="utf-8") as file:
+        with open(
+            os.path.join(work_dir, file_name), mode="w", encoding="utf-8"
+        ) as file:
             file.write("import sys\n")
             file.write(f"sys.path.append('{self.project_dir}')\n")
             file.write("from jarvis.smartgpt import jvm\n")
@@ -346,7 +385,8 @@ class RunPythonAction(Action):
     def _run_script(self, venv_path, work_dir, file_name):
         script_full_path = os.path.join(work_dir, file_name)
         with subprocess.Popen(
-            [os.path.join(venv_path, 'python'), script_full_path] + self.cmd_args.split(),
+            [os.path.join(venv_path, "python"), script_full_path]
+            + self.cmd_args.split(),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             universal_newlines=True,
@@ -356,9 +396,15 @@ class RunPythonAction(Action):
                 return process.returncode, stdout_output, stderr_error
             except subprocess.TimeoutExpired:
                 process.kill()
-                return 1, "", f"RunPythonAction failed: The Python script at `{script_full_path} {self.cmd_args}` timed out after {self.timeout} seconds."
+                return (
+                    1,
+                    "",
+                    f"RunPythonAction failed: The Python script at `{script_full_path} {self.cmd_args}` timed out after {self.timeout} seconds.",
+                )
 
-    def _construct_output(self, exit_code, stdout_output, stderr_error, work_dir, file_name):
+    def _construct_output(
+        self, exit_code, stdout_output, stderr_error, work_dir, file_name
+    ):
         script_full_path = os.path.join(work_dir, file_name)
         output = f"\n`python {script_full_path} {self.cmd_args}` returned: \n#exit code {exit_code}\n"
         if stdout_output:
@@ -367,8 +413,11 @@ class RunPythonAction(Action):
             output += f"#stderr of process:\n{stderr_error}"
         if exit_code != 0:
             output += f"\n\nPython script code:\n{self.code}"
-            raise RuntimeError(f"Script execution failed with exit code {exit_code}. Output: {output}")
+            raise RuntimeError(
+                f"Script execution failed with exit code {exit_code}. Output: {output}"
+            )
         return output
+
 
 @dataclass(frozen=True)
 class TextCompletionAction(Action):
@@ -385,12 +434,14 @@ class TextCompletionAction(Action):
         return self.action_id
 
     def short_string(self) -> str:
-        return f"action_id: {self.id()}, text completion for Request: \"{self.request}\"."
+        return f'action_id: {self.id()}, text completion for Request: "{self.request}".'
 
     def generate_messages(self) -> List[Dict[str, str]]:
         # Adjust content to fit within model's max tokens
         content = self.content
-        max_token_count = gpt.get_max_tokens(gpt.GPT_3_5_TURBO_16K) - 4096  # leaving some space for the system and user roles and responses
+        max_token_count = (
+            gpt.get_max_tokens(gpt.GPT_3_5_TURBO_16K) - 4096
+        )  # leaving some space for the system and user roles and responses
         content_token_count = gpt.count_tokens(content)
 
         if content_token_count > max_token_count:
@@ -398,9 +449,9 @@ class TextCompletionAction(Action):
             content = gpt.truncate_to_tokens(content, max_token_count)
 
         user_prompt = preprompts.get("text_completion_user").format(
-            request = self.request,
-            output_format = utils.remove_quoted_token(self.output_format, "<to_fill>"),
-            content = content,
+            request=self.request,
+            output_format=utils.remove_quoted_token(self.output_format, "<to_fill>"),
+            content=content,
         )
 
         messages = [
@@ -421,19 +472,23 @@ class TextCompletionAction(Action):
         max_token_count = gpt.get_max_tokens(self.model_name)
         model_name = self.model_name
 
-        if request_token_count + 1024 > max_token_count:  # leave some space for the response
+        if (
+            request_token_count + 1024 > max_token_count
+        ):  # leave some space for the response
             model_name = gpt.GPT_3_5_TURBO_16K
 
         return model_name
 
     def run(self) -> str:
-        hash_key = self.request + str(jvm.get('idx'))
+        hash_key = self.request + str(jvm.get("idx"))
         hash_str = hashlib.md5(hash_key.encode()).hexdigest()
         cached_key = f"{hash_str}"
         cached_result = get_from_cache(cached_key)
 
         if cached_result is not None:
-            logging.debug(f"TextCompletionAction RESULT(cached) for Request: {self.request}")
+            logging.debug(
+                f"TextCompletionAction RESULT(cached) for Request: {self.request}"
+            )
             return cached_result
 
         messages = self.generate_messages()
@@ -451,6 +506,7 @@ class TextCompletionAction(Action):
         except Exception as err:
             logging.error(f"TextCompletionAction RESULT: An error occurred: {str(err)}")
             return f"TextCompletionAction RESULT: An error occurred: {str(err)}"
+
 
 # Helper function to populate the ACTION_CLASSES dictionary
 def _populate_action_classes(action_classes):
@@ -473,9 +529,12 @@ def _populate_action_classes(action_classes):
 
     return result
 
-ACTION_CLASSES = _populate_action_classes([
-    FetchWebContentAction,
-    RunPythonAction,
-    WebSearchAction,
-    TextCompletionAction,
-])
+
+ACTION_CLASSES = _populate_action_classes(
+    [
+        FetchWebContentAction,
+        RunPythonAction,
+        WebSearchAction,
+        TextCompletionAction,
+    ]
+)
