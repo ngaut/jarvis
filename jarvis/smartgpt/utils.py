@@ -6,7 +6,7 @@ from jarvis.smartgpt import jvm
 
 
 def remove_quoted_token(text, token):
-    pattern = r'([\"\'])' + re.escape(token) + r'\1'
+    pattern = r"([\"\'])" + re.escape(token) + r"\1"
     return re.sub(pattern, token, text)
 
 
@@ -50,7 +50,7 @@ def str_to_bool(s):
     if isinstance(s, bool):
         return s
     elif isinstance(s, str):
-        return s.lower() == 'true'
+        return s.lower() == "true"
     else:
         return False
 

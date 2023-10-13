@@ -22,7 +22,6 @@ Dynamic keys are particularly useful in loop structures, where data is iterative
 Common arguments for each instruction:
 - objective: The string contains an objective description for this instruction only.
 - inside_loop: Whether this instruction is inside a loop or not.
-- rule_num: which rule (include ID of rule) the instruction has been applied
 
 1. 'WebSearch': {
     "query": The search query string.

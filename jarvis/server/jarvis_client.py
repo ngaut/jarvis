@@ -6,7 +6,7 @@ import jarvis.server.jarvis_pb2_grpc as jarvis_pb2_grpc
 from google.protobuf.json_format import MessageToJson
 
 
-simple_tweet_extraction =  """Search tweets about TiDB on Twitter in the past day, and save these tweets data into TiDB cloud tables for furture analysis.
+simple_tweet_extraction = """Search tweets about TiDB on Twitter in the past day, and save these tweets data into TiDB cloud tables for furture analysis.
 * "TiDB Cloud", "TiDB", "PingCAP", "tidbcloud" are some useful tweet search query keywords, and exclude the retweet e.g. query='(tidb OR pingcap OR TiDB Cloud OR tidbcloud) -is:retweet'.
 * These tweets' topic should be "TiDB" in the tidb cloud tables.
 * The bearer token should be fetched from the environment variable TWEET_BEARER_TOKEN.
@@ -271,6 +271,6 @@ def replay(stub, agent_id):
 if __name__ == "__main__":
     channel = grpc.insecure_channel("localhost:51155")
     stub = jarvis_pb2_grpc.JarvisStub(channel)
-    #replay(stub, "d2fac3da7cccfd84ba9fdc57e760f307")
-    #save_skill(stub, "....", "generate_tidb_and_cockroach_tweets_analysis_report",)
+    # replay(stub, "d2fac3da7cccfd84ba9fdc57e760f307")
+    # save_skill(stub, "....", "generate_tidb_and_cockroach_tweets_analysis_report",)
     train_skill(stub, simple_tweet_extraction)
