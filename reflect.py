@@ -1,4 +1,5 @@
-import openai
+# copy from BabyAGI
+
 import json
 import threading
 import logging
