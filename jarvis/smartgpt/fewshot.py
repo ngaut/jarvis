@@ -5,6 +5,7 @@ from jarvis.smartgpt import utils
 # Initialize the singleton to None
 _examples_db = None
 
+
 def init():
     global _examples_db
     example_dir_path = os.path.join(os.getcwd(), "data/examples")
@@ -15,6 +16,7 @@ def init():
 
     if _examples_db is None:
         _examples_db = utils.DB(example_dir_path)
+
 
 def get(example_name: str):
     if _examples_db is None:

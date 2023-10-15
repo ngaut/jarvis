@@ -14,7 +14,6 @@ instructions:
     type: # specifies the type of instruction, such as 'WebSearch', 'TextCompletion', 'RunPython' ...
     inside_loop: # simply indicates whether the instruction is inside a loop.
     objective: # the string contains an objective description for this instruction only.
-    rule_num: # the the rule (num) that was ultimately applied to select this instruction.
     args: # key-value pairs describing specific arguments for this instruction.
 ```
 
@@ -25,7 +24,6 @@ seq:
 type: If
 inside_loop:
 objective:
-rule_num:
 args:
   condition: # The condition to be evaluated.
   then: # The instructions to be executed if the condition evaluates to true.
@@ -38,7 +36,6 @@ seq:
 type: Loop
 inside_loop:
 objective:
-rule_num:
 args:
   count: # Specifies the number of iterations for the loop. This can be dynamically evaluated using the evaluation syntax. For instance, "jvm.eval(len(jvm.get('fetched_urls.seq3.list')))"
   instructions: # Defines the list of instructions that are to be executed in each iteration.
@@ -126,7 +123,6 @@ instructions:
     type:
     inside_loop:
     objective:
-    rule_num:
     args:
       ...
 end_seq:

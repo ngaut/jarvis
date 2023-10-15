@@ -45,9 +45,11 @@ class JVMInstruction:
         if action_type == "TextCompletion":
             args["request"] = self.eval_and_patch(args.get("request"))
             args["content"] = self.eval_and_patch(args.get("content"))
-            args["output_format"] = self.eval_and_patch(json.dumps(args.get("output_format"), indent=2))
+            args["output_format"] = self.eval_and_patch(
+                json.dumps(args.get("output_format"), indent=2)
+            )
 
-        action_data = { "type": action_type, "action_id": action_id }
+        action_data = {"type": action_type, "action_id": action_id}
         action_data.update(args)
 
         action = actions.Action.from_dict(action_data)
@@ -100,6 +102,7 @@ class JVMInstruction:
             logging.info(f"Setting KV in the JVM database: '{key}'={value}")
             jvm.set(key, value)
 
+
 class JVMInterpreter:
     def __init__(self):
         self.pc = 0
@@ -118,7 +121,9 @@ class JVMInterpreter:
     def run(self, instrs, task):
         if instrs is not None:
             while self.pc < len(instrs):
-                logging.info(f"Running Instruction [pc={self.pc}, seq={instrs[self.pc].get('seq')}]: \n{instrs[self.pc]}")
+                logging.info(
+                    f"Running Instruction [pc={self.pc}, seq={instrs[self.pc].get('seq')}]: \n{instrs[self.pc]}"
+                )
                 jvm_instruction = JVMInstruction(instrs[self.pc], self.actions, task)
 
                 action_type = instrs[self.pc].get("type")
@@ -135,7 +140,9 @@ class JVMInterpreter:
         # Extract the count and the list of instructions for the loop
         loop_count = 0
         # if loop_count is integer
-        print(f"loop instruction (seq={jvm_instruction.instruction.get('seq', 'N/A')}) args: {args}")
+        print(
+            f"loop instruction (seq={jvm_instruction.instruction.get('seq', 'N/A')}) args: {args}"
+        )
         if isinstance(args["count"], int):
             loop_count = args["count"]
         elif isinstance(args["count"], str):
@@ -168,10 +175,13 @@ class JVMInterpreter:
         condition = jvm_instruction.eval_and_patch(condition)
 
         evaluation_action = actions.TextCompletionAction(
-            action_id = -1,
+            action_id=-1,
             request="Judging true or false based on input content",
-            content = condition,
-            output_format = json.dumps({"kvs": [{"key": "result.seq0.bool", "value": "<to_fill>"}]}, indent=2))
+            content=condition,
+            output_format=json.dumps(
+                {"kvs": [{"key": "result.seq0.bool", "value": "<to_fill>"}]}, indent=2
+            ),
+        )
 
         try:
             evaluation_result = evaluation_action.run()
@@ -179,7 +189,9 @@ class JVMInterpreter:
             condition_eval_result = utils.str_to_bool(output_res["kvs"][0]["value"])
 
         except Exception as err:
-            logging.error(f"Failed to decode AI model response: {condition} with error: {err}")
+            logging.error(
+                f"Failed to decode AI model response: {condition} with error: {err}"
+            )
             raise
 
         logging.info(f"The condition is evaluated to {condition_eval_result}.")
@@ -189,12 +201,16 @@ class JVMInterpreter:
             # instruction.instruction["then"] is a list of instructions
             if "then" in jvm_instruction.instruction.get("args", {}):
                 self.pc = 0
-                self.run(jvm_instruction.instruction["args"]["then"], jvm_instruction.task)
+                self.run(
+                    jvm_instruction.instruction["args"]["then"], jvm_instruction.task
+                )
         else:
             # maybe use pc to jump is a better idea.
             if "else" in jvm_instruction.instruction.get("args", {}):
                 self.pc = 0
-                self.run(jvm_instruction.instruction["args"]["else"], jvm_instruction.task)
+                self.run(
+                    jvm_instruction.instruction["args"]["else"], jvm_instruction.task
+                )
         self.pc = old_pc
 
     def reset(self):

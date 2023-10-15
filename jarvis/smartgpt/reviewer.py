@@ -12,6 +12,7 @@ from jarvis.smartgpt import preprompts
 
 REVIEW_REPEATED_COUNT = 1
 
+
 class Reviewer(ABC):
     def __init__(self, model):
         self.model = model
@@ -22,15 +23,17 @@ class Reviewer(ABC):
 
     def buildSystemMessages(self) -> List[Dict]:
         messages = []
-        prompt = preprompts.get('reviewer_sys') + "\n" + preprompts.get('jvm_spec')
+        prompt = preprompts.get("reviewer_sys") + "\n" + preprompts.get("jvm_spec")
         messages.append({"role": "system", "content": prompt})
         return messages
 
-    def generalReview(self, instrs: str, review_prompt: str) -> Tuple[bool, str, List[Dict]]:
+    def generalReview(
+        self, instrs: str, review_prompt: str
+    ) -> Tuple[bool, str, List[Dict]]:
         messages = self.buildSystemMessages()
 
         review_content = preprompts.get(review_prompt).format(
-            instructions = '\n'.join('  ' + line for line in instrs.splitlines())
+            instructions="\n".join("  " + line for line in instrs.splitlines())
         )
         messages.append({"role": "user", "content": review_content})
 
@@ -53,9 +56,11 @@ class EvalSyntaxReviewer(Reviewer):
     def review(self, instrs: str) -> Tuple[bool, str, List[Dict]]:
         return self.generalReview(instrs, "reviewer_eval_syntax")
 
+
 class LoopIndexKeyReviewer(Reviewer):
     def review(self, instrs: str) -> Tuple[bool, str, List[Dict]]:
         return self.generalReview(instrs, "reviewer_index_key")
+
 
 class SimulationReviewer(Reviewer):
     def review(self, instrs: str) -> Tuple[bool, str, List[Dict]]:
@@ -63,34 +68,42 @@ class SimulationReviewer(Reviewer):
 
     def _review(self, instrs: str, count: int) -> Tuple[bool, str, List[Dict]]:
         messages = []
-        messages.append({"role": "system", "content": preprompts.get("reviewer_simulation_sys")})
+        messages.append(
+            {"role": "system", "content": preprompts.get("reviewer_simulation_sys")}
+        )
 
         review_content = preprompts.get("reviewer_simulation_user").format(
-            instructions = instrs
+            instructions=instrs
         )
         messages.append({"role": "user", "content": review_content})
 
         response = gpt.send_messages(messages, self.model)
         messages.append({"role": "assistant", "content": response})
 
-        messages.append({"role": "user", "content": preprompts.get("reviewer_simulation_output")})
+        messages.append(
+            {"role": "user", "content": preprompts.get("reviewer_simulation_output")}
+        )
         response = gpt.send_messages(messages, self.model)
         messages.append({"role": "assistant", "content": response})
 
         if "CORRECT!" in response:
-            logging.info(f"The #{REVIEW_REPEATED_COUNT - count + 1}/{REVIEW_REPEATED_COUNT} round review of Simulation Reviewer says LGTM.")
+            logging.info(
+                f"The #{REVIEW_REPEATED_COUNT - count + 1}/{REVIEW_REPEATED_COUNT} round review of Simulation Reviewer says LGTM."
+            )
             if count - 1 == 0:
                 return True, "", messages
             return self._review(instrs, count - 1)
 
-        match = re.search(r'\"{3}(.*?)\"{3}', response, re.DOTALL)
+        match = re.search(r"\"{3}(.*?)\"{3}", response, re.DOTALL)
         if match:
             extracted_text = match.group(1).strip()
         else:
             logging.info("No feedback text found between triple quotes.")
             return True, "", messages
 
-        review_feedback = f"The Simulation Reviewer's feedback:\n\"\"\"\n{extracted_text}\n\"\"\""
+        review_feedback = (
+            f'The Simulation Reviewer\'s feedback:\n"""\n{extracted_text}\n"""'
+        )
         logging.info(review_feedback)
         return False, review_feedback, messages
 
@@ -98,10 +111,17 @@ class SimulationReviewer(Reviewer):
 class SyntaxReviewer(Reviewer):
     def review(self, instrs: str) -> Tuple[bool, str, List[Dict]]:
         messages = []
-        messages.append({"role": "system", "content": preprompts.get("reviewer_syntax_sys")})
-        messages.append({"role": "user", "content": preprompts.get("reviewer_syntax_user").format(
-            instructions = instrs
-        )})
+        messages.append(
+            {"role": "system", "content": preprompts.get("reviewer_syntax_sys")}
+        )
+        messages.append(
+            {
+                "role": "user",
+                "content": preprompts.get("reviewer_syntax_user").format(
+                    instructions=instrs
+                ),
+            }
+        )
 
         resp = gpt.send_messages(messages, self.model)
         messages.append({"role": "assistant", "content": resp})
@@ -110,13 +130,15 @@ class SyntaxReviewer(Reviewer):
             logging.info("Syntax Reviewer says LGTM.")
             return True, "", messages
 
-        match = re.search(r'\"{3}(.*?)\"{3}', resp, re.DOTALL)
+        match = re.search(r"\"{3}(.*?)\"{3}", resp, re.DOTALL)
         if match:
             extracted_text = match.group(1).strip()
         else:
             logging.info("No feedback text found between triple quotes.")
             return True, "", messages
 
-        review_feedback = f"The Syntax Reviewer's feedback:\n\"\"\"\n{extracted_text}\n\"\"\""
+        review_feedback = (
+            f'The Syntax Reviewer\'s feedback:\n"""\n{extracted_text}\n"""'
+        )
         logging.info(review_feedback)
         return False, review_feedback, messages

@@ -22,7 +22,6 @@ Dynamic keys are particularly useful in loop structures, where data is iterative
 Common arguments for each instruction:
 - objective: The string contains an objective description for this instruction only.
 - inside_loop: Whether this instruction is inside a loop or not.
-- rule_num: which rule (include ID of rule) the instruction has been applied
 
 1. 'WebSearch': {
     "query": The search query string.
@@ -40,19 +39,19 @@ Common arguments for each instruction:
     "content": This is the content to be processed. It's the raw input that the AI will work on.
   }
 
-1. 'If': {
+3. 'If': {
     "condition": The condition to be evaluated.
     "then": The list of instructions to be executed if the condition is true.
     "else": The list of instructions to be executed if the condition is false.
   }
 
-1. 'Loop': {
+4. 'Loop': {
     "count": The number of iterations for the loop, can be evaluated dynamically by using the lazy eval syntax. Example: "jvm.eval(len(jvm.get('fetched_urls.seq3.list')))"
     "idx": jvm.eval(jvm.get('idx')). The number of iterations is determined by the 'count' argument, the initial value of 'idx' can be retrieved with jvm.eval(jvm.get('idx')), the initial value of jvm.get('idx') is 0. For each iteration, the AI checks the jvm.get('idx') argument. Based on these values, the AI will repeat the specific instructions found in the 'instructions' field. jvm.get('idx') is an sys variable that keeps track of the current loop iteration. If you want to print current search result on the current loop iteration, you can use the following code: ```python print(jvm.get('search_results.seq1.list')[jvm.get('idx')])```. here is another example to construct a dynamic key for any instructions inside the loop, code: ```python jvm.set('relevant_info_' + str(jvm.get('idx')) + '.seq3'), value)```, assume the value 'count' of loop is 3, the constructed key will be evaluated as: 'relevant_info_0.seq3', 'relevant_info_1.seq3', 'relevant_info_2.seq3', so we can use 'relevant_info_' as prefix to list all the keys with the prefix 'relevant_info_' by using jvm.list_keys_with_prefix('relevant_info_'), or we can use jvm.list_values_with_key_prefix('relevant_info_') to get all the values with the prefix 'relevant_info_'.
     "instructions": The list of instructions to be repeated for each iteration.
   }
 
-1. 'RunPython': {  // do not use any non-existing arguments
+5. 'RunPython': {  // do not use any non-existing arguments
     "code": A multiline string containing the entire Python code to be executed. Inside the code, you can call JVM's functions directly without using jvm.eval() syntax to access and manipulate data, such as ```python jvm.set("temperature.seq3.int", 67)```, jvm.get() and so on, because jvm module is imported by default.
     "code_review": does it achieve the objective? Which part does not follow the coding standards?
     "pkg_dependencies": A list of Python packages that the code depends on. You should specify only the root package names and not the individual modules or submodules inside them. For example, if you're using the relativedelta class from the dateutil library, you only need to mention dateutil and not dateutil.relativedelta. Standard Python modules like json, os, sys, etc., should be excluded from this list. Before specifying any package, ensure that it's a valid package name that can be installed via pip.
@@ -65,13 +64,6 @@ Common arguments for each instruction:
 
 Everything inside output_format argument of a instruction will be evaluated and persist to database. No further persist/save action is required.
 
-
-## instruction_selection_rules
-Rule 1 - Be mindful of keywords such as 'loop', 'each', 'every', and plural nouns in the task and objective description. Typically, these terms imply that the task requires instructions based on loops.
-Rule 2 - Prioritize basic instructions. If the objective can be achieved using a few basic instructions, utilize them and then return the result.
-Rule 3 - Exercise caution when considering the RunPython instruction. Evaluate whether the objective can be accomplished using other basic instructions. If it can, prefer those over the RunPython instruction and return the result.
-Rule 4 - Exercise caution when considering the Loop instruction. when the task involves combining and summarizing a list of multiple inputs, prefer using the TextCompletion instruction over more advanced ones such as Loop.
-Rule 5 - Lastly, consider using advanced instructions. If the objective can be achieved with these, employ them and return the result.
 
 
 ## Instruction Sequence
