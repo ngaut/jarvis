@@ -246,21 +246,21 @@ def train_skill(stub, task):
     print(f"Jarvis client received: {response}")
 
 
-def save_skill(stub, agent_id, skill_name):
+def save_skill(stub, executor_id, skill_name):
     response = stub.SaveSkill(
         jarvis_pb2.SaveSkillRequest(
-            agent_id=agent_id,
+            executor_id=executor_id,
             skill_name=skill_name,
         )
     )
     print(f"Jarvis client received: {MessageToJson(response)}")
 
 
-def replay(stub, agent_id):
-    response = stub.ChainExecute(
-        jarvis_pb2.GoalExecuteRequest(
-            goal=f"replay {agent_id}",
-            agent_id=agent_id,
+def replay(stub, executor_id):
+    response = stub.Execute(
+        jarvis_pb2.ExecuteRequest(
+            task=f"replay {executor_id}",
+            executor_id=executor_id,
             skip_gen=True,
             enable_skill_library=False,
         )
@@ -271,6 +271,6 @@ def replay(stub, agent_id):
 if __name__ == "__main__":
     channel = grpc.insecure_channel("localhost:51155")
     stub = jarvis_pb2_grpc.JarvisStub(channel)
-    # replay(stub, "d2fac3da7cccfd84ba9fdc57e760f307")
-    # save_skill(stub, "....", "generate_tidb_and_cockroach_tweets_analysis_report",)
+    # replay(stub, "95ad26af69372155af7c92fa17c6b385")
+    # save_skill(stub, "95ad26af69372155af7c92fa17c6b385", "load_tidb_tweets_of_past_days_into_tidbcloud")
     train_skill(stub, simple_tweet_extraction)

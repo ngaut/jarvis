@@ -36,32 +36,32 @@ pipenv install
 To generate a plan for tasks execution based on input goals:
 
 ```
-python -m jarvis --continuous --timeout 3 --config=./config.yaml --startseq=0 --verbose --replan
+python -m jarvis --replan
 ```
 
 To generate a plan for tasks execution based on a given goal file, which should be placed in the 'workspace' directory:
 
 ```
-python -m jarvis --continuous --timeout 3 --config=./config.yaml --startseq=0 --verbose --replan --goalfile=<GOALFILE>
+python -m jarvis --replan --goalfile=<GOALFILE>
 ```
 
 To translate all tasks in plan into JVM instructions:
 
 ```
-python -m jarvis --continuous --timeout 3 --config=./config.yaml --startseq=0 --verbose
+python -m jarvis
 ```
 
 To translate a task with specified task number into JVM instructions:
 
 ```
-python -m jarvis --continuous --timeout 3 --config=./config.yaml --startseq=0 --verbose --compile=<task_num>
+python -m jarvis --compile=<task_num>
 ```
 
 To execute JVM instructions in the specified task:
 
 ```
-python -m jarvis --continuous --timeout 3 --config=./config.yaml --startseq=0 --verbose --yaml=1.yaml
-python -m jarvis --continuous --timeout 3 --config=./config.yaml --startseq=0 --verbose --yaml=2.yaml
+python -m jarvis --yaml=1.yaml
+python -m jarvis --yaml=2.yaml
 ```
 
 ## Docker Integration

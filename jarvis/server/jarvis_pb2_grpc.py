@@ -4,7 +4,6 @@ import grpc
 
 import jarvis.server.jarvis_pb2 as jarvis__pb2
 
-
 class JarvisStub(object):
     """The Jarvis service provides an execute RPC method.
     """
@@ -20,10 +19,10 @@ class JarvisStub(object):
                 request_serializer=jarvis__pb2.ExecuteRequest.SerializeToString,
                 response_deserializer=jarvis__pb2.ExecuteResponse.FromString,
                 )
-        self.ChainExecute = channel.unary_unary(
-                '/server.Jarvis/ChainExecute',
-                request_serializer=jarvis__pb2.GoalExecuteRequest.SerializeToString,
-                response_deserializer=jarvis__pb2.GoalExecuteResponse.FromString,
+        self.ExecutePlan = channel.unary_unary(
+                '/server.Jarvis/ExecutePlan',
+                request_serializer=jarvis__pb2.ExecuteRequest.SerializeToString,
+                response_deserializer=jarvis__pb2.ExecuteResponse.FromString,
                 )
         self.SaveSkill = channel.unary_unary(
                 '/server.Jarvis/SaveSkill',
@@ -42,7 +41,7 @@ class JarvisServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def ChainExecute(self, request, context):
+    def ExecutePlan(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -62,10 +61,10 @@ def add_JarvisServicer_to_server(servicer, server):
                     request_deserializer=jarvis__pb2.ExecuteRequest.FromString,
                     response_serializer=jarvis__pb2.ExecuteResponse.SerializeToString,
             ),
-            'ChainExecute': grpc.unary_unary_rpc_method_handler(
-                    servicer.ChainExecute,
-                    request_deserializer=jarvis__pb2.GoalExecuteRequest.FromString,
-                    response_serializer=jarvis__pb2.GoalExecuteResponse.SerializeToString,
+            'ExecutePlan': grpc.unary_unary_rpc_method_handler(
+                    servicer.ExecutePlan,
+                    request_deserializer=jarvis__pb2.ExecuteRequest.FromString,
+                    response_serializer=jarvis__pb2.ExecuteResponse.SerializeToString,
             ),
             'SaveSkill': grpc.unary_unary_rpc_method_handler(
                     servicer.SaveSkill,
@@ -101,7 +100,7 @@ class Jarvis(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def ChainExecute(request,
+    def ExecutePlan(request,
             target,
             options=(),
             channel_credentials=None,
@@ -111,9 +110,9 @@ class Jarvis(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/server.Jarvis/ChainExecute',
-            jarvis__pb2.GoalExecuteRequest.SerializeToString,
-            jarvis__pb2.GoalExecuteResponse.FromString,
+        return grpc.experimental.unary_unary(request, target, '/server.Jarvis/ExecutePlan',
+            jarvis__pb2.ExecuteRequest.SerializeToString,
+            jarvis__pb2.ExecuteResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

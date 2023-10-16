@@ -1,4 +1,6 @@
-import openai
+# copy from [BabyAGI](https://github.com/yoheinakajima/babyagi/blob/6ec8a3c57698761a5e1a1494c10493502dacc0d1/classic/BabyElfAGI/main.py)
+# Thanks for yoheinakajima's work.
+
 import json
 import threading
 import logging
@@ -9,16 +11,7 @@ import time
 from datetime import datetime
 
 from jarvis.smartgpt import gpt
-from jarvis.extensions.jarvis_agent import JarvisAgent, EMPTY_FIELD_INDICATOR
-
-# Logging file name and line number
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s",
-)
-os.makedirs("workspace", exist_ok=True)
-os.chdir("workspace")
-
+from jarvis.agent.jarvis_agent import JarvisAgent, EMPTY_FIELD_INDICATOR
 
 OBJECTIVE_EXAMPLE = {
     "objective": "Research untapped.vc",
@@ -306,7 +299,7 @@ class JarvisAgentTools:
         previous_tasks = []
         for previous_task_id in dependent_tasks.keys():
             for previous_task in self.previous_tasks:
-                if previous_task.task_num == previous_task_id:
+                if previous_task == previous_task_id:
                     previous_tasks.append(previous_task_id)
 
         while True:
@@ -322,120 +315,129 @@ class JarvisAgentTools:
         return task_info.result
 
 
-# Set OBJECTIVE
-OBJECTIVE = """
-Compose a captivating tweet about the trending AI projects from the last 28 days, using trending data from https://ossinsight.io/collections/artificial-intelligence/.  Here's how to do it:
+if __name__ == "__main__":
+    # Logging file name and line number
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s",
+    )
+    os.makedirs("workspace", exist_ok=True)
+    os.chdir("workspace")
 
-Success Criteria:
+    # Set OBJECTIVE
+    OBJECTIVE = """
+    Compose a captivating tweet about the trending AI projects from the last 28 days, using trending data from https://ossinsight.io/collections/artificial-intelligence/.  Here's how to do it:
 
-- The tweet must summarizes overall trends in AI projects from the last 28 days.
-- 1-3 specific projects need to be featured in the tweet. These projects may rise rapidly in rankings, or github stars count growth rate is ahead of other projects. Make sure your selection is diverse to represent different observed trends.
-- Collect and summarize recent developments (news) of selected projects to ensure that news is timely (nearly a month, current Date: 2023-07-27) and eye-catching
-- The tweet should be engaging, amusing, and adheres to the Twitter's character limit.
+    Success Criteria:
 
-Current Date: 2023-07-27
-"""
-REFLECTION = True
+    - The tweet must summarizes overall trends in AI projects from the last 28 days.
+    - 1-3 specific projects need to be featured in the tweet. These projects may rise rapidly in rankings, or github stars count growth rate is ahead of other projects. Make sure your selection is diverse to represent different observed trends.
+    - Collect and summarize recent developments (news) of selected projects to ensure that news is timely (nearly a month, current Date: 2023-07-27) and eye-catching
+    - The tweet should be engaging, amusing, and adheres to the Twitter's character limit.
 
-##### START MAIN LOOP########
+    Current Date: 2023-07-27
+    """
+    REFLECTION = True
 
-# Print OBJECTIVE
-print("\033[96m\033[1m" + "\n*****OBJECTIVE*****\n" + "\033[0m\033[0m")
-print(OBJECTIVE)
+    ##### START MAIN LOOP########
 
-session_summary = ""
+    # Print OBJECTIVE
+    print("\033[96m\033[1m" + "\n*****OBJECTIVE*****\n" + "\033[0m\033[0m")
+    print(OBJECTIVE)
 
-jarvis = JarvisAgentTools()
-skill_descriptions = f"[{jarvis.name}: {jarvis.description}]"
-task_registry = TaskRegistry()
+    session_summary = ""
 
-# Create the initial task list based on an objective
-task_registry.create_tasklist(OBJECTIVE, skill_descriptions)
+    jarvis = JarvisAgentTools()
+    skill_descriptions = f"[{jarvis.name}: {jarvis.description}]"
+    task_registry = TaskRegistry()
 
-# Initialize task outputs
-task_outputs = {
-    i: {"completed": False, "output": None}
-    for i, _ in enumerate(task_registry.get_tasks())
-}
+    # Create the initial task list based on an objective
+    task_registry.create_tasklist(OBJECTIVE, skill_descriptions)
 
-# Create a thread pool for parallel execution
-with concurrent.futures.ThreadPoolExecutor() as executor:
-    # Loop until all tasks are completed
-    while not all(task["completed"] for task in task_outputs.values()):
-        # Get the tasks that are ready to be executed (i.e., all their dependencies have been completed)
-        tasks = task_registry.get_tasks()
-        # Print the updated task list
-        task_registry.print_tasklist(tasks)
+    # Initialize task outputs
+    task_outputs = {
+        i: {"completed": False, "output": None}
+        for i, _ in enumerate(task_registry.get_tasks())
+    }
 
-        # Update task_outputs to include new tasks
-        for task in tasks:
-            if task["id"] not in task_outputs:
-                task_outputs[task["id"]] = {"completed": False, "output": None}
+    # Create a thread pool for parallel execution
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        # Loop until all tasks are completed
+        while not all(task["completed"] for task in task_outputs.values()):
+            # Get the tasks that are ready to be executed (i.e., all their dependencies have been completed)
+            tasks = task_registry.get_tasks()
+            # Print the updated task list
+            task_registry.print_tasklist(tasks)
 
-        ready_tasks = [
-            (task["id"], task)
-            for task in tasks
-            if all(
-                (dep in task_outputs and task_outputs[dep]["completed"])
-                for dep in task.get("dependent_task_ids", [])
-            )
-            and not task_outputs[task["id"]]["completed"]
-        ]
+            # Update task_outputs to include new tasks
+            for task in tasks:
+                if task["id"] not in task_outputs:
+                    task_outputs[task["id"]] = {"completed": False, "output": None}
 
-        # Wait for the tasks to complete
-        for task_id, task in ready_tasks:
-            if task_outputs[task_id]["completed"]:
-                continue
+            ready_tasks = [
+                (task["id"], task)
+                for task in tasks
+                if all(
+                    (dep in task_outputs and task_outputs[dep]["completed"])
+                    for dep in task.get("dependent_task_ids", [])
+                )
+                and not task_outputs[task["id"]]["completed"]
+            ]
 
-            task_id, output = task_registry.execute_task(
-                task_id, task, jarvis.exec, task_outputs, OBJECTIVE
-            )
-            task_outputs[task_id]["output"] = output
-            task_outputs[task_id]["completed"] = True
+            # Wait for the tasks to complete
+            for task_id, task in ready_tasks:
+                if task_outputs[task_id]["completed"]:
+                    continue
 
-            # Update the task in the TaskRegistry
-            task_registry.update_tasks(
-                {"id": task_id, "status": "completed", "result": output}
-            )
+                task_id, output = task_registry.execute_task(
+                    task_id, task, jarvis.exec, task_outputs, OBJECTIVE
+                )
+                task_outputs[task_id]["output"] = output
+                task_outputs[task_id]["completed"] = True
 
-            completed_task = task_registry.get_task(task_id)
-            print(
-                f"\033[92mTask #{task_id}: {completed_task.get('task')} \033[0m\033[92m[COMPLETED]\033[0m\033[92m[{completed_task.get('skill')}]\033[0m"
-            )
-
-            # Reflect on the output
-            if output:
-                session_summary += (
-                    json.dumps(completed_task) + "\n" + str(output) + "\n"
+                # Update the task in the TaskRegistry
+                task_registry.update_tasks(
+                    {"id": task_id, "status": "completed", "result": output}
                 )
 
-                if REFLECTION == True:
-                    (
-                        new_tasks,
-                        insert_after_ids,
-                        tasks_to_update,
-                    ) = task_registry.reflect_on_output(output, skill_descriptions)
-                    # Insert new tasks
-                    for new_task, after_id in zip(new_tasks, insert_after_ids):
-                        task_registry.add_task(new_task, after_id)
+                completed_task = task_registry.get_task(task_id)
+                print(
+                    f"\033[92mTask #{task_id}: {completed_task.get('task')} \033[0m\033[92m[COMPLETED]\033[0m\033[92m[{completed_task.get('skill')}]\033[0m"
+                )
 
-                    # Update existing tasks
-                    for task_to_update in tasks_to_update:
-                        task_registry.update_tasks(task_to_update)
+                # Reflect on the output
+                if output:
+                    session_summary += (
+                        json.dumps(completed_task) + "\n" + str(output) + "\n"
+                    )
 
-        # print(task_outputs.values())
-        if all(task["status"] == "completed" for task in task_registry.tasks):
-            print("All tasks completed!")
-            break
+                    if REFLECTION == True:
+                        (
+                            new_tasks,
+                            insert_after_ids,
+                            tasks_to_update,
+                        ) = task_registry.reflect_on_output(output, skill_descriptions)
+                        # Insert new tasks
+                        for new_task, after_id in zip(new_tasks, insert_after_ids):
+                            task_registry.add_task(new_task, after_id)
 
-        # Short delay to prevent busy looping
-        time.sleep(0.1)
+                        # Update existing tasks
+                        for task_to_update in tasks_to_update:
+                            task_registry.update_tasks(task_to_update)
 
-    # Print session summary
-    print("\033[96m\033[1m" + "\n*****SAVING FILE...*****\n" + "\033[0m\033[0m")
-    file = open(f'output_{datetime.now().strftime("%d_%m_%Y_%H_%M_%S")}.txt', "w")
-    file.write(session_summary)
-    file.close()
-    print("...file saved.")
-    print("END")
-    executor.shutdown()
+            # print(task_outputs.values())
+            if all(task["status"] == "completed" for task in task_registry.tasks):
+                print("All tasks completed!")
+                break
+
+            # Short delay to prevent busy looping
+            time.sleep(0.1)
+
+        # Print session summary
+        print("\033[96m\033[1m" + "\n*****SAVING FILE...*****\n" + "\033[0m\033[0m")
+        file = open(f'output_{datetime.now().strftime("%d_%m_%Y_%H_%M_%S")}.txt', "w")
+        file.write(session_summary)
+        file.close()
+        print("...file saved.")
+        print("END")
+        executor.shutdown()

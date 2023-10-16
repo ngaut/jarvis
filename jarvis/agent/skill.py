@@ -3,14 +3,13 @@ import logging
 import glob
 import os
 import yaml
+import json
 from typing import Dict, Optional
 import traceback
 
 from langchain.vectorstores import Chroma
-from langchain.embeddings.openai import OpenAIEmbeddings
 
 from jarvis.smartgpt import gpt
-import jarvis.utils as U
 
 skill_gen_prompt = """
 You are a helpful assistant that writes a json format skill description for the given task and it's execution plan.
@@ -24,8 +23,8 @@ You should only respond in JSON format as described below
 Ensure the response can be parsed by Python json.loads"""
 
 
-def custom_copytree_for_jarvis(src_dir, dst_dir):
-    U.f_mkdir(dst_dir)
+def custom_skill_copytree(src_dir, dst_dir):
+    os.makedirs(dst_dir, exist_ok=True)
 
     for file_name in os.listdir(src_dir):
         s = os.path.join(src_dir, file_name)
@@ -53,16 +52,19 @@ class SkillManager:
         self.retrieval_top_k = retrieval_top_k
         self.model_name = model_name
         self.retrieval_threshold = retrieval_threshold
+        self.skill_code_dir = f"{skill_library_dir}/code"
+        self.skill_description_dir = f"{skill_library_dir}/description"
+        self.skill_vectordb_dir = f"{skill_library_dir}/vectordb"
+        self.skill_metadata = f"{skill_library_dir}/skills.json"
 
-        U.f_mkdir(f"{skill_library_dir}/code")
-        U.f_mkdir(f"{skill_library_dir}/description")
-        U.f_mkdir(f"{skill_library_dir}/vectordb")
-        skill_file = f"{skill_library_dir}/skills.json"
-        if U.f_exists(skill_file):
-            logging.info(
-                f"\033[33mLoading Skill Manager from {skill_library_dir}/skill\033[0m"
-            )
-            self.skills = U.load_json(f"{skill_library_dir}/skills.json")
+        os.makedirs(self.skill_code_dir, exist_ok=True)
+        os.makedirs(self.skill_description_dir, exist_ok=True)
+        os.makedirs(self.skill_vectordb_dir, exist_ok=True)
+
+        if os.path.exists(self.skill_metadata):
+            logging.info(f"Loading Skill Manager from {self.skill_metadata}")
+            with open(self.skill_metadata, "r") as file:
+                self.skills = json.load(file)
         else:
             self.skills = {}
 
@@ -70,13 +72,12 @@ class SkillManager:
         self.vectordb = Chroma(
             collection_name="skill_vectordb",
             embedding_function=embedding_func,
-            persist_directory=f"{skill_library_dir}/vectordb",
+            persist_directory=self.skill_vectordb_dir,
         )
 
         assert self.vectordb._collection.count() == len(self.skills), (
             f"Skill Manager's vectordb is not synced with skills.json.\n"
             f"There are {self.vectordb._collection.count()} skills in vectordb but {len(self.skills)} skills in skills.json.\n"
-            f"Did you set resume=False when initializing the manager?\n"
             f"You may need to manually delete the vectordb directory for running from scratch."
         )
 
@@ -86,9 +87,7 @@ class SkillManager:
             raise ValueError(f"Skill '{skill_name}' not found.")
 
         try:
-            custom_copytree_for_jarvis(
-                self._skill_dir(skill["skill_name_w_ver"]), dest_dir
-            )
+            custom_skill_copytree(self._skill_dir(skill["skill_name_w_ver"]), dest_dir)
         except Exception as e:
             logging.error("Error saving skill {resp}: {e}")
             logging.info(traceback.format_exc())
@@ -99,14 +98,16 @@ class SkillManager:
     def add_new_skill(self, task_dir, skill_name: Optional[str] = None):
         task, code = self.load_skill_from_dir(task_dir)
         if skill_name is None or len(skill_name) <= 3:
+            # use gpt to generate skill name while skill_name is not provided or too short
             skill_name, _ = self.generate_skill_description(task, code)
         skill_description = task
 
+        # prepare skill name and skill dir
         if skill_name in self.skills:
-            print(f"\033[33mSkill {skill_name} already exists. Rewriting!\033[0m")
+            logging.info(f"Skill {skill_name} already exists. Rewriting!")
             self.vectordb._collection.delete(ids=[skill_name])
             i = 2
-            while f"{skill_name}V{i}" in os.listdir(f"{self.skill_library_dir}/code"):
+            while f"{skill_name}V{i}" in os.listdir(self.skill_code_dir):
                 i += 1
             dumped_skill_name = f"{skill_name}V{i}"
         else:
@@ -117,8 +118,9 @@ class SkillManager:
             f"generate skill.... skill_dir: {skill_dir}, skill_name: {skill_name}, skill_description: {skill_description}"
         )
 
+        # save skill
         try:
-            custom_copytree_for_jarvis(task_dir, skill_dir)
+            custom_skill_copytree(task_dir, skill_dir)
         except Exception as e:
             logging.error("Error saving skill {resp}: {e}")
             logging.info(traceback.format_exc())
@@ -138,11 +140,13 @@ class SkillManager:
             self.skills
         ), "vectordb is not synced with skills.json"
 
-        U.dump_text(
-            skill_description,
-            f"{self.skill_library_dir}/description/{dumped_skill_name}.txt",
-        )
-        U.dump_json(self.skills, f"{self.skill_library_dir}/skills.json")
+        with open(
+            os.path.join(self.skill_description_dir, f"{dumped_skill_name}.txt"), "w"
+        ) as file:
+            file.write(skill_description)
+
+        with open(self.skill_metadata, "w") as file:
+            json.dump(self.skills, file)
 
         self.vectordb.persist()
         logging.info(f"Saving skill {skill_name} for {task} to {skill_dir}")
@@ -156,43 +160,19 @@ class SkillManager:
         )
         return (skill_name, None)
 
-        """
-        sys_prompt = skill_gen_prompt
-        user_prompt = (
-            f"task: {task};\n"
-            f"code: {code};\n"
-        )
-
-        content = gpt.complete(
-            prompt=user_prompt, model=self.model_name, system_prompt=sys_prompt
-        )
-    
-        logging.info(f"Generate skill_description {content} for task {task}")
-
-        skill_desc = U.fix_and_parse_json(content)
-        skill_name = skill_desc.get("skill_name")
-        if not skill_name:
-            raise ValueError(f"skill_name is not defined in {content}")
-        skill_description = skill_desc.get("skill_description")
-        if not skill_description:
-            raise ValueError(f"skill_description is not defined in {content}")
-
-        return (skill_name, skill_description)
-        """
-
     def retrieve_skills(self, query):
         k = min(self.vectordb._collection.count(), self.retrieval_top_k)
         if k == 0:
             return {}
-        print(f"\033[33mSkill Manager retrieving for {k} skills\033[0m")
+        logging.info(f"Skill Manager retrieving for {k} skills")
         try:
             docs_and_scores = self.vectordb.similarity_search_with_score(query, k=k)
         except Exception as e:
             logging.error(f"Error retrieving skills for {query}: {e}")
             return {}
-        print(
-            f"\033[33mSkill Manager retrieved skills: "
-            f"{', '.join([doc.metadata['skill_name'] for doc, _ in docs_and_scores])}\033[0m"
+        logging.info(
+            f"Skill Manager retrieved skills: "
+            f"{', '.join([doc.metadata['skill_name'] for doc, _ in docs_and_scores])}"
         )
         skills = {}
         for doc, score in docs_and_scores:
@@ -245,4 +225,4 @@ class SkillManager:
             raise
 
     def _skill_dir(self, skill_name):
-        return os.path.join(self.skill_library_dir, "code", skill_name)
+        return os.path.join(self.skill_code_dir, skill_name)
