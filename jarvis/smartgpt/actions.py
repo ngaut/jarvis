@@ -144,18 +144,39 @@ class FetchWebContentAction:
             chrome_options.add_argument("--disable-dev-shm-usage")
             chrome_options.add_argument("--remote-debugging-port=9222")
 
-        # Installing and setting up Chrome WebDriver with the defined options
-        # driver_path = ChromeDriverManager().install()
+        def initialize_webdriver(chrome_options, use_manager=False):
+            try:
+                if use_manager:
+                    # Installing and setting up Chrome WebDriver with the defined options
+                    driver_path = ChromeDriverManager().install()
+                    return webdriver.Chrome(
+                        executable_path=driver_path, options=chrome_options
+                    )
+                else:
+                    return webdriver.Chrome(options=chrome_options)
+            except Exception as e:
+                logging.error(f"Failed to initialize webdriver: {e}")
+                return None
 
-        # Use context management to ensure the browser is quit
-        #with ChromeWebDriver(executable_path=driver_path, options=chrome_options) as browser:
-        with webdriver.Chrome(options=chrome_options) as browser:
-            # Access the provided URL
+        # try user installed chrome driver first
+        browser = initialize_webdriver(chrome_options)
+        if browser is None:
+            browser = initialize_webdriver(chrome_options, use_manager=True)
+
+        if browser is None:
+            raise ValueError("Failed to initialize webdriver")
+
+        try:
             browser.get(url)
-
             # Extract HTML content from the body of the web page
             body_element = browser.find_element(By.TAG_NAME, "body")
             page_html = body_element.get_attribute("innerHTML")
+        except Exception as e:
+            logging.error(
+                f"An error occurred while fetching the HTML content from the URL: {e}"
+            )
+            raise e
+        finally:
             browser.quit()
 
         return page_html

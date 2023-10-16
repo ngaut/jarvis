@@ -20,7 +20,7 @@ from jarvis.smartgpt import instruction
 from jarvis.smartgpt import jvm
 from jarvis.smartgpt import gpt
 from jarvis.smartgpt.compiler import Compiler
-from jarvis.extensions.skill import SkillManager
+from jarvis.agent.skill import SkillManager
 from jarvis.utils.tracer import conditional_chan_traceable
 
 
@@ -422,16 +422,16 @@ class JarvisAgent:
         self.skill_manager.clone_skill(skill_name, executor_id)
         return excutor.execute_with_plan(f"execute skill {skill_name}", True)
 
-    def save_skill(self, skill_id: str, skill_name: Optional[str] = None):
+    def save_skill(self, executor_id: str, skill_name: Optional[str] = None):
         if self.skill_manager is None:
             raise Exception("skill_library_dir is not provided")
 
-        if len(skill_id.strip()) <= 0:
-            raise Exception("skill_id is not provided")
-        skill_id = skill_id.strip()
+        if len(executor_id.strip()) <= 0:
+            raise Exception("executor_id is not provided")
+        destination_dir = executor_id.strip()
 
         try:
-            skill_name = self.skill_manager.add_new_skill(skill_id, skill_name)
+            skill_name = self.skill_manager.add_new_skill(destination_dir, skill_name)
         except Exception as e:
             raise Exception(f"fail to save skill: {e}")
 

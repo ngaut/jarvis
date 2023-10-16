@@ -27,16 +27,7 @@ from langchain.tools.base import BaseTool
 from langchain.agents.tools import InvalidTool
 
 from jarvis.smartgpt import gpt
-from jarvis.extensions.jarvis_agent import JarvisAgent, EMPTY_FIELD_INDICATOR
-
-
-# Logging file name and line number
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s",
-)
-os.makedirs("workspace", exist_ok=True)
-os.chdir("workspace")
+from jarvis.agent.jarvis_agent import JarvisAgent, EMPTY_FIELD_INDICATOR
 
 # Set up the base react template
 react_prompt_template = """Answer the following question as best you can.
@@ -226,7 +217,11 @@ class AgentExecutor:
             # We then call the tool on the tool input to get an observation
             observation = str(tool.run(action.tool_input))
         else:
-            observation = InvalidTool().run(action.tool)
+            invalid_tool_args = {
+                "requested_tool_name": action.tool,
+                "available_tool_names": self.name_to_tool_map.keys(),
+            }
+            observation = InvalidTool().run(invalid_tool_args)
         return (action, observation)
 
     def _return_stopped_response(
@@ -319,21 +314,32 @@ class JarvisAgentTools:
         return task_info.result
 
 
-objective = """
-Compose a captivating tweet about the trending AI projects from the last 28 days, using trending data from https://ossinsight.io/collections/artificial-intelligence/.  Here's how to do it:
+if __name__ == "__main__":
+    # Logging file name and line number
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s",
+    )
+    os.makedirs("workspace", exist_ok=True)
+    os.chdir("workspace")
 
-Success Criteria:
+    objective = """
+    Compose a captivating tweet about the trending AI projects from the last 28 days, using trending data from https://ossinsight.io/collections/artificial-intelligence/.  Here's how to do it:
 
-- The tweet must summarizes overall trends in AI projects from the last 28 days.
-- 1-3 specific projects need to be featured in the tweet. These projects may rise rapidly in rankings, or github stars count growth rate is ahead of other projects. Make sure your selection is diverse to represent different observed trends.
-- Collect and summarize recent developments (news) of selected projects to ensure that news is timely (nearly a month, current Date: 2023-07-27) and eye-catching
-- The tweet should be engaging, amusing, and adheres to the Twitter's character limit.
+    Success Criteria:
 
-Current Date: 2023-07-27
-"""
+    - The tweet must summarizes overall trends in AI projects from the last 28 days.
+    - 1-3 specific projects need to be featured in the tweet. These projects may rise rapidly in rankings, or github stars count growth rate is ahead of other projects. Make sure your selection is diverse to represent different observed trends.
+    - Collect and summarize recent developments (news) of selected projects to ensure that news is timely (nearly a month, current Date: 2023-07-27) and eye-catching
+    - The tweet should be engaging, amusing, and adheres to the Twitter's character limit.
 
-jarvis = JarvisAgentTools(objective)
-jarvisTool = Tool(name=jarvis.name, description=jarvis.description, func=jarvis.exec)
-agent = AgentExecutor([jarvisTool], model=gpt.GPT_4)
+    Current Date: 2023-07-27
+    """
 
-agent.run(objective)
+    jarvis = JarvisAgentTools(objective)
+    jarvisTool = Tool(
+        name=jarvis.name, description=jarvis.description, func=jarvis.exec
+    )
+    agent = AgentExecutor([jarvisTool], model=gpt.GPT_4)
+
+    agent.run(objective)
