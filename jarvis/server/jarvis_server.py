@@ -11,7 +11,7 @@ import traceback
 
 import jarvis.server.jarvis_pb2 as jarvis_pb2
 import jarvis.server.jarvis_pb2_grpc as jarvis_pb2_grpc
-from jarvis.extensions.jarvis_agent import JarvisAgent, EMPTY_FIELD_INDICATOR
+from jarvis.agent.jarvis_agent import JarvisAgent, EMPTY_FIELD_INDICATOR
 
 
 class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
@@ -20,11 +20,9 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
 
     def Execute(self, request, context):
         # You can access the request parameters using request.task_id, request.task, etc.
-        # TODO: Implement your service logic here
-
         if len(request.task.strip()) <= 0:
             return jarvis_pb2.ExecuteResponse(
-                agent_id=request.agent_id,
+                executor_id=request.executor_id,
                 task_id=request.task_id,
                 error="task is not provided",
             )
@@ -33,10 +31,10 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
         if len(request.goal.strip()) > 0:
             goal = request.goal.strip()
 
-        if len(request.agent_id.strip()) > 0:
-            agent_id = request.agent_id.strip()
+        if len(request.executor_id.strip()) > 0:
+            executor_id = request.executor_id.strip()
         else:
-            agent_id = hashlib.md5(f"{goal}-{datetime.now()}".encode()).hexdigest()
+            executor_id = hashlib.md5(f"{goal}-{datetime.now()}".encode()).hexdigest()
 
         task_id = None
         if request.task_id > 0:
@@ -51,7 +49,7 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
         while retry_num < 3:
             try:
                 task_info = self.agent.execute(
-                    agent_id,
+                    executor_id,
                     goal,
                     task,
                     dependent_tasks,
@@ -61,7 +59,7 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
                 )
             except Exception as e:
                 return jarvis_pb2.ExecuteResponse(
-                    agent_id=agent_id,
+                    executor_id=executor_id,
                     task_id=task_id,
                     task=task,
                     result="",
@@ -75,7 +73,7 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
 
         if retry_num >= 3:
             return jarvis_pb2.ExecuteResponse(
-                agent_id=agent_id,
+                executor_id=executor_id,
                 task_id=task_id,
                 task=task,
                 result="",
@@ -83,30 +81,29 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
             )
 
         return jarvis_pb2.ExecuteResponse(
-            agent_id=agent_id,
+            executor_id=executor_id,
             task_id=task_info.task_num,
             task=task_info.task,
             result=task_info.result,
         )
 
-    def ChainExecute(self, request, context):
+    def ExecutePlan(self, request, context):
         if len(request.goal.strip()) <= 0:
-            return jarvis_pb2.GoalExecuteResponse(
+            return jarvis_pb2.ExecuteResponse(
                 error="goal is not provided",
             )
         goal = request.goal.strip()
 
-        if len(request.agent_id.strip()) > 0:
-            agent_id = request.agent_id.strip()
+        if len(request.executor_id.strip()) > 0:
+            executor_id = request.executor_id.strip()
         else:
-            agent_id = hashlib.md5(f"{goal}-{datetime.now()}".encode()).hexdigest()
-            # agent_id = "10a39b96ec2181acd9c5b3782a0ffa8f"
+            executor_id = hashlib.md5(f"{goal}-{datetime.now()}".encode()).hexdigest()
 
         enable_skill_library = request.enable_skill_library
         skip_gen = request.skip_gen
         try:
             exec_result = self.agent.execute_with_plan(
-                agent_id,
+                executor_id,
                 goal,
                 skip_gen=skip_gen,
                 enable_skill_library=enable_skill_library,
@@ -114,14 +111,14 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
         except Exception as e:
             logging.error(f"Failed to execute goal: {goal}, error: {e}")
             logging.error(traceback.format_exc())
-            return jarvis_pb2.GoalExecuteResponse(
-                agent_id=agent_id,
+            return jarvis_pb2.ExecuteResponse(
+                executor_id=executor_id,
                 goal=goal,
                 error=str(e),
             )
 
-        response = jarvis_pb2.GoalExecuteResponse(
-            agent_id=agent_id,
+        response = jarvis_pb2.ExecuteResponse(
+            executor_id=executor_id,
             goal=goal,
             result=exec_result.result,
         )
@@ -140,23 +137,23 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
         return response
 
     def SaveSkill(self, request, context):
-        if len(request.agent_id.strip()) <= 0:
+        if len(request.executor_id.strip()) <= 0:
             return jarvis_pb2.SaveSkillResponse(
-                error="skill_id is not provided",
+                error="executor_id is not provided",
             )
-        agent_id = request.agent_id.strip()
+        executor_id = request.executor_id.strip()
         skill_name = request.skill_name.strip()
 
         try:
-            skill_name = self.agent.save_skill(agent_id, skill_name)
+            skill_name = self.agent.save_skill(executor_id, skill_name)
         except Exception as e:
             return jarvis_pb2.SaveSkillResponse(
-                agent_id=agent_id,
+                executor_id=executor_id,
                 error=str(e),
             )
 
         return jarvis_pb2.SaveSkillResponse(
-            agent_id=agent_id,
+            executor_id=executor_id,
             result=f"skill is saved as {skill_name}",
         )
 

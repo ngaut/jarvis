@@ -15,7 +15,7 @@
             "type": "python",
             "request": "launch",
             "module": "jarvis",
-            "args": ["--continuous", "--verbose", "--timeout", "3", "--config", "./config.yaml", "--startseq", "0", "--yaml", "1.yaml"],
+            "args": ["--yaml", "1.yaml"],
             "console": "integratedTerminal",
             "justMyCode": true
         },
@@ -24,7 +24,7 @@
             "type": "python",
             "request": "launch",
             "module": "jarvis",
-            "args": ["--continuous", "--verbose", "--timeout", "3", "--config", "./config.yaml", "--startseq", "0", "--replan"],
+            "args": ["--replan"],
             "console": "integratedTerminal",
             "justMyCode": true
         },
@@ -33,7 +33,7 @@
             "type": "python",
             "request": "launch",
             "module": "jarvis",
-            "args": ["--continuous", "--verbose", "--timeout", "3", "--config", "./config.yaml", "--startseq", "0", "--replan", "--goalfile=goal"],
+            "args": ["--replan", "--goalfile=goal"],
             "console": "integratedTerminal",
             "justMyCode": true
         },
@@ -42,7 +42,7 @@
             "type": "python",
             "request": "launch",
             "module": "jarvis",
-            "args": ["--continuous", "--verbose", "--timeout", "3", "--config", "./config.yaml", "--startseq", "0"],
+            "args": [],
             "console": "integratedTerminal",
             "justMyCode": true
         },
@@ -51,7 +51,7 @@
             "type": "python",
             "request": "launch",
             "module": "jarvis",
-            "args": ["--continuous", "--verbose", "--timeout", "3", "--config", "./config.yaml", "--startseq", "0", "--compile", "2"],
+            "args": ["--compile", "2"],
             "console": "integratedTerminal",
             "justMyCode": true
         }

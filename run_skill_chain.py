@@ -3,7 +3,7 @@ import time
 import logging
 import glob
 import argparse
-from jarvis.extensions.jarvis_agent import JarvisAgent
+from jarvis.agent.jarvis_agent import JarvisAgent
 import traceback
 
 
