@@ -1,4 +1,4 @@
-FROM python:3.10.12-bullseye
+FROM python:3.10.13
 
 WORKDIR /app
 
@@ -11,7 +11,8 @@ RUN pipenv install --deploy --ignore-pipfile --verbose
 # Install browsers
 RUN apt-get update && apt-get install -y \
     chromium-driver firefox-esr \
-    ca-certificates libnss3
+    ca-certificates libnss3 \
+    sqlite3 libsqlite3-dev
 
 COPY data/ ./data/
 COPY jarvis/ ./jarvis/
