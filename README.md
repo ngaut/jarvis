@@ -1,86 +1,32 @@
-# Jarvis: A Virtual Machine Tailored for AI
+# Jarvis: AI-Powered Virtual Machine
 
-Jarvis is a virtual machine designed to seamlessly integrate and run AI models. This README provides a step-by-step guide to setting up and using Jarvis.
+Welcome to Jarvis, a cutting-edge virtual machine designed specifically to facilitate AI tasks. This README offers a comprehensive guide to effectively set up and utilize Jarvis for optimal results.
 
 ## Prerequisites
 
-1. Ensure [pipenv](https://pypi.org/project/pipenv/) is installed on your system.
-2. Obtain the necessary API keys to interface with third-party services:
+1. Obtain the necessary API keys to interface with third-party services:
 - [OPENAI_API_KEY](https://platform.openai.com/account/api-keys)
-- Both `GOOGLE_API_KEY` and `GOOGLE_SEARCH_ENGINE_ID`` for integrating Google Search Engine.
+- Both `GOOGLE_API_KEY` and `GOOGLE_SEARCH_ENGINE_ID` for integrating Google Search Engine.
 
-## Setup
+## Installation and Setup
 
 1. Clone this repository:
+
 ```
 git clone https://github.com/ngaut/jarvis.git && cd jarvis
 ```
 
-2. Initiate a Python virtual environment:
-```
-pipenv shell
-```
+2. Set up the environment variables:
 
-3. Install the dependencies:
-```
-pipenv install
-```
-
-4. Set up the environment variables:
 - Rename `.env.template` to `.env`, and input the necessary API keys mentioned in the Prerequisites section.
-- Update the `PYTHONPATH` environment variable with the absolute path of this project and include it in your .env file.
 
-
-## Usage
-
-To generate a plan for tasks execution based on input goals:
-
-```
-python -m jarvis --replan
-```
-
-To generate a plan for tasks execution based on a given goal file, which should be placed in the 'workspace' directory:
-
-```
-python -m jarvis --replan --goalfile=<GOALFILE>
-```
-
-To translate all tasks in plan into JVM instructions:
-
-```
-python -m jarvis
-```
-
-To translate a task with specified task number into JVM instructions:
-
-```
-python -m jarvis --compile=<task_num>
-```
-
-To execute JVM instructions in the specified task:
-
-```
-python -m jarvis --yaml=1.yaml
-python -m jarvis --yaml=2.yaml
-```
-
-## Docker Integration
-
-Run Jarvis within a Docker container by following these steps:
-
-### Build a Local Docker Image
+3. Build a Local Docker Image
 
 ```
 docker build -t jarvis-server:latest .
 ```
 
-Or pull a pre-built Docker image
-
-```
-docker pull public.ecr.aws/l7n5d1m0/jarvis-server:latest
-```
-
-### Running Jarvis Server
+4. Running Jarvis Server
 
 The Jarvis server operates on port `51155` by default, offering services via the gRPC protocol.
 
@@ -94,6 +40,88 @@ jarvis-server:latest
 ```
 
 Note: Ensure you've configured the `.env` file in the current directory before proceeding.
+
+## Usage
+
+For guidance, you can refer to the code provided in this [demo](example.ipynb)
+
+1. Develop a Skill:
+
+Develop a skill that generates summaries of top stories from Hacknews.
+
+```python
+stub.Execute(
+    jarvis_pb2.ExecuteRequest(
+        task=(
+            "Collect the top three articles featured on Hacker News (https://news.ycombinator.com/), "
+            "and produce a single professional reading summary that encompasses the content of all three articles, formatted in a user-friendly manner."
+        )
+    )
+)
+```
+
+Task output example:
+
+```
+executor_id: "ea8fcfdf59c011002875a88fcdac5e97"
+task_id: 1
+task: Collect the top three articles featured on Hacker News (https://news.ycombinator.com/), and produce a single professional reading summary that encompasses the content of all three articles, formatted in a user-friendly manner.
+result: "The University of Turku in Finland is developing an artificial language corpus proficient in all European languages ..."
+```
+
+2. Save a Skill:
+
+A step-by-step guide to save a developed skill for subsequent use.
+
+```python
+stub.SaveSkill(
+    jarvis_pb2.SaveSkillRequest(
+        executor_id="ea8fcfdf59c011002875a88fcdac5e97",
+        skill_name="HackerNews top three articles summary",
+    )
+)
+```
+
+Task output example:
+
+```
+executor_id: "ea8fcfdf59c011002875a88fcdac5e97"
+result: "skill is saved as HackerNews top three articles summary"
+```
+
+
+3. Reuse Skills:
+
+Recall and utilize previously saved skills for the same or related tasks.
+
+```python
+python run_skill_chain.py --workspace=workspace --skill_dir=skill_library --execution_dir=summary_hn_news --skills="HackerNews top three articles summary"
+```
+
+Task output example:
+
+```
+executing skill: HackerNews top three articles summary
+--------------------------------------------------
+Skill Execution Summary
+--------------------------------------------------
+
+Skill Result: The article discusses a 3 state, 3 symbol Turing Machine called 'Bigfoot' that cannot be proven to halt or not without solving a Collatz-like problem ...
+Skill Error:  None
+
+==================================================
+Detailed Task Infos
+==================================================
+
+Subtask: Collect the top three articles featured on Hacker News (https://news.ycombinator.com/), and produce a single professional reading summary that encompasses the content of all three articles, formatted in a user-friendly manner.
+Result: ...
+Error:   None
+
+--------------------------------------------------
+
+End of Execution Summary
+--------------------------------------------------
+```
 
 ## Working with SuperAGI
 

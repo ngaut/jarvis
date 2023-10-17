@@ -140,7 +140,7 @@ class JVMInterpreter:
         # Extract the count and the list of instructions for the loop
         loop_count = 0
         # if loop_count is integer
-        print(
+        logging.info(
             f"loop instruction (seq={jvm_instruction.instruction.get('seq', 'N/A')}) args: {args}"
         )
         if isinstance(args["count"], int):
