@@ -2,6 +2,10 @@
 
 Welcome to Jarvis, a cutting-edge virtual machine designed specifically to facilitate AI tasks. This README offers a comprehensive guide to effectively set up and utilize Jarvis for optimal results.
 
+## Demo
+
+[Experimental Jarvis Application](/docs/media/demo.mp4)
+
 ## Prerequisites
 
 1. Obtain the necessary API keys to interface with third-party services:
