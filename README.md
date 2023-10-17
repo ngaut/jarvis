@@ -4,7 +4,7 @@ Welcome to Jarvis, a cutting-edge virtual machine designed specifically to facil
 
 ## Demo
 
-[Experimental Jarvis Application](/docs/media/demo.mp4)
+https://github.com/ngaut/jarvis/assets/10701973/341a8a3e-0e58-49da-a204-345a84a120a7
 
 ## Prerequisites
 
