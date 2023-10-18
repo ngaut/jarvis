@@ -44,21 +44,17 @@ class SkillManager:
     def __init__(
         self,
         model_name=gpt.GPT_3_5_TURBO_16K,
-        retrieval_top_k=3,
-        retrieval_threshold=0.75,
+        retrieval_top_k=5,
         skill_library_dir="skill_library",
     ):
         self.skill_library_dir = skill_library_dir
         self.retrieval_top_k = retrieval_top_k
         self.model_name = model_name
-        self.retrieval_threshold = retrieval_threshold
         self.skill_code_dir = f"{skill_library_dir}/code"
-        self.skill_description_dir = f"{skill_library_dir}/description"
         self.skill_vectordb_dir = f"{skill_library_dir}/vectordb"
         self.skill_metadata = f"{skill_library_dir}/skills.json"
 
         os.makedirs(self.skill_code_dir, exist_ok=True)
-        os.makedirs(self.skill_description_dir, exist_ok=True)
         os.makedirs(self.skill_vectordb_dir, exist_ok=True)
 
         if os.path.exists(self.skill_metadata):
@@ -140,11 +136,6 @@ class SkillManager:
             self.skills
         ), "vectordb is not synced with skills.json"
 
-        with open(
-            os.path.join(self.skill_description_dir, f"{dumped_skill_name}.txt"), "w"
-        ) as file:
-            file.write(skill_description)
-
         with open(self.skill_metadata, "w") as file:
             json.dump(self.skills, file)
 
@@ -170,23 +161,26 @@ class SkillManager:
         except Exception as e:
             logging.error(f"Error retrieving skills for {query}: {e}")
             return {}
+
+        # Sort docs_and_scores by score in descending order
         logging.info(
             f"Skill Manager retrieved skills: "
             f"{', '.join([doc.metadata['skill_name'] for doc, _ in docs_and_scores])}"
         )
+
         skills = {}
         for doc, score in docs_and_scores:
             logging.info(
                 f"skill: {doc.metadata['skill_name']}, score: {score} for query: {query}"
             )
-            if score > 1 - self.retrieval_threshold:
-                continue
             skills[doc.metadata["skill_name"]] = {
                 "skill_description": self.skills[doc.metadata["skill_name"]][
                     "skill_description"
                 ],
                 "skill_code": self.skills[doc.metadata["skill_name"]]["skill_code"],
+                "match_score": score,
             }
+
         return skills
 
     def load_skill_from_dir(self, task_dir):

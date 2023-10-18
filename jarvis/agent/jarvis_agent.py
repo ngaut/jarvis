@@ -44,6 +44,48 @@ def generate_task_outcome_overview(task, result):
     return resp
 
 
+def get_best_skill_for_task(task, skills):
+    """
+    Calls the OpenAI API to determine the best skill that can solve the task.
+
+    Parameters:
+    - task (str): The task description.
+    - skills (dict): The skills dictionary returned by the skill_manager.
+
+    Returns:
+    - str | None: The best skill that can solve the task or None if no suitable skill is found.
+    """
+
+    # Convert skills into a format suitable for the prompt
+    skill_list = "\n\n".join(
+        [f"- {skill}: {skills[skill]['skill_description']}" for skill in skills.keys()]
+    )
+
+    sys_prompt = (
+        "As a knowledgeable assistant, determine the most appropriate skill to address the given task. "
+        "Output your choice in a JSON format with the key 'skill_name'. "
+        'If no skill is suitable or a skill seems relevant but cannot solve the task, return {"skill_name": ""}.\n'
+    )
+
+    prompt = f"Given the task: '{task}', and the following skills with their descriptions:\n{skill_list}\nWhich skill is best suited to solve the task?"
+
+    resp = gpt.complete(prompt=prompt, model=gpt.GPT_4, system_prompt=sys_prompt)
+
+    logging.info(f"Get task skill selection result: {resp}")
+
+    try:
+        selected_skill = json.loads(resp)
+    except Exception as e:
+        logging.error(f"Error parsing keys{resp}: {e}")
+        return None
+
+    selected_skill_name = selected_skill.get("skill_name", None)
+    if skills.get(selected_skill_name, None) is None:
+        return None
+
+    return selected_skill_name
+
+
 class TaskInfo(BaseModel):
     task_num: int
     task: str
@@ -296,6 +338,8 @@ class JarvisExecutor:
             "Assistant: ['TiDB_Serverless_URLs.seq17.list']\n"
             "User: The top 3 projects based on their advancements and growth rate have been selected. The projects can be retrieved with keys 'top_project_0.seq19.str', 'top_project_1.seq19.str', and 'top_project_2.seq19.str'. These projects will be featured in the tweet for their recent advancements and high growth rate.\n"
             "Assistant: ['top_project_0.seq19.str', 'top_project_1.seq19.str', 'top_project_2.seq19.str']\n"
+            "User: The tweets about MetaGPT from Twitter in the past day have been fetched and inserted into the specified tables in the TiDB Cloud Database.\n"
+            "Assistant: []\n"
         )
         user_prompt = overall_outcome
 
@@ -395,21 +439,27 @@ class JarvisAgent:
         executor_id: str,
         goal: str,
         skip_gen: bool = False,
-        enable_skill_library: bool = False,
     ):
         executor_id, excutor = self._load_executor(executor_id)
-        if enable_skill_library and self.skill_manager is not None:
-            skills = self.skill_manager.retrieve_skills(goal)
-            # todo: improve skill selection logic, add jarvis review
-            for selected_skill_name, selected_skill in skills.items():
-                logging.info(
-                    f"use selected skill: {selected_skill_name}, skill descrption: {selected_skill['skill_description']}"
-                )
-                self.skill_manager.clone_skill(selected_skill_name, executor_id)
-                skip_gen = True
-                break
-
         return excutor.execute_with_plan(goal, skip_gen)
+
+    def execute_with_skill_selection(
+        self,
+        executor_id: str,
+        task: str,
+    ):
+        if self.skill_manager is None:
+            raise Exception("skill_library_dir is not provided")
+
+        selected_skill_name = None
+        skills = self.skill_manager.retrieve_skills(task)
+        selected_skill_name = get_best_skill_for_task(task, skills)
+        if selected_skill_name is None:
+            raise Exception("No suitable skill found")
+
+        logging.info(f"executing skill: {selected_skill_name}")
+
+        return self.execute_skill(executor_id, selected_skill_name)
 
     def execute_skill(
         self,
