@@ -51,7 +51,7 @@ Note: Ensure you've configured the `.env` file in the current directory before p
 
 For guidance, you can refer to the code provided in this [demo](example.ipynb)
 
-1. Develop a Skill:
+### Develop a Skill:
 
 Develop a skill that generates summaries of top stories from Hacknews.
 
@@ -75,7 +75,7 @@ task: Collect the top three articles featured on Hacker News (https://news.ycomb
 result: "The University of Turku in Finland is developing an artificial language corpus proficient in all European languages ..."
 ```
 
-2. Save a Skill:
+### Save a Skill:
 
 A step-by-step guide to save a developed skill for subsequent use.
 
@@ -96,7 +96,7 @@ result: "skill is saved as HackerNews top three articles summary"
 ```
 
 
-3. Reuse Skills:
+### Reuse Skills:
 
 Recall and utilize previously saved skills for the same or related tasks.
 
