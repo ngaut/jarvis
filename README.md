@@ -128,3 +128,6 @@ Error:   None
 End of Execution Summary
 --------------------------------------------------
 ```
+## Special Thanks to RoboGPT
+
+We want to express our deepest gratitude to [RoboGPT](https://github.com/rokstrnisa/RoboGPT). Their pioneering work and groundbreaking contributions have been a source of inspiration in the development of Jarvis.
