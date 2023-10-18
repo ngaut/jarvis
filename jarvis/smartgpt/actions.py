@@ -298,7 +298,7 @@ class WebSearchAction:
 @dataclass(frozen=True)
 class RunPythonAction(Action):
     action_id: int
-    timeout: int = 30  # in seconds
+    timeout: int = 120  # in seconds
     code: str = ""
     pkg_dependencies: List[str] = field(default_factory=list)
     cmd_args: str = ""

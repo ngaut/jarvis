@@ -99,14 +99,12 @@ class JarvisServicer(jarvis_pb2_grpc.JarvisServicer, JarvisAgent):
         else:
             executor_id = hashlib.md5(f"{goal}-{datetime.now()}".encode()).hexdigest()
 
-        enable_skill_library = request.enable_skill_library
         skip_gen = request.skip_gen
         try:
             exec_result = self.agent.execute_with_plan(
                 executor_id,
                 goal,
                 skip_gen=skip_gen,
-                enable_skill_library=enable_skill_library,
             )
         except Exception as e:
             logging.error(f"Failed to execute goal: {goal}, error: {e}")
