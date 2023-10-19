@@ -6,7 +6,8 @@ Welcome to Jarvis, a cutting-edge virtual machine designed specifically to facil
 
 Jarvis collaborates with Microsoft's AutoGen to do tweet analysis.
 
-https://github.com/ngaut/jarvis/assets/10701973/c15dacae-d085-4625-ba49-39de849eb952
+https://github.com/ngaut/jarvis/assets/10701973/2fe3fc02-93e0-4a62-8ffe-0de96b68d401
+
 
 ## Prerequisites
 
