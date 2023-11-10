@@ -20,6 +20,7 @@ from langchain.embeddings.base import Embeddings
 import jarvis.smartgpt.initializer  # ignore this line
 
 GPT_4 = "gpt-4"
+GPT_4_TURBO = "gpt-4-1106-preview"
 GPT_3_5_TURBO = "gpt-3.5-turbo"
 GPT_3_5_TURBO_16K = "gpt-3.5-turbo-16k"
 GPT_3_5_TURBO_INSTRUCT = "gpt-3.5-turbo-instruct"
@@ -114,6 +115,27 @@ OPEN_AI_CHAT_MODELS = {
             max_tokens=32768,
             supports_functions=True,
         ),
+        ChatModelInfo(
+            name="gpt-4-1106-preview",
+            prompt_token_cost=0.01,
+            completion_token_cost=0.003,
+            max_tokens=12800,
+            supports_functions=True,
+        ),
+        ChatModelInfo(
+            name="gpt-3.5-turbo-1106",
+            prompt_token_cost=0.001,
+            completion_token_cost=0.002,
+            max_tokens=16385,
+            supports_functions=True,
+        ),
+        ChatModelInfo(
+            name="gpt-4-vision-preview",
+            prompt_token_cost=0.01,
+            completion_token_cost=0.02,
+            max_tokens=16385,
+            supports_functions=True,
+        )
     ]
 }
 # Set aliases for rolling model IDs
@@ -212,7 +234,6 @@ def create_chat_client(
                 "Azure OpenAI model kwargs must be specified for Azure API"
             )
         return ChatOpenAI(
-            client=openai.ChatCompletion,
             temperature=temperature,
             model_kwargs={
                 "engine": deployment_engine,
@@ -223,7 +244,6 @@ def create_chat_client(
         return ChatOpenAI(
             temperature=temperature,
             model=model,
-            client=openai.ChatCompletion,
         )
 
 
@@ -243,7 +263,6 @@ def create_completion_client(
             )
         return AzureOpenAI(
             model=model,
-            client=openai.Completion,
             deployment_name=deployment_engine,
             temperature=temperature,
             model_kwargs=model_kwargs,
@@ -253,7 +272,6 @@ def create_completion_client(
         return OpenAI(
             temperature=temperature,
             model=model,
-            client=openai.Completion,
             max_tokens=-1,
         )
 
@@ -272,9 +290,9 @@ def create_embedding_client(
                 "Azure OpenAI model kwargs must be specified for Azure API"
             )
         return OpenAIEmbeddings(
-            model=model, client=openai.Embedding, deployment=deployment_engine
+            model=model, deployment=deployment_engine
         )
-    return OpenAIEmbeddings(model=model, client=openai.Embedding)
+    return OpenAIEmbeddings(model=model)
 
 
 class BaseLLM:
@@ -324,6 +342,7 @@ class BaseLLM:
 # declare llm models
 OPEN_AI_MODELS_HUB = {
     "gpt-4": BaseLLM("gpt-4"),
+    "gpt-4-1106-preview": BaseLLM("gpt-4-1106-preview"),
     "gpt-3.5-turbo": BaseLLM("gpt-3.5-turbo"),
     "gpt-3.5-turbo-16k": BaseLLM("gpt-3.5-turbo-16k"),
     "gpt-3.5-turbo-instruct": BaseLLM("gpt-3.5-turbo-instruct"),
