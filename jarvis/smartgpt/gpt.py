@@ -20,6 +20,7 @@ from langchain.embeddings.base import Embeddings
 import jarvis.smartgpt.initializer  # ignore this line
 
 GPT_4 = "gpt-4"
+GPT_4_TURBO = "gpt-4-1106-preview"
 GPT_3_5_TURBO = "gpt-3.5-turbo"
 GPT_3_5_TURBO_16K = "gpt-3.5-turbo-16k"
 GPT_3_5_TURBO_INSTRUCT = "gpt-3.5-turbo-instruct"
@@ -340,7 +341,8 @@ class BaseLLM:
 
 # declare llm models
 OPEN_AI_MODELS_HUB = {
-    "gpt-4": BaseLLM("gpt-4-1106-preview"),
+    "gpt-4": BaseLLM("gpt-4"),
+    "gpt-4-1106-preview": BaseLLM("gpt-4-1106-preview"),
     "gpt-3.5-turbo": BaseLLM("gpt-3.5-turbo"),
     "gpt-3.5-turbo-16k": BaseLLM("gpt-3.5-turbo-16k"),
     "gpt-3.5-turbo-instruct": BaseLLM("gpt-3.5-turbo-instruct"),
